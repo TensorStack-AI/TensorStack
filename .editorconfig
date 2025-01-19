@@ -1,0 +1,9 @@
+root = true
+
+[*.cs]
+
+# IDE0063: Use simple 'using' statement
+csharp_prefer_simple_using_statement = false
+
+# IDE0290: Use primary constructor
+csharp_style_prefer_primary_constructors = false
