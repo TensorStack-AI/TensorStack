@@ -14,7 +14,6 @@ using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
 using TensorStack.Common.Video;
 using TensorStack.Upscaler.Common;
-using TensorStack.Upscaler.Config;
 using TensorStack.Upscaler.Models;
 using TensorStack.Common;
 

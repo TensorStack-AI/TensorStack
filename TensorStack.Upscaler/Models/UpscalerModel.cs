@@ -5,14 +5,14 @@ using System;
 using System.IO;
 using TensorStack.Common;
 using TensorStack.Core.Inference;
-using TensorStack.Upscaler.Config;
+using TensorStack.Upscaler.Common;
 
 namespace TensorStack.Upscaler.Models
 {
     /// <summary>
     /// Default Upscale ModelSession.
     /// </summary>
-    /// <seealso cref="TensorStack.Core.Inference.ModelSession{TensorStack.Upscaler.Config.UpscalerConfig}" />
+    /// <seealso cref="TensorStack.Core.Inference.ModelSession{UpscalerConfig}" />
     public class UpscalerModel : ModelSession<UpscalerConfig>
     {
         private UpscalerModel(UpscalerConfig configuration)
