@@ -206,22 +206,20 @@ namespace TensorStack.Upscaler.Pipelines
         /// <param name="imageTensor">The image tensor.</param>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;ImageTensor&gt; representing the asynchronous operation.</returns>
         private async Task<ImageTensor> UpscaleInternalAsync(ImageTensor imageTensor, UpscaleOptions options, CancellationToken cancellationToken = default)
         {
             return !options.TileMode
-                ? await UpscaleTensorAsync(imageTensor, cancellationToken)
-                : await UpscaleTensorTilesAsync(imageTensor, options.MaxTileSize, options.TileOverlap, cancellationToken);
+                ? await ExecuteUpscaleAsync(imageTensor, cancellationToken)
+                : await ExecuteUpscaleTilesAsync(imageTensor, options.MaxTileSize, options.TileOverlap, cancellationToken);
         }
 
 
         /// <summary>
-        /// Upscale ImageTensor
+        /// Execute Upscaler
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;ImageTensor&gt; representing the asynchronous operation.</returns>
-        private async Task<ImageTensor> UpscaleTensorAsync(ImageTensor imageTensor, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExecuteUpscaleAsync(ImageTensor imageTensor, CancellationToken cancellationToken = default)
         {
             ThrowIfInvalidInput(imageTensor);
             var metadata = await _upscaleModel.LoadAsync(cancellationToken: cancellationToken);
@@ -240,20 +238,19 @@ namespace TensorStack.Upscaler.Pipelines
 
 
         /// <summary>
-        /// Upscale ImageTensor as tiles
+        /// Execute Upscaler using tiles
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <param name="maxTileSize">Maximum size of the tile.</param>
         /// <param name="tileOverlap">The tile overlap.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;ImageTensor&gt; representing the asynchronous operation.</returns>
-        private async Task<ImageTensor> UpscaleTensorTilesAsync(ImageTensor imageTensor, int maxTileSize, int tileOverlap, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExecuteUpscaleTilesAsync(ImageTensor imageTensor, int maxTileSize, int tileOverlap, CancellationToken cancellationToken = default)
         {
-            if (_upscaleModel.MaxSampleSize > 0)
-                maxTileSize = _upscaleModel.MaxSampleSize - tileOverlap;
+            if (_upscaleModel.SampleSize > 0)
+                maxTileSize = _upscaleModel.SampleSize - tileOverlap;
 
             if (imageTensor.Width <= (maxTileSize + tileOverlap) || imageTensor.Height <= (maxTileSize + tileOverlap))
-                return await UpscaleTensorAsync(imageTensor, cancellationToken);
+                return await ExecuteUpscaleAsync(imageTensor, cancellationToken);
 
             var inputTiles = new ImageTiles(imageTensor, tileOverlap);
             var outputTiles = new ImageTiles
@@ -261,10 +258,10 @@ namespace TensorStack.Upscaler.Pipelines
                 inputTiles.Width * _upscaleModel.ScaleFactor,
                 inputTiles.Height * _upscaleModel.ScaleFactor,
                 inputTiles.Overlap * _upscaleModel.ScaleFactor,
-                await UpscaleTensorTilesAsync(inputTiles.Tile1, maxTileSize, tileOverlap, cancellationToken),
-                await UpscaleTensorTilesAsync(inputTiles.Tile2, maxTileSize, tileOverlap, cancellationToken),
-                await UpscaleTensorTilesAsync(inputTiles.Tile3, maxTileSize, tileOverlap, cancellationToken),
-                await UpscaleTensorTilesAsync(inputTiles.Tile4, maxTileSize, tileOverlap, cancellationToken)
+                await ExecuteUpscaleTilesAsync(inputTiles.Tile1, maxTileSize, tileOverlap, cancellationToken),
+                await ExecuteUpscaleTilesAsync(inputTiles.Tile2, maxTileSize, tileOverlap, cancellationToken),
+                await ExecuteUpscaleTilesAsync(inputTiles.Tile3, maxTileSize, tileOverlap, cancellationToken),
+                await ExecuteUpscaleTilesAsync(inputTiles.Tile4, maxTileSize, tileOverlap, cancellationToken)
             );
             return outputTiles.JoinTiles();
         }
@@ -276,10 +273,10 @@ namespace TensorStack.Upscaler.Pipelines
         /// <param name="imageTensor">The image tensor.</param>
         private void ThrowIfInvalidInput(ImageTensor imageTensor)
         {
-            if (_upscaleModel.MaxSampleSize > 0)
+            if (_upscaleModel.SampleSize > 0)
             {
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(imageTensor.Width, _upscaleModel.MaxSampleSize, nameof(imageTensor.Width));
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(imageTensor.Height, _upscaleModel.MaxSampleSize, nameof(imageTensor.Height));
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(imageTensor.Width, _upscaleModel.SampleSize, nameof(imageTensor.Width));
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(imageTensor.Height, _upscaleModel.SampleSize, nameof(imageTensor.Height));
             }
         }
 
@@ -306,30 +303,6 @@ namespace TensorStack.Upscaler.Pipelines
         {
             var upscalerModel = UpscalerModel.Create(configuration, sessionOptionsFactory);
             return new UpscalePipeline(upscalerModel);
-        }
-
-
-        /// <summary>
-        /// Creates an UpscalePipeline
-        /// </summary>
-        /// <param name="modelFile">The model file.</param>
-        /// <param name="scaleFactor">The scale factor.</param>
-        /// <param name="maxSampleSize">Maximum size of the sample.</param>
-        /// <param name="normalization">The normalization.</param>
-        /// <param name="channels">The channels.</param>
-        /// <param name="provider">The provider.</param>
-        /// <param name="deviceId">The device identifier.</param>
-        /// <returns>UpscalePipeline.</returns>
-        public static UpscalePipeline Create(string modelFile, int scaleFactor, int maxSampleSize = 0, Normalization normalization = Normalization.None, int channels = 3, Provider provider = Provider.CPU, int deviceId = 0)
-        {
-            var configuration = new UpscalerConfig(modelFile, provider, deviceId, false)
-            {
-                Channels = channels,
-                ScaleFactor = scaleFactor,
-                MaxSampleSize = maxSampleSize,
-                Normalization = normalization
-            };
-            return Create(configuration);
         }
 
     }

@@ -27,14 +27,14 @@ namespace TensorStack.Upscaler.Models
         public int Channels => Configuration.Channels;
 
         /// <summary>
+        /// The models input size 
+        /// </summary>
+        public int SampleSize => Configuration.SampleSize;
+
+        /// <summary>
         /// The scale factor the model supports, 2x 4x etc
         /// </summary>
         public int ScaleFactor => Configuration.ScaleFactor;
-
-        /// <summary>
-        /// The models input maximum size 
-        /// </summary>
-        public int MaxSampleSize => Configuration.MaxSampleSize;
 
         /// <summary>
         /// The models expected input normalization (0-1 or -1-1)
