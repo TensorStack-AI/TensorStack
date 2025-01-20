@@ -1,0 +1,92 @@
+# TensorStack.Extractors
+
+### Canny
+* https://huggingface.co/axodoxian/controlnet_onnx/resolve/main/annotators/canny.onnx
+
+### Hed
+* https://huggingface.co/axodoxian/controlnet_onnx/resolve/main/annotators/hed.onnx
+
+### Depth
+* https://huggingface.co/axodoxian/controlnet_onnx/resolve/main/annotators/depth.onnx
+* https://huggingface.co/Xenova/depth-anything-large-hf/onnx/model.onnx
+* https://huggingface.co/julienkay/sentis-MiDaS
+
+### Background Removal
+* https://huggingface.co/briaai/RMBG-1.4/resolve/main/onnx/model.onnx
+
+
+# Image Example
+```csharp
+// Extractor config
+var config = new ExtractorConfig("hed.onnx", Provider.DirectML);
+
+// Create Pipeline
+using (var pipeline = ExtractorPipeline.Create(config))
+{
+    // Load Pipeline
+    await pipeline.LoadAsync();
+
+    // Read input image
+    var inputTensor = new ImageInput("Input.png");
+
+    // Run Extractor Pipeline
+    var outputTensor = await pipeline.RunImageAsync(inputTensor);
+
+    // Save Output image
+    await outputTensor.SaveAsync("Output.png");
+}
+```
+
+
+
+# Video Example
+```csharp
+// Extractor config
+var config = new ExtractorConfig("hed.onnx", Provider.DirectML);
+
+// Create Pipeline
+using (var pipeline = ExtractorPipeline.Create(config))
+{
+    // Load Pipeline
+    await pipeline.LoadAsync();
+
+    // Read input video
+    var video = new VideoInput("Input.mp4");
+
+    // Get video input
+    var inputTensor = await video.GetTensorAsync();
+
+    // Run Extractor Pipeline
+    var outputTensor = await pipeline.RunVideoAsync(inputTensor);
+
+    // Save Output video
+    await outputTensor.SaveAync("Output.mp4");
+}
+```
+
+
+
+# Video Stream Example
+```csharp
+// Extractor config
+var config = new ExtractorConfig("hed.onnx", Provider.DirectML);
+
+// Create Pipeline
+using (var pipeline = ExtractorPipeline.Create(config))
+{
+    // Load Pipeline
+    await pipeline.LoadAsync();
+
+    // Read input video
+    var video = new VideoInput("Input.mp4");
+
+    // Get video stream
+    var videoStream = video.GetStreamAsync();
+
+    // Get Extractor stream
+    videoStream = pipeline.GetStreamAsync(videoStream);
+
+    // Save Video Steam
+    await videoStream.SaveAync("Output.mp4");
+}
+```
