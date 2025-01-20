@@ -68,7 +68,7 @@ namespace TensorStack.Image
         public override void Resize(int width, int height, ResizeMode resizeMode = ResizeMode.Stretch)
         {
             _image = _image.Resize(width, height, resizeMode);
-            Update(_image.ToTensor());
+            UpdateTensor(_image.ToTensor());
         }
 
 
@@ -89,6 +89,16 @@ namespace TensorStack.Image
         public override ImageTensor GetClipFeatureTensor(ImageClipOptions clipOptions = default)
         {
             return new ImageInput(this.CreateClipFeatureTensor(clipOptions));
+        }
+
+
+        /// <summary>
+        /// Called when Tensor data has changed
+        /// </summary>
+        protected override void UpdateImage()
+        {
+            _image = this.ToImage();
+            base.UpdateImage();
         }
 
 

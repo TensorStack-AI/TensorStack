@@ -107,8 +107,8 @@ namespace TensorStack.Video
             var fourcc = VideoWriter.FourCC(videoCodec);
             var firstFrame = await imageFrames.FirstAsync(cancellationToken);
             var fullSequence = CacheFirstAndIterate(firstFrame, imageFrames, cancellationToken);
-            var outputHeight = height ?? firstFrame.Frame.Dimensions[2];
-            var outputWidth = width ?? firstFrame.Frame.Dimensions[3];
+            var outputHeight = height.NullIfZero() ?? firstFrame.Frame.Dimensions[2];
+            var outputWidth = width.NullIfZero() ?? firstFrame.Frame.Dimensions[3];
             var outputFramerate = framerate ?? firstFrame.SourceFrameRate;
             var frameSize = new Size(outputWidth, outputHeight);
             await WriteVideoFramesAsync(fullSequence, videoFile, frameSize, outputFramerate, fourcc, cancellationToken);
@@ -136,9 +136,9 @@ namespace TensorStack.Video
                 var emptySize = new Size(0, 0);
                 var outframeRate = (float)(frameRate.HasValue ? Math.Min(frameRate.Value, videoReader.Fps) : videoReader.Fps);
                 var frameSkipInterval = frameRate.HasValue ? (int)(Math.Round(videoReader.Fps) / Math.Min(Math.Round(frameRate.Value), Math.Round(videoReader.Fps))) : 1;
-                var isScaleRequired = width.HasValue || height.HasValue;
-                var scaleX = (width ?? videoReader.FrameWidth) / (double)videoReader.FrameWidth;
-                var scaleY = (height ?? videoReader.FrameHeight) / (double)videoReader.FrameHeight;
+                var isScaleRequired = width.NullIfZero().HasValue || height.NullIfZero().HasValue;
+                var scaleX = (width.NullIfZero() ?? videoReader.FrameWidth) / (double)videoReader.FrameWidth;
+                var scaleY = (height.NullIfZero() ?? videoReader.FrameHeight) / (double)videoReader.FrameHeight;
                 var scaleFactor = scaleX < 1 && scaleY < 1 ? Math.Max(scaleX, scaleY) : Math.Min(scaleX, scaleY);
                 using (var frame = new Mat())
                 {
@@ -270,6 +270,7 @@ namespace TensorStack.Video
         /// <returns>Mat.</returns>
         internal static Mat ToMat(this Tensor<float> tensor)
         {
+            var channels = tensor.Dimensions[1];
             var height = tensor.Dimensions[2];
             var width = tensor.Dimensions[3];
             var mat = new Mat(height, width, MatType.CV_8UC3);
@@ -281,9 +282,19 @@ namespace TensorStack.Video
                     for (int x = 0; x < width; x++)
                     {
                         int pixelIndex = (y * width + x) * 3;
-                        dataPtr[pixelIndex + 2] = GetByteValue(tensor[0, 0, y, x]); // R
-                        dataPtr[pixelIndex + 1] = GetByteValue(tensor[0, 1, y, x]); // G
-                        dataPtr[pixelIndex + 0] = GetByteValue(tensor[0, 2, y, x]); // B
+                        if (channels == 1)
+                        {
+                            var grayscale = GetByteValue(tensor[0, 0, y, x]);
+                            dataPtr[pixelIndex + 2] = grayscale; // R
+                            dataPtr[pixelIndex + 1] = grayscale; // G
+                            dataPtr[pixelIndex + 0] = grayscale; // B
+                        }
+                        else
+                        {
+                            dataPtr[pixelIndex + 2] = GetByteValue(tensor[0, 0, y, x]); // R
+                            dataPtr[pixelIndex + 1] = GetByteValue(tensor[0, 1, y, x]); // G
+                            dataPtr[pixelIndex + 0] = GetByteValue(tensor[0, 2, y, x]); // B
+                        }
                     }
                 }
             }
@@ -310,5 +321,13 @@ namespace TensorStack.Video
             return (value / 255f) * 2.0f - 1.0f;
         }
 
+
+        private static int? NullIfZero(this int? value)
+        {
+            if (value.HasValue && value.Value == 0)
+                return null;
+
+            return value;
+        }
     }
 }

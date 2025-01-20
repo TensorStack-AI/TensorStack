@@ -157,7 +157,7 @@ namespace TensorStack.Common.Tensor
         /// Updates the the tensor data, Buffer.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
-        protected void Update(Tensor<T> tensor)
+        protected void UpdateTensor(Tensor<T> tensor)
         {
             _memory = tensor.Memory;
             _dimensions = tensor.Dimensions.ToArray();

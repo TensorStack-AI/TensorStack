@@ -73,14 +73,76 @@ namespace TensorStack.Common.Tensor
         /// <returns>TensorSpan&lt;System.Single&gt;.</returns>
         public TensorSpan<float> GetChannels(int channels)
         {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(channels, Channels);
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(channels, 0);
             if (Channels == channels)
-                return new TensorSpan<float>(Memory.Span, Dimensions);
+                return this.AsTensorSpan();
 
             var channelSize = Height * Width;
             var channelDimensions = new int[] { 1, channels, Height, Width };
             return new TensorSpan<float>(Memory.Span.Slice(0, channelSize * channels), channelDimensions);
         }
 
+
+        /// <summary>
+        /// Gets the specified channel. (1=R, 2=G, 3=B, 4=A)
+        /// </summary>
+        /// <param name="channel">The channel.</param>
+        /// <returns>Span&lt;System.Single&gt;.</returns>
+        public Span<float> GetChannel(int channel)
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(channel, Channels);
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(channel, 0);
+
+            var channelSize = Height * Width;
+            var startIndex = channelSize * (channel - 1);
+            return Memory.Span.Slice(startIndex, channelSize);
+        }
+
+
+        /// <summary>
+        /// Updates the channel. (1=R, 2=G, 3=B, 4=A)
+        /// </summary>
+        /// <param name="channel">The channel.</param>
+        /// <param name="channelData">The channel data.</param>
+        public void UpdateChannel(int channel, ReadOnlySpan<float> channelData)
+        {
+            var channelSpan = GetChannel(channel);
+            for (int i = 0; i < channelSpan.Length; i++)
+            {
+                channelSpan[i] = channelData[i];
+            }
+            UpdateImage();
+        }
+
+
+        /// <summary>
+        /// Updates the alpha channel with the one from the specified tensor.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        public void UpdateAlphaChannel(ImageTensor tensor)
+        {
+            var source = tensor.GetChannel(tensor.Channels);
+            UpdateChannel(Channels, source);
+        }
+
+
+        /// <summary>
+        /// Called when Tensor data has changed
+        /// </summary>
+        protected virtual void UpdateImage()
+        {
+        }
+
+
+        /// <summary>
+        /// Clones as ImageTensor.
+        /// </summary>
+        /// <returns>ImageTensor.</returns>
+        public ImageTensor CloneAs()
+        {
+            return Clone().AsImageTensor();
+        }
 
         /// <summary>
         /// Throws if Dimensions are invalid.
