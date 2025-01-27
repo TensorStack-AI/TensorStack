@@ -146,38 +146,11 @@ namespace TensorStack.Image
 
 
         /// <summary>
-        /// Creates a CLIP feature tensor.
-        /// </summary>
-        /// <param name="writeableBitmap">The writeable bitmap.</param>
-        /// <returns>ImageTensor.</returns>
-        internal static ImageTensor CreateClipFeatureTensor(this ImageInput imageInput, ImageClipOptions options)
-        {
-            var resized = imageInput.Image.Resize(options.Width, options.Height);
-            var resultTensor = new ImageTensor(new[] { 1, 3, options.Height, options.Width });
-            unsafe
-            {
-                byte* buffer = (byte*)resized.BackBuffer.ToPointer();
-                for (int y = 0; y < options.Height; y++)
-                {
-                    for (int x = 0; x < options.Width; x++)
-                    {
-                        int pixelIndex = (y * options.Width + x) * 4; // BGRA
-                        resultTensor[0, 0, y, x] = ((buffer[pixelIndex + 2] / 255f) - options.Mean[0]) / options.StdDev[0]; // R
-                        resultTensor[0, 1, y, x] = ((buffer[pixelIndex + 1] / 255f) - options.Mean[1]) / options.StdDev[1]; // G
-                        resultTensor[0, 2, y, x] = ((buffer[pixelIndex + 0] / 255f) - options.Mean[0]) / options.StdDev[2]; // B
-                    }
-                }
-            }
-            return resultTensor;
-        }
-
-
-        /// <summary>
         /// Converts ImageTensor to WriteableBitmap.
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <returns>WriteableBitmap.</returns>
-        internal static WriteableBitmap ToImage(this ImageTensor imageTensor)
+        public static WriteableBitmap ToImage(this ImageTensor imageTensor)
         {
             var channels = imageTensor.Dimensions[1];
             var height = imageTensor.Dimensions[2];

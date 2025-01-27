@@ -84,16 +84,6 @@ namespace TensorStack.Image
 
 
         /// <summary>
-        /// Creates a CLIP feature tensor.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        public override ImageTensor GetClipFeatureTensor(ImageClipOptions clipOptions = default)
-        {
-            return new ImageInput(this.CreateClipFeatureTensor(clipOptions));
-        }
-
-
-        /// <summary>
         /// Called when Tensor data has changed
         /// </summary>
         protected override void UpdateImage()

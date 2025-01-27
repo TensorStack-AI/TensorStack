@@ -1,6 +1,7 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -39,6 +40,7 @@ namespace TensorStack.Common.Pipeline
            where P : RunProgress
     {
         Task<T> RunAsync(O options, IProgress<P> progressCallback = default, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<T> RunAsync(O[] options, IProgress<P> progressCallback = default, CancellationToken cancellationToken = default);
     }
 
 

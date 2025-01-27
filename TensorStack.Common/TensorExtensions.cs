@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using TensorStack.Common.Tensor;
 using TensorPrimitives = System.Numerics.Tensors.TensorPrimitives;
 
@@ -600,6 +601,223 @@ namespace TensorStack.Common
         public static void NormalizeZeroOneToOneOne(this Tensor<float> tensor)
         {
             tensor.Memory.Span.NormalizeZeroOneToOneOne();
+        }
+
+        /// <summary>
+        /// Tensor filled with ones
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns>Tensor&lt;T&gt;.</returns>
+        public static Tensor<T> Ones<T>(ReadOnlySpan<int> dimensions) where T : INumber<T> => Fill(dimensions, T.One);
+
+
+        /// <summary>
+        /// Tensor filled with zeros
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns>Tensor&lt;T&gt;.</returns>
+        public static Tensor<T> Zeros<T>(ReadOnlySpan<int> dimensions) where T : INumber<T> => Fill(dimensions, T.Zero);
+
+
+        /// <summary>
+        /// Tensor filled with specified value
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns>Tensor&lt;T&gt;.</returns>
+        public static Tensor<T> Fill<T>(ReadOnlySpan<int> dimensions, T value) where T : INumber<T>
+        {
+            var result = new Tensor<T>(dimensions);
+            result.Fill(value);
+            return result;
+        }
+
+
+        /// <summary>
+        /// Concatenates the specified tensors along the specified axis.
+        /// </summary>
+        /// <param name="tensor1">The tensor1.</param>
+        /// <param name="tensor2">The tensor2.</param>
+        /// <param name="axis">The axis.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException">Only axis 0,1,2 is supported</exception>
+        public static Tensor<T> Concatenate<T>(this Tensor<T> tensor1, Tensor<T> tensor2, int axis = 0)
+        {
+            if (tensor1 == null)
+                return tensor2.Clone();
+
+            return axis switch
+            {
+                0 => ConcatenateAxis0(tensor1, tensor2),
+                1 => ConcatenateAxis1(tensor1, tensor2),
+                2 => ConcatenateAxis2(tensor1, tensor2),
+                _ => throw new NotImplementedException("Only axis 0, 1, 2 is supported")
+            };
+        }
+
+
+        /// <summary>
+        /// Concatenates Axis 0.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="tensor1">The tensor1.</param>
+        /// <param name="tensor2">The tensor2.</param>
+        /// <returns>Tensor&lt;T&gt;.</returns>
+        private static Tensor<T> ConcatenateAxis0<T>(this Tensor<T> tensor1, Tensor<T> tensor2)
+        {
+            var dimensions = tensor1.Dimensions.ToArray();
+            dimensions[0] += tensor2.Dimensions[0];
+
+            var buffer = new Tensor<T>(dimensions);
+            tensor1.Memory.Span.CopyTo(buffer.Memory.Span[..(int)tensor1.Length]);
+            tensor2.Memory.Span.CopyTo(buffer.Memory.Span[(int)tensor1.Length..]);
+            return buffer;
+        }
+
+
+        /// <summary>
+        /// Concatenates Axis 1.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="tensor1">The tensor1.</param>
+        /// <param name="tensor2">The tensor2.</param>
+        /// <returns>Tensor&lt;T&gt;.</returns>
+        /// <exception cref="System.ArgumentException">Length 2, 3 or 4 currently supported</exception>
+        private static Tensor<T> ConcatenateAxis1<T>(Tensor<T> tensor1, Tensor<T> tensor2)
+        {
+            var dimensions = tensor1.Dimensions.ToArray();
+            dimensions[1] += tensor2.Dimensions[1];
+            var concatenatedTensor = new Tensor<T>(dimensions);
+
+            if (tensor1.Dimensions.Length == 2)
+            {
+                for (int i = 0; i < tensor1.Dimensions[0]; i++)
+                    for (int j = 0; j < tensor1.Dimensions[1]; j++)
+                        concatenatedTensor[i, j] = tensor1[i, j];
+
+                for (int i = 0; i < tensor1.Dimensions[0]; i++)
+                    for (int j = 0; j < tensor2.Dimensions[1]; j++)
+                        concatenatedTensor[i, j + tensor1.Dimensions[1]] = tensor2[i, j];
+            }
+            else if (tensor1.Dimensions.Length == 3)
+            {
+                for (int i = 0; i < tensor1.Dimensions[0]; i++)
+                    for (int j = 0; j < tensor1.Dimensions[1]; j++)
+                        for (int k = 0; k < tensor1.Dimensions[2]; k++)
+                            concatenatedTensor[i, j, k] = tensor1[i, j, k];
+
+                for (int i = 0; i < tensor2.Dimensions[0]; i++)
+                    for (int j = 0; j < tensor2.Dimensions[1]; j++)
+                        for (int k = 0; k < tensor2.Dimensions[2]; k++)
+                            concatenatedTensor[i, j + tensor1.Dimensions[1], k] = tensor2[i, j, k];
+            }
+            else if (tensor1.Dimensions.Length == 4)
+            {
+                for (int i = 0; i < tensor1.Dimensions[0]; i++)
+                    for (int j = 0; j < tensor1.Dimensions[1]; j++)
+                        for (int k = 0; k < tensor1.Dimensions[2]; k++)
+                            for (int l = 0; l < tensor1.Dimensions[3]; l++)
+                                concatenatedTensor[i, j, k, l] = tensor1[i, j, k, l];
+
+                for (int i = 0; i < tensor2.Dimensions[0]; i++)
+                    for (int j = 0; j < tensor2.Dimensions[1]; j++)
+                        for (int k = 0; k < tensor2.Dimensions[2]; k++)
+                            for (int l = 0; l < tensor2.Dimensions[3]; l++)
+                                concatenatedTensor[i, j + tensor1.Dimensions[1], k, l] = tensor2[i, j, k, l];
+            }
+            else
+            {
+                throw new ArgumentException("Length 2, 3 or 4 currently supported");
+            }
+            return concatenatedTensor;
+        }
+
+
+        /// <summary>
+        /// Concatenates Axis 2.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="tensor1">The tensor1.</param>
+        /// <param name="tensor2">The tensor2.</param>
+        /// <returns>Tensor&lt;T&gt;.</returns>
+        private static Tensor<T> ConcatenateAxis2<T>(Tensor<T> tensor1, Tensor<T> tensor2)
+        {
+            var dimensions = tensor1.Dimensions.ToArray();
+            dimensions[2] += tensor2.Dimensions[2];
+            var concatenatedTensor = new Tensor<T>(dimensions);
+
+            for (int i = 0; i < dimensions[0]; i++)
+                for (int j = 0; j < dimensions[1]; j++)
+                    for (int k = 0; k < tensor1.Dimensions[2]; k++)
+                        concatenatedTensor[i, j, k] = tensor1[i, j, k];
+
+            for (int i = 0; i < dimensions[0]; i++)
+                for (int j = 0; j < dimensions[1]; j++)
+                    for (int k = 0; k < tensor2.Dimensions[2]; k++)
+                        concatenatedTensor[i, j, k + tensor1.Dimensions[2]] = tensor2[i, j, k];
+
+            return concatenatedTensor;
+        }
+
+
+        /// <summary>
+        /// Computes the softmax function over the specified tensor
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> SoftMax(this Tensor<float> tensor)
+        {
+            TensorPrimitives.SoftMax(tensor.Memory.Span, tensor.Memory.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// Resizes the specified ImageTensor (Bilinear)
+        /// </summary>
+        /// <param name="input">The input.</param>
+        /// <param name="targetWidth">Width of the target.</param>
+        /// <param name="targetHeight">Height of the target.</param>
+        /// <returns>ImageTensor.</returns>
+        public static ImageTensor Resize(this ImageTensor input, int targetWidth, int targetHeight)
+        {
+            var channels = input.Dimensions[1];
+            var height = input.Dimensions[2];
+            var width = input.Dimensions[3];
+            var resized = new ImageTensor(new[] { 1, channels, targetHeight, targetWidth });
+            for (int c = 0; c < channels; c++)
+            {
+                for (int h = 0; h < targetHeight; h++)
+                {
+                    for (int w = 0; w < targetWidth; w++)
+                    {
+                        // Map target pixel to input pixel
+                        var y = h * (float)(height - 1) / (targetHeight - 1);
+                        var x = w * (float)(width - 1) / (targetWidth - 1);
+
+                        var y0 = (int)Math.Floor(y);
+                        var x0 = (int)Math.Floor(x);
+                        var y1 = Math.Min(y0 + 1, height - 1);
+                        var x1 = Math.Min(x0 + 1, width - 1);
+
+                        // Bilinear interpolation
+                        var dy = y - y0;
+                        var dx = x - x0;
+                        var topLeft = input[0, c, y0, x0];
+                        var topRight = input[0, c, y0, x1];
+                        var bottomLeft = input[0, c, y1, x0];
+                        var bottomRight = input[0, c, y1, x1];
+                        resized[0, c, h, w] =
+                            topLeft * (1 - dx) * (1 - dy) +
+                            topRight * dx * (1 - dy) +
+                            bottomLeft * (1 - dx) * dy +
+                            bottomRight * dx * dy;
+                    }
+                }
+            }
+            return resized;
         }
 
     }

@@ -125,6 +125,19 @@ namespace TensorStack.Common.Tensor
 
 
         /// <summary>
+        /// Fills the tensor with the specified value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public void Fill(T value)
+        {
+            for (int i = 0; i < Length; i++)
+            {
+                SetValue(i, value);
+            }
+        }
+
+
+        /// <summary>
         /// Clones this instance.
         /// </summary>
         /// <returns>Tensor&lt;T&gt;.</returns>

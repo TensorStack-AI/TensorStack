@@ -93,38 +93,6 @@ namespace TensorStack.Image
 
 
         /// <summary>
-        /// Creates a CLIP feature tensor.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        internal static ImageTensor CreateClipFeatureTensor(this ImageInput imageTensor, ImageClipOptions options)
-        {
-            using (var resizedBitmap = new Bitmap(imageTensor.Image).Resize(options.Width, options.Height, ResizeMode.Crop))
-            {
-                var tensor = new ImageTensor(new[] { 1, 3, options.Height, options.Width });
-                var bitmapData = resizedBitmap.LockBits(new Rectangle(0, 0, options.Width, options.Height), ImageLockMode.ReadOnly, resizedBitmap.PixelFormat);
-
-                unsafe
-                {
-                    for (int y = 0; y < options.Height; y++)
-                    {
-                        byte* row = (byte*)bitmapData.Scan0 + (y * bitmapData.Stride);
-                        for (int x = 0; x < options.Width; x++)
-                        {
-                            tensor[0, 0, y, x] = ((row[x * 4 + 2] / 255f) - options.Mean[0]) / options.StdDev[0];
-                            tensor[0, 1, y, x] = ((row[x * 4 + 1] / 255f) - options.Mean[1]) / options.StdDev[1];
-                            tensor[0, 2, y, x] = ((row[x * 4 + 0] / 255f) - options.Mean[0]) / options.StdDev[2];
-                        }
-                    }
-                }
-
-                resizedBitmap.UnlockBits(bitmapData);
-                return tensor;
-            }
-
-        }
-
-
-        /// <summary>
         /// Converts Bitmap to Tensor.
         /// </summary>
         /// <param name="bitmap">The bitmap.</param>

@@ -3,9 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TensorStack.Common;
 
-namespace TensorStack.Core.Inference
+namespace TensorStack.Common
 {
     public record ModelOptimization : IEquatable<ModelOptimization>
     {

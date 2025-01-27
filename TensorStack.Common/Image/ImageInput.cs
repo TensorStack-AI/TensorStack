@@ -16,6 +16,5 @@ namespace TensorStack.Common.Image
         public abstract T Image { get; }
         public abstract void Resize(int width, int height, ResizeMode resizeMode = ResizeMode.Stretch);
         public abstract void Save(string filename);
-        public abstract ImageTensor GetClipFeatureTensor(ImageClipOptions options = default);
     }
 }
