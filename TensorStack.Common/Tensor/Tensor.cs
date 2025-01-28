@@ -175,6 +175,14 @@ namespace TensorStack.Common.Tensor
             _memory = tensor.Memory;
             _dimensions = tensor.Dimensions.ToArray();
             _strides = Dimensions.GetStrides();
+            OnTensorDataChanged();
+        }
+
+        /// <summary>
+        /// Called when Tensor data has changed
+        /// </summary>
+        protected virtual void OnTensorDataChanged()
+        {
         }
 
         #region IDisposable

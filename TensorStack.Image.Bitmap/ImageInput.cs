@@ -60,19 +60,6 @@ namespace TensorStack.Image
 
 
         /// <summary>
-        /// Resizes the image and tensor.
-        /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="resizeMode">The resize mode.</param>
-        public override void Resize(int width, int height, ResizeMode resizeMode = ResizeMode.Stretch)
-        {
-            _image = _image.Resize(width, height, resizeMode);
-            UpdateTensor(_image.ToTensor());
-        }
-
-
-        /// <summary>
         /// Saves the image.
         /// </summary>
         /// <param name="filename">The filename.</param>
@@ -85,10 +72,10 @@ namespace TensorStack.Image
         /// <summary>
         /// Called when Tensor data has changed
         /// </summary>
-        protected override void UpdateImage()
+        protected override void OnTensorDataChanged()
         {
+            base.OnTensorDataChanged();
             _image = this.ToImage();
-            base.UpdateImage();
         }
 
 

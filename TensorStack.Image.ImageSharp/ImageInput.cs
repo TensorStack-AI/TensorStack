@@ -2,7 +2,6 @@
 // Licensed under the Apache 2.0 License.
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using TensorStack.Common.Image;
 using TensorStack.Common.Tensor;
 
@@ -61,19 +60,6 @@ namespace TensorStack.Image
 
 
         /// <summary>
-        /// Resizes the image and tensor.
-        /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="resizeMode">The resize mode.</param>
-        public override void Resize(int width, int height, Common.ResizeMode resizeMode = Common.ResizeMode.Stretch)
-        {
-            _image.Mutate(x => x.Resize(width, height));
-            UpdateTensor(_image.ToTensor());
-        }
-
-
-        /// <summary>
         /// Saves the specified image.
         /// </summary>
         /// <param name="filename">The filename.</param>
@@ -86,10 +72,10 @@ namespace TensorStack.Image
         /// <summary>
         /// Called when Tensor data has changed
         /// </summary>
-        protected override void UpdateImage()
+        protected override void OnTensorDataChanged()
         {
+            base.OnTensorDataChanged();
             _image = this.ToImage();
-            base.UpdateImage();
         }
 
 

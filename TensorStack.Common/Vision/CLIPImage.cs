@@ -32,7 +32,7 @@ namespace TensorStack.Common.Vision
         public static ImageTensor Process(ImageTensor input, CLIPImageOptions options)
         {
             options ??= new CLIPImageOptions();
-            var resultTensor = input.Resize(options.Width, options.Height);
+            var resultTensor = input.ResizeImage(options.Width, options.Height, ResizeMode.Stretch);
             resultTensor.NormalizeZeroToOne();
             for (int x = 0; x < resultTensor.Width; x++)
             {

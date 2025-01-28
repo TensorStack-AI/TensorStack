@@ -112,7 +112,7 @@ namespace TensorStack.Common.Tensor
             {
                 channelSpan[i] = channelData[i];
             }
-            UpdateImage();
+            OnTensorDataChanged();
         }
 
 
@@ -128,10 +128,14 @@ namespace TensorStack.Common.Tensor
 
 
         /// <summary>
-        /// Called when Tensor data has changed
+        /// Resizes the ImageTensor
         /// </summary>
-        protected virtual void UpdateImage()
+        /// <param name="width">The target width in pixels.</param>
+        /// <param name="height">The target height in pixels..</param>
+        /// <param name="resizeMode">The resize mode.</param>
+        public void Resize(int width, int height, ResizeMode resizeMode)
         {
+           UpdateTensor(this.ResizeImage(width, height, resizeMode));
         }
 
 

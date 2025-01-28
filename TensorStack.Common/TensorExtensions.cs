@@ -777,47 +777,68 @@ namespace TensorStack.Common
         /// <summary>
         /// Resizes the specified ImageTensor (Bilinear)
         /// </summary>
-        /// <param name="input">The input.</param>
+        /// <param name="sourceImage">The input.</param>
         /// <param name="targetWidth">Width of the target.</param>
         /// <param name="targetHeight">Height of the target.</param>
         /// <returns>ImageTensor.</returns>
-        public static ImageTensor Resize(this ImageTensor input, int targetWidth, int targetHeight)
+        public static ImageTensor ResizeImage(this ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode)
         {
-            var channels = input.Dimensions[1];
-            var height = input.Dimensions[2];
-            var width = input.Dimensions[3];
-            var resized = new ImageTensor(new[] { 1, channels, targetHeight, targetWidth });
+            var cropX = 0;
+            var cropY = 0;
+            var croppedWidth = targetWidth;
+            var croppedHeight = targetWidth;
+            var channels = sourceImage.Dimensions[1];
+            var sourceHeight = sourceImage.Dimensions[2];
+            var sourceWidth = sourceImage.Dimensions[3];
+            var destination = new ImageTensor(new[] { 1, channels, targetHeight, targetWidth });
+            if (resizeMode == ResizeMode.Crop)
+            {
+                var scaleX = (float)targetWidth / sourceImage.Width;
+                var scaleY = (float)targetHeight / sourceImage.Height;
+                var scaleFactor = Math.Max(scaleX, scaleY);
+                croppedWidth = (int)(sourceImage.Width * scaleFactor);
+                croppedHeight = (int)(sourceImage.Height * scaleFactor);
+                cropX = Math.Abs(Math.Max((croppedWidth - targetWidth) / 2, 0));
+                cropY = Math.Abs(Math.Max((croppedHeight - targetHeight) / 2, 0));
+            }
+
             for (int c = 0; c < channels; c++)
             {
-                for (int h = 0; h < targetHeight; h++)
+                for (int h = 0; h < croppedHeight; h++)
                 {
-                    for (int w = 0; w < targetWidth; w++)
+                    for (int w = 0; w < croppedWidth; w++)
                     {
                         // Map target pixel to input pixel
-                        var y = h * (float)(height - 1) / (targetHeight - 1);
-                        var x = w * (float)(width - 1) / (targetWidth - 1);
+                        var y = h * (float)(sourceHeight - 1) / (croppedHeight - 1);
+                        var x = w * (float)(sourceWidth - 1) / (croppedWidth - 1);
 
                         var y0 = (int)Math.Floor(y);
                         var x0 = (int)Math.Floor(x);
-                        var y1 = Math.Min(y0 + 1, height - 1);
-                        var x1 = Math.Min(x0 + 1, width - 1);
+                        var y1 = Math.Min(y0 + 1, sourceHeight - 1);
+                        var x1 = Math.Min(x0 + 1, sourceWidth - 1);
 
                         // Bilinear interpolation
                         var dy = y - y0;
                         var dx = x - x0;
-                        var topLeft = input[0, c, y0, x0];
-                        var topRight = input[0, c, y0, x1];
-                        var bottomLeft = input[0, c, y1, x0];
-                        var bottomRight = input[0, c, y1, x1];
-                        resized[0, c, h, w] =
-                            topLeft * (1 - dx) * (1 - dy) +
-                            topRight * dx * (1 - dy) +
-                            bottomLeft * (1 - dx) * dy +
-                            bottomRight * dx * dy;
+                        var topLeft = sourceImage[0, c, y0, x0];
+                        var topRight = sourceImage[0, c, y0, x1];
+                        var bottomLeft = sourceImage[0, c, y1, x0];
+                        var bottomRight = sourceImage[0, c, y1, x1];
+
+                        var targetY = h - cropY;
+                        var targetX = w - cropX;
+                        if (targetX >= 0 && targetY >= 0 && targetY < destination.Height && targetX < destination.Width)
+                        {
+                            destination[0, c, targetY, targetX] =
+                                    topLeft * (1 - dx) * (1 - dy) +
+                                    topRight * dx * (1 - dy) +
+                                    bottomLeft * (1 - dx) * dy +
+                                    bottomRight * dx * dy;
+                        }
                     }
                 }
             }
-            return resized;
+            return destination;
         }
 
     }

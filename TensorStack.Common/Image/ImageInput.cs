@@ -14,7 +14,6 @@ namespace TensorStack.Common.Image
             : base(dimensions) { }
 
         public abstract T Image { get; }
-        public abstract void Resize(int width, int height, ResizeMode resizeMode = ResizeMode.Stretch);
         public abstract void Save(string filename);
     }
 }
