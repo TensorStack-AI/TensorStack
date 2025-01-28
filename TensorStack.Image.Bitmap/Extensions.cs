@@ -4,8 +4,6 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Threading.Tasks;
-using TensorStack.Common;
-using TensorStack.Common.Image;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Image
@@ -13,11 +11,22 @@ namespace TensorStack.Image
     public static class Extensions
     {
         /// <summary>
+        /// Converts ImageTensor to Bitmap.
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <returns>Bitmap.</returns>
+        public static Bitmap ToImage(this ImageTensor imageTensor)
+        {
+            return imageTensor.ToBitmapImage();
+        }
+
+
+        /// <summary>
         /// Converts ImageTensorBase to ImageTensor.
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <returns>ImageTensor.</returns>
-        public static ImageInput ToImageTensor(this ImageTensor imageTensor)
+        public static ImageInput ToImageInput(this ImageTensor imageTensor)
         {
             return new ImageInput(imageTensor);
         }
@@ -33,7 +42,7 @@ namespace TensorStack.Image
         {
             return Task.Run(() =>
             {
-                using (var image = imageTensor.ToImageTensor())
+                using (var image = imageTensor.ToImageInput())
                 {
                     image.Save(filename);
                 }
@@ -50,45 +59,6 @@ namespace TensorStack.Image
         public static Task SaveAsync(this ImageInput imageTensor, string filename)
         {
             return Task.Run(() => imageTensor.Save(filename));
-        }
-
-
-        /// <summary>
-        /// Resizes the specified image.
-        /// </summary>
-        /// <param name="bitmap">The bitmap.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="resizeMode">The resize mode.</param>
-        /// <returns>Bitmap.</returns>
-        internal static Bitmap Resize(this Bitmap bitmap, int width, int height, ResizeMode resizeMode = ResizeMode.Stretch)
-        {
-            using (bitmap)
-            {
-                if (resizeMode == Common.ResizeMode.Crop)
-                {
-                    float scaleX = (float)width / bitmap.Width;
-                    float scaleY = (float)height / bitmap.Height;
-                    var scaleFactor = Math.Max(scaleX, scaleY);
-                    int zoomWidth = (int)(bitmap.Width * scaleFactor);
-                    int zoomHeight = (int)(bitmap.Height * scaleFactor);
-                    if (zoomWidth == width && zoomHeight == height)
-                        return new Bitmap(bitmap, width, height);
-
-                    var resized = new Bitmap(width, height);
-                    int cropX = Math.Max((zoomWidth - width) / 2, 0);
-                    int cropY = Math.Max((zoomHeight - height) / 2, 0);
-                    var rect = new Rectangle(-cropX, -cropY, zoomWidth, zoomHeight);
-                    using (var scaled = new Bitmap(bitmap, zoomWidth, zoomHeight))
-                    using (var context = Graphics.FromImage(resized))
-                    {
-                        context.DrawImage(scaled, rect);
-                    }
-                    return resized;
-                }
-
-                return new Bitmap(bitmap, width, height);
-            }
         }
 
 
@@ -128,7 +98,7 @@ namespace TensorStack.Image
         /// </summary>
         /// <param name="tensor">The tensor.</param>
         /// <returns>Bitmap.</returns>
-        internal static Bitmap ToImage(this ImageTensor tensor)
+        internal static Bitmap ToBitmapImage(this ImageTensor tensor)
         {
             var height = tensor.Dimensions[2];
             var width = tensor.Dimensions[3];

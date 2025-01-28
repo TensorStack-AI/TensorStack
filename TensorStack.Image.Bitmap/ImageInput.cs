@@ -20,7 +20,7 @@ namespace TensorStack.Image
         /// <param name="tensor">The tensor.</param>
         public ImageInput(ImageTensor tensor) : base(tensor)
         {
-            _image = tensor.ToImage();
+            _image = tensor.ToBitmapImage();
         }
 
         /// <summary>
@@ -49,8 +49,10 @@ namespace TensorStack.Image
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="resizeMode">The resize mode.</param>
-        public ImageInput(string filename, int width, int height, ResizeMode resizeMode = ResizeMode.Stretch)
-            : this(new Bitmap(filename).Resize(width, height, resizeMode)) { }
+        public ImageInput(string filename, int width, int height, ResizeMode resizeMode = ResizeMode.Stretch) : this(new Bitmap(filename))
+        {
+            Resize(width, height, resizeMode);
+        }
 
 
         /// <summary>
@@ -75,7 +77,7 @@ namespace TensorStack.Image
         protected override void OnTensorDataChanged()
         {
             base.OnTensorDataChanged();
-            _image = this.ToImage();
+            _image = this.ToBitmapImage();
         }
 
 

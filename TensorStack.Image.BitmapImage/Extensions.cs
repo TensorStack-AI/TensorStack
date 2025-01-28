@@ -7,7 +7,6 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using TensorStack.Common.Image;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Image
@@ -17,13 +16,23 @@ namespace TensorStack.Image
         const string RotationQuery = "System.Photo.Orientation";
         private static Dispatcher Dispatcher => Application.Current.Dispatcher;
 
+        /// <summary>
+        /// Converts ImageTensor to BitmapSource.
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <returns>BitmapSource.</returns>
+        public static BitmapSource ToImage(this ImageTensor imageTensor)
+        {
+            return imageTensor.ToBitmapImage();
+        }
+
 
         /// <summary>
         /// Converts ImageTensorBase to ImageTensor.
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <returns>ImageTensor.</returns>
-        public static ImageInput ToImageTensor(this ImageTensor imageTensor)
+        public static ImageInput ToImageInput(this ImageTensor imageTensor)
         {
             return new ImageInput(imageTensor);
         }
@@ -38,7 +47,7 @@ namespace TensorStack.Image
         {
             return Task.Run(() =>
             {
-                using (var image = imageTensor.ToImageTensor())
+                using (var image = imageTensor.ToImageInput())
                 {
                     image.Save(filename);
                 }
@@ -55,7 +64,6 @@ namespace TensorStack.Image
         {
             return Task.Run(() => imageTensor.Save(filename));
         }
-
 
 
         /// <summary>
@@ -108,49 +116,11 @@ namespace TensorStack.Image
 
 
         /// <summary>
-        /// Resizes the specified image.
-        /// </summary>
-        /// <param name="source">The source.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="resizeMode">The resize mode.</param>
-        /// <returns>WriteableBitmap.</returns>
-        internal static WriteableBitmap Resize(this WriteableBitmap source, int width, int height, Common.ResizeMode resizeMode = Common.ResizeMode.Stretch)
-        {
-            var rect = new Rect(0, 0, width, height);
-            if (resizeMode == Common.ResizeMode.Crop)
-            {
-                float scaleX = (float)width / source.PixelWidth;
-                float scaleY = (float)height / source.PixelHeight;
-                var scaleFactor = Math.Max(scaleX, scaleY);
-                int zoomWidth = (int)(source.PixelWidth * scaleFactor);
-                int zoomHeight = (int)(source.PixelHeight * scaleFactor);
-                int cropX = Math.Max((zoomWidth - width) / 2, 0);
-                int cropY = Math.Max((zoomHeight - height) / 2, 0);
-                rect = new Rect(-cropX, -cropY, zoomWidth, zoomHeight);
-            }
-
-            return Dispatcher.Invoke(() =>
-            {
-                var visual = new DrawingVisual();
-                using (var context = visual.RenderOpen())
-                {
-                    context.DrawImage(source, rect);
-                }
-
-                var resizedBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-                resizedBitmap.Render(visual);
-                return new WriteableBitmap(resizedBitmap);
-            });
-        }
-
-
-        /// <summary>
         /// Converts ImageTensor to WriteableBitmap.
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <returns>WriteableBitmap.</returns>
-        public static WriteableBitmap ToImage(this ImageTensor imageTensor)
+        internal static WriteableBitmap ToBitmapImage(this ImageTensor imageTensor)
         {
             var channels = imageTensor.Dimensions[1];
             var height = imageTensor.Dimensions[2];
