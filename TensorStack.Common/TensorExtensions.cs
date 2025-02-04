@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using TensorStack.Common.Tensor;
 using TensorPrimitives = System.Numerics.Tensors.TensorPrimitives;
 
@@ -601,37 +600,6 @@ namespace TensorStack.Common
         public static void NormalizeZeroOneToOneOne(this Tensor<float> tensor)
         {
             tensor.Memory.Span.NormalizeZeroOneToOneOne();
-        }
-
-        /// <summary>
-        /// Tensor filled with ones
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns>Tensor&lt;T&gt;.</returns>
-        public static Tensor<T> Ones<T>(ReadOnlySpan<int> dimensions) where T : INumber<T> => Fill(dimensions, T.One);
-
-
-        /// <summary>
-        /// Tensor filled with zeros
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns>Tensor&lt;T&gt;.</returns>
-        public static Tensor<T> Zeros<T>(ReadOnlySpan<int> dimensions) where T : INumber<T> => Fill(dimensions, T.Zero);
-
-
-        /// <summary>
-        /// Tensor filled with specified value
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dimensions">The dimensions.</param>
-        /// <returns>Tensor&lt;T&gt;.</returns>
-        public static Tensor<T> Fill<T>(ReadOnlySpan<int> dimensions, T value) where T : INumber<T>
-        {
-            var result = new Tensor<T>(dimensions);
-            result.Fill(value);
-            return result;
         }
 
 

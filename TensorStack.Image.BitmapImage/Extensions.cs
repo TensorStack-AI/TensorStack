@@ -13,9 +13,6 @@ namespace TensorStack.Image
 {
     public static class Extensions
     {
-        const string RotationQuery = "System.Photo.Orientation";
-        private static Dispatcher Dispatcher => Application.Current.Dispatcher;
-
         /// <summary>
         /// Converts ImageTensor to BitmapSource.
         /// </summary>
@@ -67,43 +64,13 @@ namespace TensorStack.Image
 
 
         /// <summary>
-        /// Loads the specified imagefile.
-        /// </summary>
-        /// <param name="filePath">The file path.</param>
-        /// <returns>WriteableBitmap.</returns>
-        /// <exception cref="System.ArgumentNullException">filePath</exception>
-        /// <exception cref="System.IO.FileNotFoundException">The file '{filePath}' does not exist.</exception>
-        internal static WriteableBitmap Load(string filePath)
-        {
-            if (string.IsNullOrEmpty(filePath))
-                throw new ArgumentNullException(nameof(filePath));
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException($"The file '{filePath}' does not exist.", filePath);
-
-            var imageUri = new Uri(filePath);
-            var rotation = GetRotation(imageUri);
-            return Dispatcher.Invoke(() =>
-            {
-                var image = new BitmapImage();
-                image.BeginInit();
-                image.Rotation = rotation;
-                image.UriSource = new Uri(filePath);
-                image.CacheOption = BitmapCacheOption.OnLoad;
-                image.EndInit();
-                image.Freeze();
-                return new WriteableBitmap(image);
-            });
-        }
-
-
-        /// <summary>
         /// Saves the specified image to file.
         /// </summary>
         /// <param name="bitmap">The bitmap.</param>
         /// <param name="filePath">The file path.</param>
         internal static void Save(this WriteableBitmap bitmap, string filePath)
         {
-            Dispatcher.Invoke(() =>
+            ImageService.DefaultDispatcher.Invoke(() =>
             {
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(bitmap));
@@ -125,7 +92,7 @@ namespace TensorStack.Image
             var channels = imageTensor.Dimensions[1];
             var height = imageTensor.Dimensions[2];
             var width = imageTensor.Dimensions[3];
-            return Dispatcher.Invoke(() =>
+            return ImageService.DefaultDispatcher.Invoke(() =>
             {
                 if (channels == 1)
                     return imageTensor.ToSingleChannelImage();
@@ -218,7 +185,7 @@ namespace TensorStack.Image
         /// Gets the normalized byte value.
         /// </summary>
         /// <param name="value">The value.</param>
-        private static byte GetByteValue(float value)
+        private static byte GetByteValue(this float value)
         {
             return (byte)Math.Round(Math.Clamp(value / 2 + 0.5, 0, 1) * 255);
         }
@@ -228,38 +195,9 @@ namespace TensorStack.Image
         /// Gets the normalized float value.
         /// </summary>
         /// <param name="value">The value.</param>
-        private static float GetFloatValue(byte value)
+        private static float GetFloatValue(this byte value)
         {
             return (value / 255.0f) * 2.0f - 1.0f;
         }
-
-
-        /// <summary>
-        /// Gets the rotation of an image file.
-        /// </summary>
-        /// <param name="imageUri">The image URI.</param>
-        /// <returns>Rotation.</returns>
-        private static Rotation GetRotation(Uri imageUri)
-        {
-            var bitmapFrame = BitmapFrame.Create(imageUri, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
-            if (bitmapFrame.Metadata is BitmapMetadata bitmapMetadata && bitmapMetadata.ContainsQuery(RotationQuery))
-            {
-                var queryResult = bitmapMetadata.GetQuery(RotationQuery);
-                if (queryResult is ushort orientation)
-                {
-                    switch (orientation)
-                    {
-                        case 6:
-                            return Rotation.Rotate90;
-                        case 3:
-                            return Rotation.Rotate180;
-                        case 8:
-                            return Rotation.Rotate270;
-                    }
-                }
-            }
-            return Rotation.Rotate0;
-        }
-
     }
 }

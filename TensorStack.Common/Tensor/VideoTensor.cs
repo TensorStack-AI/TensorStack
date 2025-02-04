@@ -13,6 +13,7 @@ namespace TensorStack.Common.Tensor
     public class VideoTensor : Tensor<float>
     {
         protected float _frameRate;
+        protected TimeSpan _duration;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VideoTensor"/> class.
@@ -23,6 +24,7 @@ namespace TensorStack.Common.Tensor
             : base(tensor.Memory, tensor.Dimensions)
         {
             _frameRate = frameRate;
+            _duration = TimeSpan.FromSeconds(Frames / FrameRate);
             ThrowIfInvalid();
         }
 
@@ -50,6 +52,11 @@ namespace TensorStack.Common.Tensor
         /// Gets the video width.
         /// </summary>
         public int Width => Dimensions[3];
+
+        /// <summary>
+        /// Gets the duration.
+        /// </summary>
+        public TimeSpan Duration => _duration;
 
 
         /// <summary>
@@ -82,6 +89,16 @@ namespace TensorStack.Common.Tensor
             {
                 yield return new ImageTensor(imageTensor);
             }
+        }
+
+
+        /// <summary>
+        /// Called when Tensor data has changed
+        /// </summary>
+        protected override void OnTensorDataChanged()
+        {
+            _duration = TimeSpan.FromSeconds(Frames / FrameRate);
+            base.OnTensorDataChanged();
         }
 
 

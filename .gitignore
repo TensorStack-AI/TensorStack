@@ -353,5 +353,5 @@ Examples/*
 TensorStack.Florence/*
 TensorStack.StableDiffusion/*
 TensorStack.Tokenizers/*
-TensorStack.WPF.Common/*
+TensorStack.UI.WPF/*
 TensorStackFull.sln

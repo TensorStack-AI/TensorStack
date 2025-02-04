@@ -35,6 +35,16 @@ namespace TensorStack.Common.Tensor
         public Tensor(ReadOnlySpan<int> dimensions)
             : this(new T[dimensions.GetProduct()], dimensions) { }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Tensor{T}"/> class.
+        /// </summary>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <param name="fillWith">The fill with.</param>
+        public Tensor(ReadOnlySpan<int> dimensions, T fillWith)
+            : this(dimensions)
+        {
+            Fill(fillWith);
+        }
 
         /// <summary>
         /// Gets element type.

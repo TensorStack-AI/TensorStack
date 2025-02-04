@@ -75,18 +75,18 @@ namespace TensorStack.Common
 
 
     /// <summary>
-    /// Enum ResizeMode
+    /// ResizeMode
     /// </summary>
     public enum ResizeMode
     {
         /// <summary>
-        /// Center Crop Image
-        /// </summary>
-        Crop = 0,
-
-        /// <summary>
         /// Strech Image
         /// </summary>
-        Stretch = 1
+        Stretch = 0,
+
+        /// <summary>
+        /// Center Crop Image
+        /// </summary>
+        Crop = 1
     }
 }
