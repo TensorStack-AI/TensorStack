@@ -3,7 +3,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using TensorStack.Common.Tensor;
+using TensorStack.Common.Vision;
 using TensorPrimitives = System.Numerics.Tensors.TensorPrimitives;
 
 namespace TensorStack.Common
@@ -743,49 +745,52 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Resizes the specified ImageTensor
+        /// </summary>
+        /// <param name="sourceImage">The source image.</param>
+        /// <param name="targetWidth">Width of the target.</param>
+        /// <param name="targetHeight">Height of the target.</param>
+        /// <param name="resizeMode">The resize mode.</param>
+        /// <param name="resizeMethod">The resize method.</param>
+        /// <returns>ImageTensor.</returns>
+        public static ImageTensor ResizeImage(this ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch, ResizeMethod resizeMethod = ResizeMethod.Bicubic)
+        {
+            return resizeMethod switch
+            {
+                ResizeMethod.Bicubic => ResizeImageBicubic(sourceImage, targetWidth, targetHeight, resizeMode),
+                _ => ResizeImageBilinear(sourceImage, targetWidth, targetHeight, resizeMode),
+            };
+        }
+
+
+        /// <summary>
         /// Resizes the specified ImageTensor (Bilinear)
         /// </summary>
         /// <param name="sourceImage">The input.</param>
         /// <param name="targetWidth">Width of the target.</param>
         /// <param name="targetHeight">Height of the target.</param>
         /// <returns>ImageTensor.</returns>
-        public static ImageTensor ResizeImage(this ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode)
+        private static ImageTensor ResizeImageBilinear(ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode)
         {
-            var cropX = 0;
-            var cropY = 0;
-            var croppedWidth = targetWidth;
-            var croppedHeight = targetWidth;
             var channels = sourceImage.Dimensions[1];
             var sourceHeight = sourceImage.Dimensions[2];
             var sourceWidth = sourceImage.Dimensions[3];
+            var cropSize = GetCropCoordinates(sourceHeight, sourceWidth, targetHeight, targetWidth, resizeMode);
             var destination = new ImageTensor(new[] { 1, channels, targetHeight, targetWidth });
-            if (resizeMode == ResizeMode.Crop)
+            Parallel.For(0, channels, c =>
             {
-                var scaleX = (float)targetWidth / sourceImage.Width;
-                var scaleY = (float)targetHeight / sourceImage.Height;
-                var scaleFactor = Math.Max(scaleX, scaleY);
-                croppedWidth = (int)(sourceImage.Width * scaleFactor);
-                croppedHeight = (int)(sourceImage.Height * scaleFactor);
-                cropX = Math.Abs(Math.Max((croppedWidth - targetWidth) / 2, 0));
-                cropY = Math.Abs(Math.Max((croppedHeight - targetHeight) / 2, 0));
-            }
-
-            for (int c = 0; c < channels; c++)
-            {
-                for (int h = 0; h < croppedHeight; h++)
+                for (int h = 0; h < cropSize.MaxY; h++)
                 {
-                    for (int w = 0; w < croppedWidth; w++)
+                    for (int w = 0; w < cropSize.MaxX; w++)
                     {
-                        // Map target pixel to input pixel
-                        var y = h * (float)(sourceHeight - 1) / (croppedHeight - 1);
-                        var x = w * (float)(sourceWidth - 1) / (croppedWidth - 1);
+                        var y = h * (float)(sourceHeight - 1) / (cropSize.MaxY - 1);
+                        var x = w * (float)(sourceWidth - 1) / (cropSize.MaxX - 1);
 
                         var y0 = (int)Math.Floor(y);
                         var x0 = (int)Math.Floor(x);
                         var y1 = Math.Min(y0 + 1, sourceHeight - 1);
                         var x1 = Math.Min(x0 + 1, sourceWidth - 1);
 
-                        // Bilinear interpolation
                         var dy = y - y0;
                         var dx = x - x0;
                         var topLeft = sourceImage[0, c, y0, x0];
@@ -793,8 +798,8 @@ namespace TensorStack.Common
                         var bottomLeft = sourceImage[0, c, y1, x0];
                         var bottomRight = sourceImage[0, c, y1, x1];
 
-                        var targetY = h - cropY;
-                        var targetX = w - cropX;
+                        var targetY = h - cropSize.MinY;
+                        var targetX = w - cropSize.MinX;
                         if (targetX >= 0 && targetY >= 0 && targetY < destination.Height && targetX < destination.Width)
                         {
                             destination[0, c, targetY, targetX] =
@@ -805,9 +810,114 @@ namespace TensorStack.Common
                         }
                     }
                 }
-            }
+            });
             return destination;
         }
 
+
+        /// <summary>
+        /// Resizes the specified ImageTensor (ResizeImageBicubic)
+        /// </summary>
+        /// <param name="sourceImage">The input.</param>
+        /// <param name="targetWidth">Width of the target.</param>
+        /// <param name="targetHeight">Height of the target.</param>
+        /// <returns>ImageTensor.</returns>
+        private static ImageTensor ResizeImageBicubic(ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch)
+        {
+            var channels = sourceImage.Dimensions[1];
+            var sourceHeight = sourceImage.Dimensions[2];
+            var sourceWidth = sourceImage.Dimensions[3];
+            var cropSize = GetCropCoordinates(sourceHeight, sourceWidth, targetHeight, targetWidth, resizeMode);
+            var destination = new ImageTensor(new[] { 1, channels, targetHeight, targetWidth });
+            Parallel.For(0, channels, c =>
+            {
+                for (int h = 0; h < cropSize.MaxY; h++)
+                {
+                    for (int w = 0; w < cropSize.MaxX; w++)
+                    {
+                        float y = h * (float)(sourceHeight - 1) / (cropSize.MaxY - 1);
+                        float x = w * (float)(sourceWidth - 1) / (cropSize.MaxX - 1);
+
+                        int yInt = (int)Math.Floor(y);
+                        int xInt = (int)Math.Floor(x);
+                        float yFrac = y - yInt;
+                        float xFrac = x - xInt;
+
+                        float[] colVals = new float[4];
+
+                        for (int i = -1; i <= 2; i++)
+                        {
+                            int yi = Math.Clamp(yInt + i, 0, sourceHeight - 1);
+                            float[] rowVals = new float[4];
+
+                            for (int j = -1; j <= 2; j++)
+                            {
+                                int xi = Math.Clamp(xInt + j, 0, sourceWidth - 1);
+                                rowVals[j + 1] = sourceImage[0, c, yi, xi];
+                            }
+
+                            colVals[i + 1] = CubicInterpolate(rowVals[0], rowVals[1], rowVals[2], rowVals[3], xFrac);
+                        }
+
+                        var targetY = h - cropSize.MinY;
+                        var targetX = w - cropSize.MinX;
+                        if (targetX >= 0 && targetY >= 0 && targetY < targetHeight && targetX < targetWidth)
+                        {
+                            destination[0, c, h, w] = CubicInterpolate(colVals[0], colVals[1], colVals[2], colVals[3], yFrac);
+                        }
+                    }
+                }
+            });
+
+            return destination;
+        }
+
+        
+        /// <summary>
+        /// Cubic interpolate.
+        /// </summary>
+        /// <param name="v0">The v0.</param>
+        /// <param name="v1">The v1.</param>
+        /// <param name="v2">The v2.</param>
+        /// <param name="v3">The v3.</param>
+        /// <param name="fraction">The fraction.</param>
+        /// <returns>System.Single.</returns>
+        private static float CubicInterpolate(float v0, float v1, float v2, float v3, float fraction)
+        {
+            float A = (-0.5f * v0) + (1.5f * v1) - (1.5f * v2) + (0.5f * v3);
+            float B = (v0 * -1.0f) + (v1 * 2.5f) - (v2 * 2.0f) + (v3 * 0.5f);
+            float C = (-0.5f * v0) + (0.5f * v2);
+            float D = v1;
+            return A * (fraction * fraction * fraction) + B * (fraction * fraction) + C * fraction + D;
+        }
+
+
+        /// <summary>
+        /// Gets the crop coordinates.
+        /// </summary>
+        /// <param name="sourceHeight">Height of the source.</param>
+        /// <param name="sourceWidth">Width of the source.</param>
+        /// <param name="targetHeight">Height of the target.</param>
+        /// <param name="targetWidth">Width of the target.</param>
+        /// <param name="resizeMode">The resize mode.</param>
+        /// <returns>CoordinateBox&lt;System.Int32&gt;.</returns>
+        private static CoordinateBox<int> GetCropCoordinates(int sourceHeight, int sourceWidth, int targetHeight, int targetWidth, ResizeMode resizeMode)
+        {
+            var cropX = 0;
+            var cropY = 0;
+            var croppedWidth = targetWidth;
+            var croppedHeight = targetHeight;
+            if (resizeMode == ResizeMode.Crop)
+            {
+                var scaleX = (float)targetWidth / sourceWidth;
+                var scaleY = (float)targetHeight / sourceHeight;
+                var scaleFactor = Math.Max(scaleX, scaleY);
+                croppedWidth = (int)(sourceWidth * scaleFactor);
+                croppedHeight = (int)(sourceHeight * scaleFactor);
+                cropX = Math.Abs(Math.Max((croppedWidth - targetWidth) / 2, 0));
+                cropY = Math.Abs(Math.Max((croppedHeight - targetHeight) / 2, 0));
+            }
+            return new CoordinateBox<int>(cropX, cropY, croppedWidth, croppedHeight);
+        }
     }
 }

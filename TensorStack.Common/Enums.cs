@@ -89,4 +89,15 @@ namespace TensorStack.Common
         /// </summary>
         Crop = 1
     }
+
+
+    /// <summary>
+    /// Enum ResizeMethod
+    /// </summary>
+    public enum ResizeMethod
+    {
+        Bilinear = 0,
+        Bicubic = 1
+    }
+
 }
