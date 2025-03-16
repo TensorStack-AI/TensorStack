@@ -7,7 +7,7 @@ namespace TensorStack.Extractors.Common
     /// <summary>
     /// Default ExtractorOptions.
     /// </summary>
-    public record ExtractorOptions : RunOptions
+    public record ExtractorOptions : IRunOptions
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ExtractorOptions"/> class.

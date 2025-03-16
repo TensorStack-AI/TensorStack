@@ -7,7 +7,7 @@ namespace TensorStack.Upscaler.Common
     /// <summary>
     /// Default UpscaleOptions.
     /// </summary>
-    public record UpscaleOptions : RunOptions
+    public abstract record UpscaleOptions : IRunOptions
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="UpscaleOptions"/> class.
@@ -15,7 +15,7 @@ namespace TensorStack.Upscaler.Common
         /// <param name="tileMode">Enable/Disable TileMode, splitting image into smaller tiles to save memory.</param>
         /// <param name="maxTileSize">The maximum size of the tile for TileMode</param>
         /// <param name="tileOverlap">The tile overlap in pixels to avoid visible seams.</param>
-        public UpscaleOptions(bool tileMode = false, int maxTileSize = 512, int tileOverlap = 16)
+        protected UpscaleOptions(bool tileMode = false, int maxTileSize = 512, int tileOverlap = 16)
         {
             TileMode = tileMode;
             MaxTileSize = maxTileSize;

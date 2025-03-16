@@ -71,12 +71,12 @@ namespace TensorStack.Upscaler.Pipelines
         {
             var timestamp = RunProgress.GetTimestamp();
             if (_upscaleModel.Normalization == Normalization.ZeroToOne)
-                options.Input.NormalizeZeroToOne();
+                options.Image.NormalizeZeroToOne();
 
-            var resultTensor = await UpscaleInternalAsync(options.Input, options, cancellationToken);
+            var resultTensor = await UpscaleInternalAsync(options.Image, options, cancellationToken);
             if (_upscaleModel.Normalization == Normalization.ZeroToOne)
             {
-                options.Input.NormalizeOneToOne();
+                options.Image.NormalizeOneToOne();
                 resultTensor.NormalizeOneToOne();
             }
             progressCallback?.Report(new RunProgress(timestamp));
@@ -96,21 +96,21 @@ namespace TensorStack.Upscaler.Pipelines
         {
             var timestamp = RunProgress.GetTimestamp();
             if (_upscaleModel.Normalization == Normalization.ZeroToOne)
-                options.Input.NormalizeZeroToOne();
+                options.Video.NormalizeZeroToOne();
 
             var results = new List<ImageTensor>();
-            foreach (var frame in options.Input.GetFrames())
+            foreach (var frame in options.Video.GetFrames())
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 var resultTensor = await UpscaleInternalAsync(frame, options, cancellationToken);
                 results.Add(resultTensor);
-                progressCallback?.Report(new RunProgress(results.Count, options.Input.Frames, frameTime));
+                progressCallback?.Report(new RunProgress(results.Count, options.Video.Frames, frameTime));
             }
 
-            var resultVideoTensor = new VideoTensor(results.Join(), options.Input.FrameRate);
+            var resultVideoTensor = new VideoTensor(results.Join(), options.Video.FrameRate);
             if (_upscaleModel.Normalization == Normalization.ZeroToOne)
             {
-                options.Input.NormalizeOneToOne();
+                options.Video.NormalizeOneToOne();
                 resultVideoTensor.NormalizeOneToOne();
             }
             progressCallback?.Report(new RunProgress(timestamp));
@@ -130,7 +130,7 @@ namespace TensorStack.Upscaler.Pipelines
         {
             var frameCount = 0;
             var timestamp = RunProgress.GetTimestamp();
-            await foreach (var videoFrame in options.Input)
+            await foreach (var videoFrame in options.Stream)
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 if (_upscaleModel.Normalization == Normalization.ZeroToOne)

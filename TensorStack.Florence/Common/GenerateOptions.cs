@@ -6,7 +6,7 @@ using TensorStack.Common.Vision;
 
 namespace TensorStack.Florence.Common
 {
-    public record GenerateOptions : RunOptions
+    public record GenerateOptions : IRunOptions
     {
         public TaskType TaskType { get; set; }
         public string Prompt { get; set; }

@@ -6,9 +6,10 @@ using System.Diagnostics;
 namespace TensorStack.Common.Pipeline
 {
     /// <summary>
-    /// RunProgress calss for reporting Pipeline progress.
+    /// Basic RunProgress class for reporting Pipeline progress.
     /// </summary>
-    public record RunProgress
+    public record RunProgress : IRunProgress
+
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RunProgress"/> class.

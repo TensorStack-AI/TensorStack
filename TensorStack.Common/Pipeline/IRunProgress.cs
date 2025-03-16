@@ -3,9 +3,9 @@
 namespace TensorStack.Common.Pipeline
 {
     /// <summary>
-    /// RunOptions class for Pipeline options.
+    /// IRunProgress interface for Pipeline progress.
     /// </summary>
-    public record RunOptions
+    public interface IRunProgress
     {
     }
 }

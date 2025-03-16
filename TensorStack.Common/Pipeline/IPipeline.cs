@@ -36,8 +36,8 @@ namespace TensorStack.Common.Pipeline
     /// <seealso cref="TensorStack.Common.Pipeline.IPipeline" />
     public interface IPipeline<T, O, P> : IPipeline
         where T : class
-        where O : RunOptions
-        where P : RunProgress
+        where O : IRunOptions
+        where P : IRunProgress
     {
         Task<T> RunAsync(O options, IProgress<P> progressCallback = default, CancellationToken cancellationToken = default);
     }
@@ -52,7 +52,7 @@ namespace TensorStack.Common.Pipeline
     /// <seealso cref="TensorStack.Common.Pipeline.IPipeline" />
     public interface IPipeline<T, O> : IPipeline<T, O, RunProgress>
         where T : class
-        where O : RunOptions
+        where O : IRunOptions
     {
     }
 
@@ -64,8 +64,8 @@ namespace TensorStack.Common.Pipeline
     /// <typeparam name="P">The RunProgress type</typeparam>
     public interface IPipelineStream<T, O, P> : IPipeline
         where T : class
-        where O : RunOptions
-        where P : RunProgress
+        where O : IRunOptions
+        where P : IRunProgress
     {
         IAsyncEnumerable<T> RunAsync(O options, IProgress<P> progressCallback = default, CancellationToken cancellationToken = default);
     }
@@ -80,7 +80,7 @@ namespace TensorStack.Common.Pipeline
     /// <seealso cref="TensorStack.Common.Pipeline.IPipelineStream{T, O, TensorStack.Common.Pipeline.RunProgress}" />
     public interface IPipelineStream<T, O> : IPipelineStream<T, O, RunProgress>
         where T : class
-        where O : RunOptions
+        where O : IRunOptions
     { 
     }
 }
