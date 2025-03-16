@@ -22,9 +22,10 @@ namespace TensorStack.Extractors.Pipelines
     /// <summary>
     /// Basic ExtractorPipeline. This class cannot be inherited.
     /// </summary>
-    /// <seealso cref="TensorStack.Common.Pipeline.IPipelineImage{TensorStack.Extractors.Common.ExtractorOptions}" />
-    /// <seealso cref="TensorStack.Common.Pipeline.IPipelineVideo{TensorStack.Extractors.Common.ExtractorOptions}" />
-    public sealed class ExtractorPipeline : IPipelineImage<ExtractorOptions>, IPipelineVideo<ExtractorOptions>
+    public sealed class ExtractorPipeline
+        : IPipeline<ImageTensor, ExtractorImageOptions>,
+          IPipeline<VideoTensor, ExtractorVideoOptions>,
+          IPipelineStream<VideoFrame, ExtractorStreamOptions>
     {
         private readonly ExtractorModel _extractorModel;
 
@@ -56,19 +57,6 @@ namespace TensorStack.Extractors.Pipelines
 
 
         /// <summary>
-        /// Run the pipeline ImageTensor to ImageTensor function
-        /// </summary>
-        /// <param name="inputImage">The input image.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>Task&lt;ImageTensor&gt;.</returns>
-        public Task<ImageTensor> RunImageAsync(ImageTensor inputImage, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            return RunImageAsync(default, inputImage, progressCallback, cancellationToken);
-        }
-
-
-        /// <summary>
         /// Run the pipeline ImageTensor to ImageTensor function with the specified UpscaleOptions
         /// </summary>
         /// <param name="options">The options.</param>
@@ -76,35 +64,21 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;ImageTensor&gt; representing the asynchronous operation.</returns>
-        public async Task<ImageTensor> RunImageAsync(ExtractorOptions options, ImageTensor inputImage, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<ImageTensor> RunAsync(ExtractorImageOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            options ??= new ExtractorOptions();
             var timestamp = RunProgress.GetTimestamp();
             if (_extractorModel.Normalization == Normalization.ZeroToOne)
-                inputImage.NormalizeZeroToOne();
+                options.Input.NormalizeZeroToOne();
 
-            var resultTensor = await ExtractInternalAsync(inputImage, options, cancellationToken);
+            var resultTensor = await ExtractInternalAsync(options.Input, options, cancellationToken);
             NormalizeResult(resultTensor);
             if (_extractorModel.Normalization == Normalization.ZeroToOne)
-                inputImage.NormalizeOneToOne();
+                options.Input.NormalizeOneToOne();
             if (options.MergeInput)
-                resultTensor = MergeResult(inputImage, resultTensor);
+                resultTensor = MergeResult(options.Input, resultTensor);
 
             progressCallback?.Report(new RunProgress(timestamp));
             return resultTensor;
-        }
-
-
-        /// <summary>
-        /// Run the pipeline VideoTensor to VideoTensor function
-        /// </summary>
-        /// <param name="inputImage">The input image.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>Task&lt;VideoTensor&gt;.</returns>
-        public Task<VideoTensor> RunVideoAsync(VideoTensor inputImage, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
-        {
-            return RunVideoAsync(new ExtractorOptions(), inputImage, progressCallback, cancellationToken);
         }
 
 
@@ -116,15 +90,14 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;VideoTensor&gt; representing the asynchronous operation.</returns>
-        public async Task<VideoTensor> RunVideoAsync(ExtractorOptions options, VideoTensor inputVideo, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
+        public async Task<VideoTensor> RunAsync(ExtractorVideoOptions options, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
-            options ??= new ExtractorOptions();
             var timestamp = RunProgress.GetTimestamp();
             if (_extractorModel.Normalization == Normalization.ZeroToOne)
-                inputVideo.NormalizeZeroToOne();
+                options.Input.NormalizeZeroToOne();
 
             var results = new List<ImageTensor>();
-            foreach (var frame in inputVideo.GetFrames())
+            foreach (var frame in options.Input.GetFrames())
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 var resultTensor = await ExtractInternalAsync(frame, options, cancellationToken);
@@ -135,25 +108,12 @@ namespace TensorStack.Extractors.Pipelines
                     resultTensor = MergeResult(frame, resultTensor);
 
                 results.Add(resultTensor);
-                progressCallback?.Report(new RunProgress(results.Count, inputVideo.Frames, frameTime));
+                progressCallback?.Report(new RunProgress(results.Count, options.Input.Frames, frameTime));
             }
 
-            var resultVideoTensor = new VideoTensor(results.Join(), inputVideo.FrameRate);
+            var resultVideoTensor = new VideoTensor(results.Join(), options.Input.FrameRate);
             progressCallback?.Report(new RunProgress(timestamp));
             return resultVideoTensor;
-        }
-
-
-        /// <summary>
-        /// Get the pipeline VideoFrame stream
-        /// </summary>
-        /// <param name="inputVideoStream">The input video stream.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
-        public IAsyncEnumerable<VideoFrame> GetStreamAsync(IAsyncEnumerable<VideoFrame> inputVideoStream, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
-        {
-            return GetStreamAsync(new ExtractorOptions(), inputVideoStream, progressCallback, cancellationToken);
         }
 
 
@@ -166,12 +126,11 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
 
-        public async IAsyncEnumerable<VideoFrame> GetStreamAsync(ExtractorOptions options, IAsyncEnumerable<VideoFrame> inputVideoStream, IProgress<RunProgress> progressCallback = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<VideoFrame> RunAsync(ExtractorStreamOptions options, IProgress<RunProgress> progressCallback = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var frameCount = 0;
-            options ??= new ExtractorOptions();
             var timestamp = RunProgress.GetTimestamp();
-            await foreach (var videoFrame in inputVideoStream)
+            await foreach (var videoFrame in options.Input)
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 if (_extractorModel.Normalization == Normalization.ZeroToOne)

@@ -27,10 +27,13 @@ using (var pipeline = ExtractorPipeline.Create(config))
     await pipeline.LoadAsync();
 
     // Read input image
-    var inputTensor = new ImageInput("Input.png");
+    var input = new ImageInput("Input.png");
+
+    // Options
+    var options = new ExtractorImageOptions(input);
 
     // Run Extractor Pipeline
-    var outputTensor = await pipeline.RunImageAsync(inputTensor);
+    var outputTensor = await pipeline.RunAsync(options);
 
     // Save Output image
     await outputTensor.SaveAsync("Output.png");
@@ -54,10 +57,13 @@ using (var pipeline = ExtractorPipeline.Create(config))
     var video = new VideoInput("Input.mp4");
 
     // Get video input
-    var inputTensor = await video.GetTensorAsync();
+    var input = await video.GetTensorAsync();
+
+    // Options
+    var options = new ExtractorVideoOptions(input);
 
     // Run Extractor Pipeline
-    var outputTensor = await pipeline.RunVideoAsync(inputTensor);
+    var outputTensor = await pipeline.RunAsync(inputTensor);
 
     // Save Output video
     await outputTensor.SaveAync("Output.mp4");
@@ -83,8 +89,11 @@ using (var pipeline = ExtractorPipeline.Create(config))
     // Get video stream
     var videoStream = video.GetStreamAsync();
 
+    // Options
+    var options = new ExtractorStreamOptions(videoStream);
+
     // Get Extractor stream
-    videoStream = pipeline.GetStreamAsync(videoStream);
+    videoStream = pipeline.RunAsync(options);
 
     // Save Video Steam
     await videoStream.SaveAync("Output.mp4");

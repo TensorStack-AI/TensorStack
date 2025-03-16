@@ -7,24 +7,25 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using TensorStack.Core;
+using TensorStack.Common;
 using TensorStack.Common.Image;
-using TensorStack.Core.Inference;
 using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
 using TensorStack.Common.Video;
+using TensorStack.Core;
+using TensorStack.Core.Inference;
 using TensorStack.Upscaler.Common;
 using TensorStack.Upscaler.Models;
-using TensorStack.Common;
 
 namespace TensorStack.Upscaler.Pipelines
 {
     /// <summary>
     /// Basic UpscalePipeline. This class cannot be inherited.
     /// </summary>
-    /// <seealso cref="TensorStack.Core.Pipeline.IPipelineImage{TensorStack.Upscaler.Common.UpscaleOptions}" />
-    /// <seealso cref="TensorStack.Core.Pipeline.IPipelineVideo{TensorStack.Upscaler.Common.UpscaleOptions}" />
-    public sealed class UpscalePipeline : IPipelineImage<UpscaleOptions>, IPipelineVideo<UpscaleOptions>
+    public sealed class UpscalePipeline :
+          IPipeline<ImageTensor, UpscaleImageOptions>,
+          IPipeline<VideoTensor, UpscaleVideoOptions>,
+          IPipelineStream<VideoFrame, UpscaleStreamOptions>
     {
         private readonly UpscalerModel _upscaleModel;
 
@@ -59,19 +60,6 @@ namespace TensorStack.Upscaler.Pipelines
 
 
         /// <summary>
-        /// Run the pipeline ImageTensor to ImageTensor function
-        /// </summary>
-        /// <param name="inputImage">The input image.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>Task&lt;ImageTensor&gt;.</returns>
-        public Task<ImageTensor> RunImageAsync(ImageTensor inputImage, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
-        {
-            return RunImageAsync(new UpscaleOptions(), inputImage, progressCallback, cancellationToken);
-        }
-
-
-        /// <summary>
         /// Run the pipeline ImageTensor to ImageTensor function with the specified UpscaleOptions
         /// </summary>
         /// <param name="options">The options.</param>
@@ -79,34 +67,20 @@ namespace TensorStack.Upscaler.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;ImageTensor&gt; representing the asynchronous operation.</returns>
-        public async Task<ImageTensor> RunImageAsync(UpscaleOptions options, ImageTensor inputImage, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
+        public async Task<ImageTensor> RunAsync(UpscaleImageOptions options, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
-            options ??= new UpscaleOptions();
             var timestamp = RunProgress.GetTimestamp();
             if (_upscaleModel.Normalization == Normalization.ZeroToOne)
-                inputImage.NormalizeZeroToOne();
+                options.Input.NormalizeZeroToOne();
 
-            var resultTensor = await UpscaleInternalAsync(inputImage, options, cancellationToken);
+            var resultTensor = await UpscaleInternalAsync(options.Input, options, cancellationToken);
             if (_upscaleModel.Normalization == Normalization.ZeroToOne)
             {
-                inputImage.NormalizeOneToOne();
+                options.Input.NormalizeOneToOne();
                 resultTensor.NormalizeOneToOne();
             }
             progressCallback?.Report(new RunProgress(timestamp));
             return resultTensor;
-        }
-
-
-        /// <summary>
-        /// Run the pipeline VideoTensor to VideoTensor function
-        /// </summary>
-        /// <param name="inputImage">The input image.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>Task&lt;VideoTensor&gt;.</returns>
-        public Task<VideoTensor> RunVideoAsync(VideoTensor inputImage, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
-        {
-            return RunVideoAsync(new UpscaleOptions(), inputImage, progressCallback, cancellationToken);
         }
 
 
@@ -118,43 +92,29 @@ namespace TensorStack.Upscaler.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;VideoTensor&gt; representing the asynchronous operation.</returns>
-        public async Task<VideoTensor> RunVideoAsync(UpscaleOptions options, VideoTensor inputVideo, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
+        public async Task<VideoTensor> RunAsync(UpscaleVideoOptions options, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
-            options ??= new UpscaleOptions();
             var timestamp = RunProgress.GetTimestamp();
             if (_upscaleModel.Normalization == Normalization.ZeroToOne)
-                inputVideo.NormalizeZeroToOne();
+                options.Input.NormalizeZeroToOne();
 
             var results = new List<ImageTensor>();
-            foreach (var frame in inputVideo.GetFrames())
+            foreach (var frame in options.Input.GetFrames())
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 var resultTensor = await UpscaleInternalAsync(frame, options, cancellationToken);
                 results.Add(resultTensor);
-                progressCallback?.Report(new RunProgress(results.Count, inputVideo.Frames, frameTime));
+                progressCallback?.Report(new RunProgress(results.Count, options.Input.Frames, frameTime));
             }
 
-            var resultVideoTensor = new VideoTensor(results.Join(), inputVideo.FrameRate);
+            var resultVideoTensor = new VideoTensor(results.Join(), options.Input.FrameRate);
             if (_upscaleModel.Normalization == Normalization.ZeroToOne)
             {
-                inputVideo.NormalizeOneToOne();
+                options.Input.NormalizeOneToOne();
                 resultVideoTensor.NormalizeOneToOne();
             }
             progressCallback?.Report(new RunProgress(timestamp));
             return resultVideoTensor;
-        }
-
-
-        /// <summary>
-        /// Run the pipeline VideoFrame stream function
-        /// </summary>
-        /// <param name="inputVideoStream">The input video stream.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
-        public IAsyncEnumerable<VideoFrame> GetStreamAsync(IAsyncEnumerable<VideoFrame> inputVideoStream, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
-        {
-            return GetStreamAsync(new UpscaleOptions(), inputVideoStream, progressCallback, cancellationToken);
         }
 
 
@@ -166,12 +126,11 @@ namespace TensorStack.Upscaler.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
-        public async IAsyncEnumerable<VideoFrame> GetStreamAsync(UpscaleOptions options, IAsyncEnumerable<VideoFrame> inputVideoStream, IProgress<RunProgress> progressCallback = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<VideoFrame> RunAsync(UpscaleStreamOptions options, IProgress<RunProgress> progressCallback = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var frameCount = 0;
-            options ??= new UpscaleOptions();
             var timestamp = RunProgress.GetTimestamp();
-            await foreach (var videoFrame in inputVideoStream)
+            await foreach (var videoFrame in options.Input)
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 if (_upscaleModel.Normalization == Normalization.ZeroToOne)

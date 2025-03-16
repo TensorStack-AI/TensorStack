@@ -35,12 +35,11 @@ namespace TensorStack.Common.Pipeline
     /// <typeparam name="P">The RunProgress type</typeparam>
     /// <seealso cref="TensorStack.Common.Pipeline.IPipeline" />
     public interface IPipeline<T, O, P> : IPipeline
-           where T : class
-           where O : RunOptions
-           where P : RunProgress
+        where T : class
+        where O : RunOptions
+        where P : RunProgress
     {
         Task<T> RunAsync(O options, IProgress<P> progressCallback = default, CancellationToken cancellationToken = default);
-        IAsyncEnumerable<T> RunAsync(O[] options, IProgress<P> progressCallback = default, CancellationToken cancellationToken = default);
     }
 
 
@@ -49,16 +48,39 @@ namespace TensorStack.Common.Pipeline
     /// Extends the <see cref="TensorStack.Common.Pipeline.IPipeline" />
     /// </summary>
     /// <typeparam name="T">The return type</typeparam>
-    /// <typeparam name="I">The input parameter type</typeparam>
+    /// <typeparam name="O">The RunOptions type</typeparam>
+    /// <seealso cref="TensorStack.Common.Pipeline.IPipeline" />
+    public interface IPipeline<T, O> : IPipeline<T, O, RunProgress>
+        where T : class
+        where O : RunOptions
+    {
+    }
+
+
+    /// <summary>Interface IPipelineStream
+    /// Extends the <see cref="T:TensorStack.Common.Pipeline.IPipeline" /></summary>
+    /// <typeparam name="T">Result type</typeparam>
     /// <typeparam name="O">The RunOptions type</typeparam>
     /// <typeparam name="P">The RunProgress type</typeparam>
-    /// <seealso cref="TensorStack.Common.Pipeline.IPipeline" />
-    public interface IPipeline<T, I, O, P> : IPipeline
-       where T : class
-       where I : class
-       where O : RunOptions
-       where P : RunProgress
+    public interface IPipelineStream<T, O, P> : IPipeline
+        where T : class
+        where O : RunOptions
+        where P : RunProgress
     {
-        Task<T> RunAsync(O options, I input, IProgress<P> progressCallback = default, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<T> RunAsync(O options, IProgress<P> progressCallback = default, CancellationToken cancellationToken = default);
+    }
+
+
+    /// <summary>
+    /// Interface IPipelineStream
+    /// Extends the <see cref="TensorStack.Common.Pipeline.IPipelineStream{T, O, TensorStack.Common.Pipeline.RunProgress}" />
+    /// </summary>
+    /// <typeparam name="T">Result type</typeparam>
+    /// <typeparam name="O">The RunOptions type</typeparam>
+    /// <seealso cref="TensorStack.Common.Pipeline.IPipelineStream{T, O, TensorStack.Common.Pipeline.RunProgress}" />
+    public interface IPipelineStream<T, O> : IPipelineStream<T, O, RunProgress>
+        where T : class
+        where O : RunOptions
+    { 
     }
 }

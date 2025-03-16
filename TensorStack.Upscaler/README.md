@@ -25,10 +25,13 @@ using (var pipeline = UpscalePipeline.Create(config))
     await pipeline.LoadAsync();
 
     // Read input image
-    var inputTensor = new ImageInput("Input.png");
+    var input = new ImageInput("Input.png");
+
+    // Options
+    var options = new UpscaleImageOptions(input);
 
     // Run Upscale Pipeline
-    var outputTensor = await pipeline.RunImageAsync(inputTensor);
+    var outputTensor = await pipeline.RunAsync(options);
 
     // Save Output image
     await outputTensor.SaveAsync("Output.png");
@@ -56,10 +59,13 @@ using (var pipeline = UpscalePipeline.Create(config))
     var video = new VideoInput("Input.mp4");
 
     // Get video input
-    var inputTensor = await video.GetTensorAsync();
+    var input = await video.GetTensorAsync();
+
+    // Options
+    var options = new UpscaleVideoOptions(input);
 
     // Run Upscale Pipeline
-    var outputTensor = await pipeline.RunVideoAsync(inputTensor);
+    var outputTensor = await pipeline.RunAsync(options);
 
     // Save Output video
     await outputTensor.SaveAync("Output.mp4");
@@ -89,8 +95,11 @@ using (var pipeline = UpscalePipeline.Create(config))
     // Get video stream
     var videoStream = video.GetStreamAsync();
 
+    // Options
+    var options = new UpscaleStreamOptions(videoStream);
+
     // Get Upscale stream
-    videoStream = pipeline.GetStreamAsync(videoStream);
+    videoStream = pipeline.RunAsync(options);
 
     // Save Video Steam
     await videoStream.SaveAync("Output.mp4");
