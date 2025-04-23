@@ -167,9 +167,9 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         private async Task<ImageTensor> ExtractInternalAsync(ImageTensor imageTensor, ExtractorOptions options, CancellationToken cancellationToken = default)
         {
-            return !options.TileMode
+            return options.TileMode == TileMode.None
                 ? await ExecuteExtractorAsync(imageTensor, cancellationToken)
-                : await ExecuteExtractorTilesAsync(imageTensor, options.MaxTileSize, options.TileOverlap, cancellationToken);
+                : await ExecuteExtractorTilesAsync(imageTensor, options.MaxTileSize, options.TileMode, options.TileOverlap, cancellationToken);
         }
 
 
@@ -210,7 +210,7 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="tileOverlap">The tile overlap.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;ImageTensor&gt; representing the asynchronous operation.</returns>
-        private async Task<ImageTensor> ExecuteExtractorTilesAsync(ImageTensor imageTensor, int maxTileSize, int tileOverlap, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExecuteExtractorTilesAsync(ImageTensor imageTensor, int maxTileSize, TileMode tileMode, int tileOverlap, CancellationToken cancellationToken = default)
         {
             if (_extractorModel.SampleSize > 0)
                 maxTileSize = _extractorModel.SampleSize - tileOverlap;
@@ -218,16 +218,17 @@ namespace TensorStack.Extractors.Pipelines
             if (imageTensor.Width <= (maxTileSize + tileOverlap) || imageTensor.Height <= (maxTileSize + tileOverlap))
                 return await ExecuteExtractorAsync(imageTensor, cancellationToken);
 
-            var inputTiles = new ImageTiles(imageTensor, tileOverlap);
+            var inputTiles = new ImageTiles(imageTensor, tileMode, tileOverlap);
             var outputTiles = new ImageTiles
             (
                 inputTiles.Width,
                 inputTiles.Height,
+                inputTiles.TileMode,
                 inputTiles.Overlap,
-                await ExecuteExtractorTilesAsync(inputTiles.Tile1, maxTileSize, tileOverlap, cancellationToken),
-                await ExecuteExtractorTilesAsync(inputTiles.Tile2, maxTileSize, tileOverlap, cancellationToken),
-                await ExecuteExtractorTilesAsync(inputTiles.Tile3, maxTileSize, tileOverlap, cancellationToken),
-                await ExecuteExtractorTilesAsync(inputTiles.Tile4, maxTileSize, tileOverlap, cancellationToken)
+                await ExecuteExtractorTilesAsync(inputTiles.Tile1, maxTileSize, tileMode, tileOverlap, cancellationToken),
+                await ExecuteExtractorTilesAsync(inputTiles.Tile2, maxTileSize, tileMode, tileOverlap, cancellationToken),
+                await ExecuteExtractorTilesAsync(inputTiles.Tile3, maxTileSize, tileMode, tileOverlap, cancellationToken),
+                await ExecuteExtractorTilesAsync(inputTiles.Tile4, maxTileSize, tileMode, tileOverlap, cancellationToken)
             );
             return outputTiles.JoinTiles();
         }
@@ -239,13 +240,15 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="tensor">The tensor.</param>
         private void NormalizeResult(ImageTensor tensor)
         {
-            if (_extractorModel.OutputNormalization == Normalization.MinMax)
-                tensor.Memory.Span.NormalizeMinMaxToOneToOne();
-            else if (_extractorModel.Normalization == Normalization.ZeroToOne)
-                tensor.NormalizeOneToOne();
-
             if (_extractorModel.IsOutputInverted)
                 tensor.Memory.Span.Invert();
+
+            if (_extractorModel.OutputNormalization == Normalization.MinMax)
+                tensor.Memory.Span.NormalizeMinMaxToZeroToOne();
+            else if (_extractorModel.Normalization == Normalization.OneToOne)
+                tensor.NormalizeOneToOne();
+
+
         }
 
 

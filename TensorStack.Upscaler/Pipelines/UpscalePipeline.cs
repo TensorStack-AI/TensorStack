@@ -166,9 +166,9 @@ namespace TensorStack.Upscaler.Pipelines
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         private async Task<ImageTensor> UpscaleInternalAsync(ImageTensor imageTensor, UpscaleOptions options, CancellationToken cancellationToken = default)
         {
-            return !options.TileMode
+            return options.TileMode == TileMode.None
                 ? await ExecuteUpscaleAsync(imageTensor, cancellationToken)
-                : await ExecuteUpscaleTilesAsync(imageTensor, options.MaxTileSize, options.TileOverlap, cancellationToken);
+                : await ExecuteUpscaleTilesAsync(imageTensor, options.MaxTileSize, options.TileMode, options.TileOverlap, cancellationToken);
         }
 
 
@@ -202,7 +202,7 @@ namespace TensorStack.Upscaler.Pipelines
         /// <param name="maxTileSize">Maximum size of the tile.</param>
         /// <param name="tileOverlap">The tile overlap.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExecuteUpscaleTilesAsync(ImageTensor imageTensor, int maxTileSize, int tileOverlap, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExecuteUpscaleTilesAsync(ImageTensor imageTensor, int maxTileSize, TileMode tileMode, int tileOverlap, CancellationToken cancellationToken = default)
         {
             if (_upscaleModel.SampleSize > 0)
                 maxTileSize = _upscaleModel.SampleSize - tileOverlap;
@@ -210,16 +210,17 @@ namespace TensorStack.Upscaler.Pipelines
             if (imageTensor.Width <= (maxTileSize + tileOverlap) || imageTensor.Height <= (maxTileSize + tileOverlap))
                 return await ExecuteUpscaleAsync(imageTensor, cancellationToken);
 
-            var inputTiles = new ImageTiles(imageTensor, tileOverlap);
+            var inputTiles = new ImageTiles(imageTensor, tileMode, tileOverlap);
             var outputTiles = new ImageTiles
             (
                 inputTiles.Width * _upscaleModel.ScaleFactor,
                 inputTiles.Height * _upscaleModel.ScaleFactor,
+                inputTiles.TileMode,
                 inputTiles.Overlap * _upscaleModel.ScaleFactor,
-                await ExecuteUpscaleTilesAsync(inputTiles.Tile1, maxTileSize, tileOverlap, cancellationToken),
-                await ExecuteUpscaleTilesAsync(inputTiles.Tile2, maxTileSize, tileOverlap, cancellationToken),
-                await ExecuteUpscaleTilesAsync(inputTiles.Tile3, maxTileSize, tileOverlap, cancellationToken),
-                await ExecuteUpscaleTilesAsync(inputTiles.Tile4, maxTileSize, tileOverlap, cancellationToken)
+                await ExecuteUpscaleTilesAsync(inputTiles.Tile1, maxTileSize, tileMode, tileOverlap, cancellationToken),
+                await ExecuteUpscaleTilesAsync(inputTiles.Tile2, maxTileSize, tileMode, tileOverlap, cancellationToken),
+                await ExecuteUpscaleTilesAsync(inputTiles.Tile3, maxTileSize, tileMode, tileOverlap, cancellationToken),
+                await ExecuteUpscaleTilesAsync(inputTiles.Tile4, maxTileSize, tileMode, tileOverlap, cancellationToken)
             );
             return outputTiles.JoinTiles();
         }
