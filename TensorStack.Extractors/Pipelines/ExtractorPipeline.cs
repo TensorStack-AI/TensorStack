@@ -190,9 +190,9 @@ namespace TensorStack.Extractors.Pipelines
             {
                 inferenceParameters.AddInput(inputTensor.GetChannels(_extractorModel.Channels));
                 inferenceParameters.AddOutput(outputBuffer);
-                using (var result = await _extractorModel.RunInferenceFirstAsync(inferenceParameters))
+                using (var results = await _extractorModel.RunInferenceAsync(inferenceParameters))
                 {
-                    var outputTensor = result.ToTensor();
+                    var outputTensor = results[0].ToTensor();
                     if (outputBuffer.Length != 4)
                         outputTensor.Reshape(outputShape);
 

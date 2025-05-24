@@ -134,9 +134,9 @@ namespace TensorStack.Florence
             {
                 sessionEmbedParams.AddInput(textInputs.AsTensorSpan());
                 sessionEmbedParams.AddOutput([textInputs.Dimensions[0], textInputs.Dimensions[1], _configuration.DecoderHiddenSize]);
-                using (var inputsEmbeds = await _modelEmbeds.RunInferenceFirstAsync(sessionEmbedParams))
+                using (var results = await _modelEmbeds.RunInferenceAsync(sessionEmbedParams))
                 {
-                    return inputsEmbeds.ToTensor();
+                    return results[0].ToTensor();
                 }
             }
         }
@@ -156,9 +156,9 @@ namespace TensorStack.Florence
             {
                 sessionVisionParams.AddInput(pixelValues.GetChannels(3));
                 sessionVisionParams.AddOutput([textEmbeds.Dimensions[0], _configuration.ImageSeqLength, textEmbeds.Dimensions[2]]);
-                using (var imageFeaturesResult = await _modelVision.RunInferenceFirstAsync(sessionVisionParams))
+                using (var results = await _modelVision.RunInferenceAsync(sessionVisionParams))
                 {
-                    var imageFeatures = imageFeaturesResult.ToTensor();
+                    var imageFeatures = results[0].ToTensor();
                     var ones = new  Tensor<long>(imageFeatures.Dimensions[..2], 1);
                     return new VisionResult
                     (
@@ -183,9 +183,9 @@ namespace TensorStack.Florence
                 sessionEncoderParams.AddInput(visionOutput.Mask.AsTensorSpan());
                 sessionEncoderParams.AddInput(visionOutput.Embeds.AsTensorSpan());
                 sessionEncoderParams.AddOutput(visionOutput.Embeds.Dimensions);
-                using (var lastHiddenState = await _modelEncoder.RunInferenceFirstAsync(sessionEncoderParams))
+                using (var results = await _modelEncoder.RunInferenceAsync(sessionEncoderParams))
                 {
-                    return lastHiddenState.ToTensor();
+                    return results[0].ToTensor();
                 }
             }
         }

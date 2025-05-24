@@ -4,6 +4,7 @@ using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -187,9 +188,9 @@ namespace TensorStack.Upscaler.Pipelines
             {
                 inferenceParameters.AddInput(imageTensor.GetChannels(_upscaleModel.Channels));
                 inferenceParameters.AddOutput(outputDimension);
-                using (var result = await _upscaleModel.RunInferenceFirstAsync(inferenceParameters))
+                using (var results = await _upscaleModel.RunInferenceAsync(inferenceParameters))
                 {
-                    return result.ToTensor().AsImageTensor();
+                    return results[0].ToTensor().AsImageTensor();
                 }
             }
         }

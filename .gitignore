@@ -354,3 +354,4 @@ TensorStack.StableDiffusion/*
 TensorStack.Tokenizers/*
 TensorStack.UI.WPF/*
 TensorStackFull.sln
+TensorStack.Converter/*

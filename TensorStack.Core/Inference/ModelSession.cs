@@ -2,7 +2,6 @@
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -142,29 +141,6 @@ namespace TensorStack.Core.Inference
 
 
         /// <summary>
-        /// Run inference and return first result
-        /// </summary>
-        /// <param name="parameters">The parameters.</param>
-        /// <returns>OrtValue.</returns>
-        public virtual OrtValue RunInferenceFirst(InferenceParameters parameters)
-        {
-            return RunInference(parameters)[0];
-        }
-
-
-        /// <summary>
-        /// Run inference and return first result
-        /// </summary>
-        /// <param name="parameters">The parameters.</param>
-        /// <returns>A Task&lt;OrtValue&gt; representing the asynchronous operation.</returns>
-        public virtual async Task<OrtValue> RunInferenceFirstAsync(InferenceParameters parameters)
-        {
-            var results = await RunInferenceAsync(parameters);
-            return results.First();
-        }
-
-
-        /// <summary>
         /// Runs inference on the model with the suppied parameters, use this method when you do not have a known output shape.
         /// </summary>
         /// <param name="parameters">The parameters.</param>
@@ -180,9 +156,9 @@ namespace TensorStack.Core.Inference
         /// </summary>
         /// <param name="parameters">The parameters.</param>
         /// <returns></returns>
-        public virtual async Task<IReadOnlyCollection<OrtValue>> RunInferenceAsync(InferenceParameters parameters)
+        public virtual async Task<IDisposableReadOnlyCollection<OrtValue>> RunInferenceAsync(InferenceParameters parameters)
         {
-            return await _session.RunAsync(parameters.RunOptions, parameters.InputNames, parameters.InputValues, parameters.OutputNames, parameters.OutputValues);
+            return new DisposableList<OrtValue>(await _session.RunAsync(parameters.RunOptions, parameters.InputNames, parameters.InputValues, parameters.OutputNames, parameters.OutputValues));
         }
 
 
