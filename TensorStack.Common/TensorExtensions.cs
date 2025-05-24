@@ -589,9 +589,10 @@ namespace TensorStack.Common
         /// Normalizes the tensor values from range 1 to 1 to 0 to 1.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
-        public static void NormalizeOneOneToZeroOne(this Tensor<float> tensor)
+        public static Tensor<float> NormalizeOneOneToZeroOne(this Tensor<float> tensor)
         {
             tensor.Memory.Span.NormalizeOneOneToZeroOne();
+            return tensor;
         }
 
 
@@ -599,9 +600,10 @@ namespace TensorStack.Common
         /// Normalizes the tensor values from range 0 to 1 to -1 to 1.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
-        public static void NormalizeZeroOneToOneOne(this Tensor<float> tensor)
+        public static Tensor<float> NormalizeZeroOneToOneOne(this Tensor<float> tensor)
         {
             tensor.Memory.Span.NormalizeZeroOneToOneOne();
+            return tensor;
         }
 
 

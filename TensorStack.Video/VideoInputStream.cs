@@ -80,9 +80,9 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>Task.</returns>
-        public Task SaveAsync(IAsyncEnumerable<VideoFrame> stream, string filename, int? width = default, int? height = default, float? frameRate = default, CancellationToken cancellationToken = default)
+        public Task SaveAsync(IAsyncEnumerable<VideoFrame> stream, string filename, int width, int height, float frameRate, CancellationToken cancellationToken = default)
         {
-            return VideoService.WriteVideoStreamAsync(stream, filename, _videoCodec, frameRate, width, height, cancellationToken);
+            return VideoService.WriteVideoStreamAsync(stream, filename, frameRate, width, height, _videoCodec, cancellationToken);
         }
 
 

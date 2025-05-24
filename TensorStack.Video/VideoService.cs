@@ -77,7 +77,7 @@ namespace TensorStack.Video
                 .Split()
                 .Select(frame => new ImageTensor(frame))
                 .ToAsyncEnumerable();
-            await frames.SaveAync(videoFile, framerate ?? videoTensor.FrameRate, videoCodec, cancellationToken);
+            await frames.SaveAync(videoFile, framerate ?? videoTensor.FrameRate, videoTensor.Width, videoTensor.Height, videoCodec, cancellationToken);
         }
 
 
@@ -92,16 +92,12 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        internal static async Task WriteVideoStreamAsync(IAsyncEnumerable<VideoFrame> imageFrames, string videoFile, string videoCodec, float? framerate = default, int? width = default, int? height = default, CancellationToken cancellationToken = default)
+        internal static async Task WriteVideoStreamAsync(IAsyncEnumerable<VideoFrame> videoFrames, string videoFile, float framerate, int width, int height, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
         {
+            var frameSize = new Size(width, height);
             var fourcc = VideoWriter.FourCC(videoCodec);
-            var firstFrame = await imageFrames.FirstAsync(cancellationToken);
-            var fullSequence = CacheFirstAndIterate(firstFrame, imageFrames, cancellationToken);
-            var outputHeight = height.NullIfZero() ?? firstFrame.Frame.Dimensions[2];
-            var outputWidth = width.NullIfZero() ?? firstFrame.Frame.Dimensions[3];
-            var outputFramerate = framerate ?? firstFrame.SourceFrameRate;
-            var frameSize = new Size(outputWidth, outputHeight);
-            await WriteVideoFramesAsync(fullSequence, videoFile, frameSize, outputFramerate, fourcc, cancellationToken);
+            var imageFrames = videoFrames.AsImageTensors(cancellationToken);
+            await WriteVideoFramesAsync(imageFrames, videoFile, frameSize, framerate, fourcc, cancellationToken);
         }
 
 
@@ -336,42 +332,5 @@ namespace TensorStack.Video
                 }
             }, cancellationToken);
         }
-
-
-        /// <summary>
-        /// Caches the first item and iterate.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="firstItem">The first item.</param>
-        /// <param name="remainingItems">The remaining items.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>IAsyncEnumerable&lt;T&gt;.</returns>
-        internal static async IAsyncEnumerable<ImageTensor> CacheFirstAndIterate(VideoFrame firstItem, IAsyncEnumerable<VideoFrame> remainingItems, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            yield return firstItem.Frame;
-            await foreach (var item in remainingItems.WithCancellation(cancellationToken))
-            {
-                yield return item.Frame;
-            }
-        }
-
-
-        /// <summary>
-        /// Caches the first item and iterate.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="firstItem">The first item.</param>
-        /// <param name="remainingItems">The remaining items.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>IAsyncEnumerable&lt;T&gt;.</returns>
-        internal static async IAsyncEnumerable<ImageTensor> CacheFirstAndIterate(ImageTensor firstItem, IAsyncEnumerable<ImageTensor> remainingItems, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            yield return firstItem;
-            await foreach (var item in remainingItems.WithCancellation(cancellationToken))
-            {
-                yield return item;
-            }
-        }
-
     }
 }

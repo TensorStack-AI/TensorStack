@@ -4,6 +4,7 @@ using OpenCvSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common.Tensor;
@@ -23,13 +24,11 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveAync(this IAsyncEnumerable<ImageTensor> imageFrames, string videoFile, float framerate, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task SaveAync(this IAsyncEnumerable<ImageTensor> imageFrames, string videoFile, float framerate, int width, int height, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
         {
+            var frameSize = new Size(width, height);
             var fourcc = VideoWriter.FourCC(videoCodec);
-            var firstFrame = await imageFrames.FirstAsync(cancellationToken);
-            var fullSequence = VideoService.CacheFirstAndIterate(firstFrame, imageFrames, cancellationToken);
-            var frameSize = new Size(firstFrame.Width, firstFrame.Height);
-            await VideoService.WriteVideoFramesAsync(fullSequence, videoFile, frameSize, framerate, fourcc, cancellationToken);
+            await VideoService.WriteVideoFramesAsync(imageFrames, videoFile, frameSize, framerate, fourcc, cancellationToken);
         }
 
 
@@ -41,14 +40,12 @@ namespace TensorStack.Video
         /// <param name="framerate">The framerate.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveAync(this IAsyncEnumerable<VideoFrame> imageFrames, string videoFile, float? framerate = default, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task SaveAync(this IAsyncEnumerable<VideoFrame> videoFrames, string videoFile, float framerate, int width, int height, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
         {
+            var frameSize = new Size(width, height);
             var fourcc = VideoWriter.FourCC(videoCodec);
-            var firstFrame = await imageFrames.FirstAsync(cancellationToken);
-            var fullSequence = VideoService.CacheFirstAndIterate(firstFrame, imageFrames, cancellationToken);
-            var frameSize = new Size(firstFrame.Width, firstFrame.Height);
-            var outframeRate = framerate ?? firstFrame.SourceFrameRate;
-            await VideoService.WriteVideoFramesAsync(fullSequence, videoFile, frameSize, outframeRate, fourcc, cancellationToken);
+            var imageFrames = videoFrames.AsImageTensors(cancellationToken);
+            await VideoService.WriteVideoFramesAsync(imageFrames, videoFile, frameSize, framerate, fourcc, cancellationToken);
         }
 
 
@@ -164,6 +161,20 @@ namespace TensorStack.Video
                 return null;
 
             return value;
+        }
+
+
+        /// <summary>
+        /// Gets the image tensors.
+        /// </summary>
+        /// <param name="videoFrames">The video frames.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        internal static async IAsyncEnumerable<ImageTensor> AsImageTensors(this IAsyncEnumerable<VideoFrame> videoFrames, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await foreach (var videoFrame in videoFrames.WithCancellation(cancellationToken))
+            {
+                yield return videoFrame.Frame;
+            }
         }
     }
 }
