@@ -1,8 +1,10 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
@@ -33,8 +35,8 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
             Tokenizer = tokenizer;
             TextEncoder = textEncoder;
             AutoEncoder = autoEncoder;
-            Name = nameof(PipelineType.StableDiffusion);
             Initialize();
+            Logger?.LogInformation("[StableDiffusionPipeline] Name: {Name}", Name);
         }
 
 
@@ -44,7 +46,6 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="configuration">The configuration.</param>
         /// <param name="logger">The logger.</param>
         public StableDiffusionPipeline(StableDiffusionConfig configuration, ILogger logger = default) : this(
-
             new UNetConditionalModel(configuration.Unet),
             new CLIPTokenizer(configuration.Tokenizer),
             new CLIPTextModel(configuration.TextEncoder),
@@ -62,7 +63,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <summary>
         /// Gets the friendly name.
         /// </summary>
-        public override string Name { get; init; }
+        public override string Name { get; init; } = nameof(PipelineType.StableDiffusion);
 
         /// <summary>
         /// Gets the tokenizer.
@@ -91,6 +92,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         public Task LoadAsync(CancellationToken cancellationToken = default)
         {
+            // StableDiffusion pipelines are lazy loaded on first run
             return Task.CompletedTask;
         }
 
@@ -102,6 +104,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         public async Task UnloadAsync(CancellationToken cancellationToken = default)
         {
             await Task.WhenAll(Unet.UnloadAsync(), TextEncoder.UnloadAsync(), AutoEncoder.EncoderUnloadAsync(), AutoEncoder.DecoderUnloadAsync());
+            Logger?.LogInformation("[{PipeLineType}] Pipeline Unloaded", PipelineType);
         }
 
 
@@ -167,7 +170,10 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         private async Task<TokenizerResult> TokenizePromptAsync(string inputText, CancellationToken cancellationToken = default)
         {
-            return await PromptParser.TokenizePromptAsync(Tokenizer, inputText);
+            var timestamp = Logger.LogBegin(LogLevel.Debug, "[TokenizePromptAsync] Begin Tokenizer");
+            var tokenizerResult = await PromptParser.TokenizePromptAsync(Tokenizer, inputText);
+            Logger.LogEnd(LogLevel.Debug, timestamp, "[TokenizePromptAsync] Tokenizer Complete");
+            return tokenizerResult;
         }
 
 
@@ -179,7 +185,10 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         private async Task<TextEncoderResult> EncodePromptAsync(TokenizerResult inputTokens, int minimumLength, CancellationToken cancellationToken = default)
         {
-            return await PromptParser.EncodePromptAsync(TextEncoder, inputTokens, minimumLength, 0, cancellationToken);
+            var timestamp = Logger.LogBegin(LogLevel.Debug, "[EncodePromptAsync] Begin TextEncoder");
+            var textEncoderResult = await PromptParser.EncodePromptAsync(TextEncoder, inputTokens, minimumLength, 0, cancellationToken);
+            Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodePromptAsync] TextEncoder Complete");
+            return textEncoderResult;
         }
 
 
@@ -191,10 +200,12 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         private async Task<ImageTensor> DecodeLatentsAsync(IPipelineOptions options, Tensor<float> latents, CancellationToken cancellationToken = default)
         {
+            var timestamp = Logger.LogBegin(LogLevel.Debug, "[DecodeLatentsAsync] Begin AutoEncoder Decode");
             var decoderResult = await AutoEncoder.DecodeAsync(latents, cancellationToken: cancellationToken);
             if (options.IsLowMemoryEnabled || options.IsLowMemoryDecoderEnabled)
                 await AutoEncoder.DecoderUnloadAsync();
 
+            Logger.LogEnd(LogLevel.Debug, timestamp, "[DecodeLatentsAsync] AutoEncoder Decode Complete");
             return decoderResult.AsImageTensor();
         }
 
@@ -207,11 +218,13 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         private async Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, ImageTensor image, CancellationToken cancellationToken = default)
         {
+            var timestamp = Logger.LogBegin(LogLevel.Debug, "[EncodeLatentsAsync] Begin AutoEncoder Encode");
             var inputTensor = image.ResizeImage(options.Width, options.Height);
             var encoderResult = await AutoEncoder.EncodeAsync(inputTensor, cancellationToken: cancellationToken);
             if (options.IsLowMemoryEnabled || options.IsLowMemoryEncoderEnabled)
                 await AutoEncoder.EncoderUnloadAsync();
 
+            Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodeLatentsAsync] AutoEncoder Encode Complete");
             return encoderResult;
         }
 
@@ -225,6 +238,8 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         private async Task<Tensor<float>> RunInferenceAsync(IPipelineOptions options, IScheduler scheduler, PromptResult prompt, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
+            var timestamp = Logger.LogBegin(LogLevel.Debug, "[RunInferenceAsync] Begin Unet Inference");
+
             // Prompt
             var isGuidanceEnabled = IsGuidanceEnabled(options);
             var promptInput = prompt.GetPromptEmbeds(isGuidanceEnabled);
@@ -240,6 +255,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
             for (int i = 0; i < timesteps.Count; i++)
             {
                 var timestep = timesteps[i];
+                var steptime = Stopwatch.GetTimestamp();
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Inputs.
@@ -257,12 +273,15 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
 
                 // Result
                 latents = stepResult.Sample;
+
+                Logger.LogEnd(LogLevel.Debug, steptime, $"[RunInferenceAsync] Step: {i + 1}/{timesteps.Count}");
             }
 
             // Unload
             if (options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled)
                 await Unet.UnloadAsync();
 
+            Logger.LogEnd(LogLevel.Debug, timestamp, "[RunInferenceAsync] Unet Inference Complete");
             return latents;
         }
 
@@ -277,6 +296,8 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         private async Task<Tensor<float>> RunInferenceAsync(IPipelineOptions options, ControlNetModel controlNet, IScheduler scheduler, PromptResult prompt, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
+            var timestamp = Logger.LogBegin(LogLevel.Debug, "[RunInferenceAsync] Begin Unet + ControlNet Inference");
+
             // Prompt
             var isGuidanceEnabled = IsGuidanceEnabled(options);
             var promptInput = prompt.GetPromptEmbeds(isGuidanceEnabled);
@@ -296,6 +317,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
             for (int i = 0; i < timesteps.Count; i++)
             {
                 var timestep = timesteps[i];
+                var steptime = Stopwatch.GetTimestamp();
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Inputs.
@@ -323,12 +345,15 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
 
                 // Result
                 latents = stepResult.Sample;
+
+                Logger.LogEnd(LogLevel.Debug, steptime, $"[RunInferenceAsync] Step: {i + 1}/{timesteps.Count}");
             }
 
             // Unload
             if (options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled)
                 await Task.WhenAll(Unet.UnloadAsync(), controlNet.UnloadAsync());
 
+            Logger.LogEnd(LogLevel.Debug, timestamp, "[RunInferenceAsync] Unet + ControlNet Inference Complete");
             return latents;
         }
 
