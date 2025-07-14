@@ -1,10 +1,7 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-using Microsoft.ML.OnnxRuntime;
-using System;
 using System.IO;
 using TensorStack.Common;
-using TensorStack.Core.Inference;
 using TensorStack.Extractors.Common;
 
 namespace TensorStack.Extractors.Models
@@ -16,9 +13,6 @@ namespace TensorStack.Extractors.Models
     {
         private ExtractorModel(ExtractorConfig configuration)
             : base(configuration) { }
-
-        private ExtractorModel(ExtractorConfig configuration, Func<SessionOptions> sessionOptionsFactory)
-            : base(configuration, sessionOptionsFactory) { }
 
         /// <summary>
         /// The channels the model supports 1 = Greyscale, RGB = 3, RGBA = 4.
@@ -63,22 +57,6 @@ namespace TensorStack.Extractors.Models
                 throw new FileNotFoundException("ExtractorModel not found", configuration.Path);
 
             return new ExtractorModel(configuration);
-        }
-
-
-        /// <summary>
-        /// Create a ExtractorModel with the specified ExtractorConfig and SessionOptionsFactory
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="sessionOptionsFactory">The session options factory.</param>
-        /// <returns>ExtractorModel.</returns>
-        /// <exception cref="System.IO.FileNotFoundException">ExtractorModel not found</exception>
-        public static ExtractorModel Create(ExtractorConfig configuration, Func<SessionOptions> sessionOptionsFactory)
-        {
-            if (!File.Exists(configuration.Path))
-                throw new FileNotFoundException("ExtractorModel not found", configuration.Path);
-
-            return new ExtractorModel(configuration, sessionOptionsFactory);
         }
     }
 }

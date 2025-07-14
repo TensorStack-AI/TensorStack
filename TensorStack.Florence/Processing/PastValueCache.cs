@@ -2,8 +2,8 @@
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
 using System;
+using TensorStack.Common;
 using TensorStack.Common.Tensor;
-using TensorStack.Core;
 
 namespace TensorStack.Florence.Processing
 {

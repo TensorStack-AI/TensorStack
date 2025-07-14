@@ -1,12 +1,15 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
+using System;
 using System.Collections.Generic;
 
-namespace TensorStack.Core.Inference
+namespace TensorStack.Common
 {
     public sealed record NamedMetadata(string Name, NodeMetadata Value)
     {
+        public ReadOnlySpan<int> Dimensions => Value.Dimensions;
+
         /// <summary>
         /// Creates the specified metadata.
         /// </summary>

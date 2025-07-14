@@ -17,12 +17,12 @@ namespace TensorStack.Common.Pipeline
         /// <summary>
         /// Loads the pipeline.
         /// </summary>
-        public Task LoadAsync();
+        public Task LoadAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Unloads the pipeline.
         /// </summary>
-        public Task UnloadAsync();
+        public Task UnloadAsync(CancellationToken cancellationToken = default);
     }
 
 

@@ -325,6 +325,7 @@ namespace TensorStack.Common
         }
 
 
+
         /// <summary>
         /// Permutes the specified Tensor.
         /// </summary>
@@ -431,7 +432,7 @@ namespace TensorStack.Common
         /// <param name="dimensions">The dimensions.</param>
         /// <param name="initNoiseSigma">The initialize noise sigma.</param>
         /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        public static Tensor<float> NextTensor(this Random random, ReadOnlySpan<int> dimensions, float initNoiseSigma = 1f)
+        public static Tensor<float> NextTensor(this Random random, ReadOnlySpan<int> dimensions, float initialvalue = 1f)
         {
             var latents = new Tensor<float>(dimensions);
             for (int i = 0; i < latents.Length; i++)
@@ -441,7 +442,7 @@ namespace TensorStack.Common
                 var radius = MathF.Sqrt(-2.0f * MathF.Log(u1));
                 var theta = 2.0f * MathF.PI * u2;
                 var standardNormalRand = radius * MathF.Cos(theta);
-                latents.SetValue(i, standardNormalRand * initNoiseSigma);
+                latents.SetValue(i, standardNormalRand * initialvalue);
             }
             return latents;
         }
@@ -511,7 +512,7 @@ namespace TensorStack.Common
         /// Normalizes the values from range -1 to 1 to 0 to 1.
         /// </summary>
         /// <param name="span">The span.</param>
-        public static void NormalizeOneOneToZeroOne(this Span<float> span)
+        public static void NormalizeZeroOne(this Span<float> span)
         {
             for (int i = 0; i < span.Length; i++)
             {
@@ -524,7 +525,7 @@ namespace TensorStack.Common
         /// Normalizes the values from range 0 to 1 to -1 to 1.
         /// </summary>
         /// <param name="span">The span.</param>
-        public static void NormalizeZeroOneToOneOne(this Span<float> span)
+        public static void NormalizeOneOne(this Span<float> span)
         {
             for (int i = 0; i < span.Length; i++)
             {
@@ -589,9 +590,9 @@ namespace TensorStack.Common
         /// Normalizes the tensor values from range 1 to 1 to 0 to 1.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
-        public static Tensor<float> NormalizeOneOneToZeroOne(this Tensor<float> tensor)
+        public static Tensor<float> NormalizeZeroOne(this Tensor<float> tensor)
         {
-            tensor.Memory.Span.NormalizeOneOneToZeroOne();
+            tensor.Memory.Span.NormalizeZeroOne();
             return tensor;
         }
 
@@ -600,9 +601,9 @@ namespace TensorStack.Common
         /// Normalizes the tensor values from range 0 to 1 to -1 to 1.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
-        public static Tensor<float> NormalizeZeroOneToOneOne(this Tensor<float> tensor)
+        public static Tensor<float> NormalizeOneOne(this Tensor<float> tensor)
         {
-            tensor.Memory.Span.NormalizeZeroOneToOneOne();
+            tensor.Memory.Span.NormalizeOneOne();
             return tensor;
         }
 
@@ -745,6 +746,44 @@ namespace TensorStack.Common
             return tensor;
         }
 
+        /// <summary>
+        /// Lerps the specified valuse.
+        /// </summary>
+        /// <param name="span1">The span1.</param>
+        /// <param name="span2">The span2.</param>
+        /// <param name="value">The value.</param>
+        public static void Lerp(this Memory<float> span1, Memory<float> span2, float value)
+        {
+            TensorPrimitives.Lerp(span1.Span, span2.Span, value, span1.Span);
+        }
+
+
+        /// <summary>
+        /// Inverts the specified tensor.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        public static Tensor<float> Invert(this Tensor<float> tensor)
+        {
+            var result = new Tensor<float>(tensor.Dimensions);
+            for (int j = 0; j < result.Length; j++)
+                result.SetValue(j, 1f - tensor.GetValue(j));
+            return result;
+        }
+
+
+        /// <summary>
+        /// Return tensor with guidance dimension if required
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="applyGuidance">if set to <c>true</c> [apply guidance].</param>
+        public static Tensor<float> WithGuidance(this Tensor<float> tensor, bool applyGuidance)
+        {
+            if (!applyGuidance)
+                return tensor;
+
+            return tensor.Repeat(2);
+        }
+
 
         /// <summary>
         /// Resizes the specified ImageTensor
@@ -874,7 +913,7 @@ namespace TensorStack.Common
             return destination;
         }
 
-        
+
         /// <summary>
         /// Cubic interpolate.
         /// </summary>

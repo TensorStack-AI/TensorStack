@@ -12,7 +12,8 @@
 
   <!--Nuget Packages-->
   <ItemGroup>
-    <PackageReference Include="System.Numerics.Tensors" Version="9.0.4" />
+    <PackageReference Include="System.Numerics.Tensors" Version="9.0.5" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.22.0" />
   </ItemGroup>
 
 

@@ -65,7 +65,7 @@ namespace TensorStack.Common.Tensor
         /// <param name="imageTensor">The image tensor.</param>
         public void NormalizeZeroToOne()
         {
-            this.NormalizeOneOneToZeroOne();
+            this.NormalizeZeroOne();
         }
 
 
@@ -75,7 +75,7 @@ namespace TensorStack.Common.Tensor
         /// <param name="imageTensor">The image tensor.</param>
         public void NormalizeOneToOne()
         {
-            this.NormalizeZeroOneToOneOne();
+            this.NormalizeOneOne();
         }
 
 

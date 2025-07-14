@@ -3,17 +3,18 @@
 using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Threading;
 using TensorStack.Common.Tensor;
 
-namespace TensorStack.Core.Inference
+namespace TensorStack.Common
 {
     /// <summary>
-    /// InferenceParameters class to manage model input and output parameters
+    /// ModelParameters class to manage model input and output parameters
     /// Implements the <see cref="IDisposable" />
     /// </summary>
     /// <seealso cref="IDisposable" />
-    public sealed class InferenceParameters : IDisposable
+    public sealed class ModelParameters : IDisposable
     {
         private readonly RunOptions _runOptions;
         private readonly ModelMetadata _metadata;
@@ -21,9 +22,9 @@ namespace TensorStack.Core.Inference
         private readonly ParameterCollection _outputs;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="InferenceParameters"/> class.
+        /// Initializes a new instance of the <see cref="ModelParameters"/> class.
         /// </summary>
-        public InferenceParameters(ModelMetadata metadata, CancellationToken cancellationToken = default)
+        public ModelParameters(ModelMetadata metadata, CancellationToken cancellationToken = default)
         {
             _metadata = metadata;
             _runOptions = new RunOptions();
@@ -106,10 +107,10 @@ namespace TensorStack.Core.Inference
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="value">The value.</param>
-        public void AddInput<T>(TensorSpan<T> value) where T : unmanaged
+        public void AddInput<T>(TensorSpan<T> value) where T : unmanaged, INumber<T>
         {
             var metadata = GetNextInputMetadata();
-            _inputs.Add(metadata, value.ToOrtValue(metadata));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
         }
 
 
@@ -118,35 +119,14 @@ namespace TensorStack.Core.Inference
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="value">The value.</param>
-        public void AddInput<T>(int index, TensorSpan<T> value) where T : unmanaged
+        public void AddInput<T>(int index, TensorSpan<T> value) where T : unmanaged, INumber<T>
         {
             var metadata = _metadata.Inputs[index];
-            _inputs.Add(metadata, value.ToOrtValue(metadata));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
         }
 
 
-        /// <summary>
-        /// Adds a tensor input.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="value">The value.</param>
-        public void AddInput(TensorSpan<float> value)
-        {
-            var metadata = GetNextInputMetadata();
-            _inputs.Add(metadata, value.ToOrtValue(metadata));
-        }
 
-
-        /// <summary>
-        /// Adds a tensor input at the specified index.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="value">The value.</param>
-        public void AddInput(int index, TensorSpan<float> value)
-        {
-            var metadata = _metadata.Inputs[index];
-            _inputs.Add(metadata, value.ToOrtValue(metadata));
-        }
 
 
         /// <summary>
@@ -157,7 +137,7 @@ namespace TensorStack.Core.Inference
         public void AddInput(TensorSpan<string> value)
         {
             var metadata = GetNextInputMetadata();
-            _inputs.Add(metadata, value.ToOrtValue(metadata));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
         }
 
 
@@ -169,8 +149,89 @@ namespace TensorStack.Core.Inference
         public void AddInput(int index, TensorSpan<string> value)
         {
             var metadata = _metadata.Inputs[index];
-            _inputs.Add(metadata, value.ToOrtValue(metadata));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
         }
+
+
+        /// <summary>
+        /// Adds a tensor input.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(TensorSpan<bool> value)
+        {
+            var metadata = GetNextInputMetadata();
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+        }
+
+
+        /// <summary>
+        /// Adds a tensor input at the specified index.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(int index, TensorSpan<bool> value)
+        {
+            var metadata = _metadata.Inputs[index];
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+        }
+
+
+        /// <summary>
+        /// Adds a tensor input.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(TensorSpan<byte> value)
+        {
+            var metadata = GetNextInputMetadata();
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+        }
+
+
+        /// <summary>
+        /// Adds a tensor input at the specified index.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(int index, TensorSpan<byte> value)
+        {
+            var metadata = _metadata.Inputs[index];
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+        }
+
+
+        /// <summary>
+        /// Adds a scalar input.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public void AddScalarInput<T>(T value) where T : unmanaged, INumber<T>
+        {
+            var metaData = GetNextInputMetadata();
+            _inputs.Add(metaData, metaData.CreateScalarOrtValue(value));
+        }
+
+
+        public void AddScalarInput(string value)
+        {
+            var metaData = GetNextInputMetadata();
+            _inputs.Add(metaData, metaData.CreateScalarOrtValue(value));
+        }
+
+
+        public void AddScalarInput(bool value)
+        {
+            var metaData = GetNextInputMetadata();
+            _inputs.Add(metaData, metaData.CreateScalarOrtValue(value));
+        }
+
+
+        public void AddScalarInput(byte value)
+        {
+            var metaData = GetNextInputMetadata();
+            _inputs.Add(metaData, metaData.CreateScalarOrtValue(value));
+        }
+
 
 
         /// <summary>

@@ -12,9 +12,6 @@
 
 
   <!--Projects-->
-  <ItemGroup>
-    <ProjectReference Include="..\TensorStack.Core\TensorStack.Core.csproj" />
-  </ItemGroup>
 
 
   <!--Nuget Settings-->
@@ -45,6 +42,9 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TensorStack.Common\TensorStack.Common.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,8 +4,7 @@ using TensorStack.Common;
 
 namespace TensorStack.Extractors.Common
 {
-    public record ExtractorConfig(string Path, Provider Provider = Provider.CPU, int DeviceId = 0, bool IsOptimizationSupported = true)
-        : ModelConfig(Path, Provider, DeviceId, IsOptimizationSupported)
+    public record ExtractorConfig : ModelConfig
     {
         /// <summary>
         /// The channels the model supports 1 = Greyscale, RGB = 3, RGBA = 4.

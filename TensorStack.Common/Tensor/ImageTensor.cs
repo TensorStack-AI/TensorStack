@@ -52,7 +52,7 @@ namespace TensorStack.Common.Tensor
         /// <param name="imageTensor">The image tensor.</param>
         public void NormalizeZeroToOne()
         {
-            this.NormalizeOneOneToZeroOne();
+            this.NormalizeZeroOne();
         }
 
 
@@ -62,7 +62,7 @@ namespace TensorStack.Common.Tensor
         /// <param name="imageTensor">The image tensor.</param>
         public void NormalizeOneToOne()
         {
-            this.NormalizeZeroOneToOneOne();
+            this.NormalizeOneOne();
         }
 
 
@@ -154,7 +154,6 @@ namespace TensorStack.Common.Tensor
         /// <param name="dimensions">The dimensions.</param>
         protected void ThrowIfInvalid()
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(Dimensions[0], 1, "Batch");
             ArgumentOutOfRangeException.ThrowIfEqual(Channels, 2, nameof(Channels));
             ArgumentOutOfRangeException.ThrowIfLessThan(Channels, 1, nameof(Channels));
             ArgumentOutOfRangeException.ThrowIfGreaterThan(Channels, 4, nameof(Channels));

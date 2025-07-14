@@ -10,8 +10,6 @@ using System.Threading.Tasks;
 using TensorStack.Common;
 using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
-using TensorStack.Core;
-using TensorStack.Core.Inference;
 using TensorStack.Florence;
 using TensorStack.Florence.Common;
 using TensorStack.Florence.Processing;
@@ -57,7 +55,7 @@ namespace TensorStack.Florence
         /// <summary>
         /// Loads the models.
         /// </summary>
-        public async Task LoadAsync()
+        public async Task LoadAsync(CancellationToken cancellationToken = default)
         {
             await Task.WhenAll(
                 _modelEncoder.LoadAsync(),
@@ -71,7 +69,7 @@ namespace TensorStack.Florence
         /// <summary>
         /// Unloads the models.
         /// </summary>
-        public async Task UnloadAsync()
+        public async Task UnloadAsync(CancellationToken cancellationToken = default)
         {
             await Task.WhenAll(
               _modelEncoder.UnloadAsync(),
@@ -130,7 +128,7 @@ namespace TensorStack.Florence
         private async Task<Tensor<float>> RunEmbedModelAsync(Tensor<long> textInputs)
         {
             var sessionEmbedMetadata = await _modelEmbeds.LoadAsync();
-            using (var sessionEmbedParams = new InferenceParameters(sessionEmbedMetadata))
+            using (var sessionEmbedParams = new ModelParameters(sessionEmbedMetadata))
             {
                 sessionEmbedParams.AddInput(textInputs.AsTensorSpan());
                 sessionEmbedParams.AddOutput([textInputs.Dimensions[0], textInputs.Dimensions[1], _configuration.DecoderHiddenSize]);
@@ -152,7 +150,7 @@ namespace TensorStack.Florence
         private async Task<VisionResult> RunVisionModelAsync(TokenizerResult textOutput, Tensor<float> textEmbeds, ImageTensor pixelValues)
         {
             var sessionVisionMetadata = await _modelVision.LoadAsync();
-            using (var sessionVisionParams = new InferenceParameters(sessionVisionMetadata))
+            using (var sessionVisionParams = new ModelParameters(sessionVisionMetadata))
             {
                 sessionVisionParams.AddInput(pixelValues.GetChannels(3));
                 sessionVisionParams.AddOutput([textEmbeds.Dimensions[0], _configuration.ImageSeqLength, textEmbeds.Dimensions[2]]);
@@ -178,7 +176,7 @@ namespace TensorStack.Florence
         private async Task<Tensor<float>> RunEncoderModelAsync(VisionResult visionOutput)
         {
             var sessionEncoderMetadata = await _modelEncoder.LoadAsync();
-            using (var sessionEncoderParams = new InferenceParameters(sessionEncoderMetadata))
+            using (var sessionEncoderParams = new ModelParameters(sessionEncoderMetadata))
             {
                 sessionEncoderParams.AddInput(visionOutput.Mask.AsTensorSpan());
                 sessionEncoderParams.AddInput(visionOutput.Embeds.AsTensorSpan());
@@ -207,7 +205,7 @@ namespace TensorStack.Florence
                 pastKeyValueCache.Initialize(numBeams);
 
             var sessionDecoderMergedMetadata = await _modelDecoder.LoadAsync();
-            using (var sessionDecoderMergedParams = new InferenceParameters(sessionDecoderMergedMetadata))
+            using (var sessionDecoderMergedParams = new ModelParameters(sessionDecoderMergedMetadata))
             {
                 sessionDecoderMergedParams.AddInput(visionOutput.Mask.AsTensorSpan());
                 sessionDecoderMergedParams.AddInput(encoderOutput.Repeat(numBeams).AsTensorSpan());
@@ -330,20 +328,26 @@ namespace TensorStack.Florence
         /// <param name="provider">The provider.</param>
         /// <param name="deviceId">The device identifier.</param>
         /// <returns>FlorencePipeline.</returns>
-        public static FlorencePipeline Create(FlorenceConfig configuration, Provider provider = Provider.DirectML, int deviceId = 0)
+        public static FlorencePipeline Create(FlorenceConfig configuration, ExecutionProvider provider)
         {
-            var modelTokenizerConfig = new ModelConfig(configuration.Path, provider, deviceId, false);
-            var modelEmbedsConfig = new ModelConfig(Path.Combine(configuration.Path, "embed_tokens.onnx"), provider, deviceId, false);
-            var modelEncoderConfig = new ModelConfig(Path.Combine(configuration.Path, "encoder_model.onnx"), provider, deviceId, false);
-            var modelVisionConfig = new ModelConfig(Path.Combine(configuration.Path, "vision_encoder.onnx"), provider, deviceId, false);
-            var modelDecoderConfig = new ModelConfig(Path.Combine(configuration.Path, "decoder_model_merged.onnx"), provider, deviceId, false) with
+            var modelTokenizerConfig = new ModelConfig { Path = configuration.Path};
+            var modelEmbedsConfig = new ModelConfig{ Path = Path.Combine(configuration.Path, "embed_tokens.onnx")};
+            var modelEncoderConfig = new ModelConfig{ Path = Path.Combine(configuration.Path, "encoder_model.onnx") };
+            var modelVisionConfig = new ModelConfig { Path = Path.Combine(configuration.Path, "vision_encoder.onnx") };
+            var modelDecoderConfig = new ModelConfig{ Path = Path.Combine(configuration.Path, "decoder_model_merged.onnx"), } with
             {
                 // TODO: DirectML just creates garbage output
                 // CPU & CUDA are ok, need to investigate
-                Provider = provider == Provider.DirectML 
-                    ? Provider.CPU 
-                    : provider
+                //Provider = provider == Provider.DirectML 
+                //    ? Provider.CPU 
+                //    : provider
             };
+
+            modelTokenizerConfig.SetProvider(provider);
+            modelEmbedsConfig.SetProvider(provider);
+            modelEncoderConfig.SetProvider(provider);
+            modelVisionConfig.SetProvider(provider);
+            modelDecoderConfig.SetProvider(provider);
             return new FlorencePipeline(configuration, modelTokenizerConfig, modelEmbedsConfig, modelEncoderConfig, modelVisionConfig, modelDecoderConfig);
         }
     }

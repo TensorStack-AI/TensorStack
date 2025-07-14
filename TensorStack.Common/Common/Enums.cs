@@ -33,38 +33,6 @@ namespace TensorStack.Common
 
 
     /// <summary>
-    /// Enum Provider
-    /// </summary>
-    public enum Provider
-    {
-        /// <summary>
-        /// CPU provider (does not support Float16 or BFloat16)
-        /// </summary>
-        CPU = 0,
-
-        /// <summary>
-        /// The Microsoft DirectML Provider
-        /// </summary>
-        DirectML = 1,
-
-        /// <summary>
-        /// The Nividia CUDA Provider (Requires CUDA SDK/Toolkit)
-        /// </summary> 
-        CUDA = 2,
-
-        /// <summary>
-        /// The Apple CoreML Provider
-        /// </summary>
-        CoreML = 3,
-
-        /// <summary>
-        /// Custom Provider
-        /// </summary>
-        Custom = 100
-    }
-
-
-    /// <summary>
     /// Normalization
     /// </summary>
     public enum Normalization

@@ -1,6 +1,9 @@
-﻿using System;
+﻿// Copyright (c) TensorStack. All rights reserved.
+// Licensed under the Apache 2.0 License.
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace TensorStack.Common
 {
@@ -93,5 +96,50 @@ namespace TensorStack.Common
             return -1;
         }
 
+
+        public static int IndexOf<T>(this IReadOnlyList<T> list, Func<T, bool> itemSelector) where T : IEquatable<T>
+        {
+            var item = list.FirstOrDefault(itemSelector);
+            if (item == null)
+                return -1;
+
+            return IndexOf(list, item);
+        }
+
+
+        public static T[] PadOrTruncate<T>(this T[] inputs, T padValue, int requiredLength)
+        {
+            var result = new T[requiredLength];
+            var countToCopy = Math.Min(inputs.Length, requiredLength);
+            Array.Copy(inputs, result, countToCopy);
+            if (inputs.Length < requiredLength)
+            {
+                for (int i = inputs.Length; i < requiredLength; i++)
+                    result[i] = padValue;
+            }
+            return result;
+        }
+
+
+        public static T[] Pad<T>(this T[] inputs, T padValue, int requiredLength)
+        {
+            int count = inputs.Length;
+            if (requiredLength <= count)
+                return inputs;
+
+            var result = new T[requiredLength];
+            Array.Copy(inputs, result, count);
+            for (int i = count; i < requiredLength; i++)
+                result[i] = padValue;
+
+            return result;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float ZeroIfNan(this float value)
+        {
+            return float.IsNaN(value) ? 0f : value;
+        }
     }
 }

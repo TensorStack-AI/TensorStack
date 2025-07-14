@@ -7,8 +7,7 @@ namespace TensorStack.Upscaler.Common
     /// <summary>
     /// Default UpscalerConfig.
     /// </summary>
-    public record UpscalerConfig(string Path, Provider Provider = Provider.CPU, int DeviceId = 0, bool IsOptimizationSupported = true)
-        : ModelConfig(Path, Provider, DeviceId, IsOptimizationSupported)
+    public record UpscalerConfig : ModelConfig
     {
         /// <summary>
         /// The channels the model supports 1 = Greyscale, RGB = 3, RGBA = 4.

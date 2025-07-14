@@ -1,6 +1,5 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,8 +12,6 @@ using TensorStack.Common.Image;
 using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
 using TensorStack.Common.Video;
-using TensorStack.Core;
-using TensorStack.Core.Inference;
 using TensorStack.Upscaler.Common;
 using TensorStack.Upscaler.Models;
 
@@ -44,7 +41,7 @@ namespace TensorStack.Upscaler.Pipelines
         /// Loads the pipeline.
         /// </summary>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        public async Task LoadAsync()
+        public async Task LoadAsync(CancellationToken cancellationToken = default)
         {
             await _upscaleModel.LoadAsync();
         }
@@ -54,7 +51,7 @@ namespace TensorStack.Upscaler.Pipelines
         /// Unloads the pipeline.
         /// </summary>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        public async Task UnloadAsync()
+        public async Task UnloadAsync(CancellationToken cancellationToken = default)
         {
             await _upscaleModel.UnloadAsync();
         }
@@ -184,11 +181,11 @@ namespace TensorStack.Upscaler.Pipelines
             var metadata = await _upscaleModel.LoadAsync(cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             var outputDimension = new[] { 1, _upscaleModel.Channels, imageTensor.Height * _upscaleModel.ScaleFactor, imageTensor.Width * _upscaleModel.ScaleFactor };
-            using (var inferenceParameters = new InferenceParameters(metadata, cancellationToken))
+            using (var modelParameters = new ModelParameters(metadata, cancellationToken))
             {
-                inferenceParameters.AddInput(imageTensor.GetChannels(_upscaleModel.Channels));
-                inferenceParameters.AddOutput(outputDimension);
-                using (var results = await _upscaleModel.RunInferenceAsync(inferenceParameters))
+                modelParameters.AddInput(imageTensor.GetChannels(_upscaleModel.Channels));
+                modelParameters.AddOutput(outputDimension);
+                using (var results = await _upscaleModel.RunInferenceAsync(modelParameters))
                 {
                     return results[0].ToTensor().AsImageTensor();
                 }
@@ -249,19 +246,6 @@ namespace TensorStack.Upscaler.Pipelines
         public static UpscalePipeline Create(UpscalerConfig configuration)
         {
             var upscalerModel = UpscalerModel.Create(configuration);
-            return new UpscalePipeline(upscalerModel);
-        }
-
-
-        /// <summary>
-        /// Creates an UpscalePipeline
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="sessionOptionsFactory">The session options factory.</param>
-        /// <returns>UpscalePipeline.</returns>
-        public static UpscalePipeline Create(UpscalerConfig configuration, Func<SessionOptions> sessionOptionsFactory)
-        {
-            var upscalerModel = UpscalerModel.Create(configuration, sessionOptionsFactory);
             return new UpscalePipeline(upscalerModel);
         }
 

@@ -1,6 +1,5 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,8 +11,6 @@ using TensorStack.Common.Image;
 using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
 using TensorStack.Common.Video;
-using TensorStack.Core;
-using TensorStack.Core.Inference;
 using TensorStack.Extractors.Common;
 using TensorStack.Extractors.Models;
 
@@ -42,15 +39,15 @@ namespace TensorStack.Extractors.Pipelines
         /// <summary>
         /// Loads the pipeline.
         /// </summary>
-        public async Task LoadAsync()
+        public async Task LoadAsync(CancellationToken cancellationToken = default)
         {
-            await _extractorModel.LoadAsync();
+            await _extractorModel.LoadAsync(cancellationToken: cancellationToken);
         }
 
         /// <summary>
         /// Unloads the pipeline.
         /// </summary>
-        public async Task UnloadAsync()
+        public async Task UnloadAsync(CancellationToken cancellationToken = default)
         {
             await _extractorModel.UnloadAsync();
         }
@@ -186,11 +183,11 @@ namespace TensorStack.Extractors.Pipelines
             cancellationToken.ThrowIfCancellationRequested();
             var outputShape = new[] { 1, _extractorModel.OutputChannels, inputTensor.Dimensions[2], inputTensor.Dimensions[3] };
             var outputBuffer = metadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
-            using (var inferenceParameters = new InferenceParameters(metadata, cancellationToken))
+            using (var modelParameters = new ModelParameters(metadata, cancellationToken))
             {
-                inferenceParameters.AddInput(inputTensor.GetChannels(_extractorModel.Channels));
-                inferenceParameters.AddOutput(outputBuffer);
-                using (var results = await _extractorModel.RunInferenceAsync(inferenceParameters))
+                modelParameters.AddInput(inputTensor.GetChannels(_extractorModel.Channels));
+                modelParameters.AddOutput(outputBuffer);
+                using (var results = await _extractorModel.RunInferenceAsync(modelParameters))
                 {
                     var outputTensor = results[0].ToTensor();
                     if (outputBuffer.Length != 4)
@@ -292,17 +289,5 @@ namespace TensorStack.Extractors.Pipelines
             return new ExtractorPipeline(extractorModel);
         }
 
-
-        /// <summary>
-        /// Creates an ExtractorPipeline
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="sessionOptionsFactory">The session options factory.</param>
-        /// <returns>ExtractorPipeline.</returns>
-        public static ExtractorPipeline Create(ExtractorConfig configuration, Func<SessionOptions> sessionOptionsFactory)
-        {
-            var extractorModel = ExtractorModel.Create(configuration, sessionOptionsFactory);
-            return new ExtractorPipeline(extractorModel);
-        }
     }
 }

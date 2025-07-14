@@ -4,7 +4,7 @@ using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
 
-namespace TensorStack.Core.Inference
+namespace TensorStack.Common
 {
     internal class DisposableList<T> : List<T>, IDisposableReadOnlyCollection<T> where T : IDisposable
     {
