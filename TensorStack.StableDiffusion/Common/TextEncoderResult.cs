@@ -1,0 +1,38 @@
+﻿// Copyright (c) TensorStack. All rights reserved.
+// Licensed under the Apache 2.0 License.
+using System;
+using TensorStack.Common.Tensor;
+
+namespace TensorStack.StableDiffusion.Common
+{
+    public record TextEncoderResult
+    {
+        private readonly Tensor<float> _textEmbeds;
+        private readonly Tensor<float>[] _hiddenStates;
+
+        public TextEncoderResult(Tensor<float>[] hiddenStates, Tensor<float> textEmbeds)
+        {
+            _textEmbeds = textEmbeds;
+            _hiddenStates = hiddenStates;
+        }
+
+        public TextEncoderResult(Tensor<float> hiddenStates, Tensor<float> textEmbeds)
+            : this([hiddenStates], textEmbeds) { }
+
+
+        public Tensor<float> GetTextEmbeds()
+        {
+            return _textEmbeds;
+        }
+
+        public Tensor<float> GetHiddenStates(int index = 0)
+        {
+            if (index > 0)
+                return _hiddenStates[^index];
+
+            return _hiddenStates[0];
+        }
+    }
+
+    public record TextEncoderBatchedResult(Memory<float> PromptEmbeds, Memory<float> PromptPooledEmbeds);
+}
