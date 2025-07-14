@@ -15,6 +15,7 @@ namespace TensorStack.Common
     /// </summary>
     public static class TensorExtensions
     {
+        #region Divide
 
         /// <summary>
         /// Divides the specified value from all tensor values.
@@ -30,6 +31,35 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Divides the specified value
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> Divide(this Tensor<float> tensor, float value)
+        {
+            TensorPrimitives.Divide(tensor.Span, value, tensor.Memory.Span);
+            return tensor;
+        }
+
+        /// <summary>
+        /// COPY: Divides the specified value to new tensor.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> DivideTo(this Tensor<float> tensor, float value)
+        {
+            var result = new Tensor<float>(tensor.Dimensions);
+            TensorPrimitives.Divide(tensor.Span, value, result.Memory.Span);
+            return result;
+        }
+
+        #endregion
+
+        #region Multiply
+
+        /// <summary>
         /// Multiplies each Tensor value by the specified value.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
@@ -41,6 +71,36 @@ namespace TensorStack.Common
             return tensor;
         }
 
+
+        /// <summary>
+        /// Multiplies each Tensor value.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> Multiply(this Tensor<float> tensor, float value)
+        {
+            TensorPrimitives.Multiply(tensor.Span, value, tensor.Memory.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// COPY: Multiplies each Tensor value to new tensor.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> MultiplyTo(this Tensor<float> tensor, float value)
+        {
+            var result = new Tensor<float>(tensor.Dimensions);
+            TensorPrimitives.Multiply(tensor.Span, value, result.Memory.Span);
+            return result;
+        }
+
+        #endregion
+
+        #region Add
 
         /// <summary>
         /// Adds TensorB to tensorA
@@ -69,6 +129,63 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Adds TensorB to tensorA
+        /// </summary>
+        /// <param name="tensorA">The tensor a.</param>
+        /// <param name="tensorB">The tensor b.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> Add(this Tensor<float> tensorA, Tensor<float> tensorB)
+        {
+            TensorPrimitives.Add(tensorA.Span, tensorB.Span, tensorA.Memory.Span);
+            return tensorA;
+        }
+
+
+        /// <summary>
+        /// Adds TensorB to tensorA to new tensor
+        /// </summary>
+        /// <param name="tensorA">The tensor a.</param>
+        /// <param name="tensorB">The tensor b.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> AddTo(this Tensor<float> tensorA, Tensor<float> tensorB)
+        {
+            var result = new Tensor<float>(tensorA.Dimensions);
+            TensorPrimitives.Add(tensorA.Span, tensorB.Span, result.Memory.Span);
+            return result;
+        }
+
+
+        /// <summary>
+        /// Adds the specified value to each Tensor value.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> Add(this Tensor<float> tensor, float value)
+        {
+            TensorPrimitives.Add(tensor.Span, value, tensor.Memory.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// Adds the value to the Tensor to new tensor
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> AddTo(this Tensor<float> tensor, float value)
+        {
+            var result = new Tensor<float>(tensor.Dimensions);
+            TensorPrimitives.Add(tensor.Span, value, result.Memory.Span);
+            return result;
+        }
+
+        #endregion
+
+        #region Subtract
+
+        /// <summary>
         /// Subtracts TensorB from TensorA
         /// </summary>
         /// <param name="tensorA">The tensor a.</param>
@@ -82,7 +199,21 @@ namespace TensorStack.Common
 
 
         /// <summary>
-        /// Subtracts the specified value from each Tensor value.
+        /// COPY: Subtracts TensorB from TensorA to a new tensor
+        /// </summary>
+        /// <param name="tensorA">The tensor a.</param>
+        /// <param name="tensorB">The tensor b.</param>
+        /// <returns>TensorSpan&lt;System.Single&gt;.</returns>
+        public static TensorSpan<float> SubtractTo(this TensorSpan<float> tensorA, TensorSpan<float> tensorB)
+        {
+            var result = new TensorSpan<float>(tensorA.Dimensions);
+            TensorPrimitives.Subtract(tensorA.Span, tensorB.Span, result.Span);
+            return result;
+        }
+
+
+        /// <summary>
+        /// Subtracts the value from the Tensor
         /// </summary>
         /// <param name="tensor">The tensor.</param>
         /// <param name="value">The value.</param>
@@ -95,61 +226,15 @@ namespace TensorStack.Common
 
 
         /// <summary>
-        /// Divides the specified value from all tensor values.
+        /// COPY: Subtracts the value from the Tensor to a new tensor.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
         /// <param name="value">The value.</param>
-        /// <param name="isCopy">if set to <c>true</c> copy result to new tensor, othewise tensor is mutated</param>
-        /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        public static Tensor<float> Divide(this Tensor<float> tensor, float value, bool isCopy = false)
+        /// <returns>TensorSpan&lt;System.Single&gt;.</returns>
+        public static TensorSpan<float> SubtractTo(this TensorSpan<float> tensor, float value)
         {
-            var result = isCopy ? new Tensor<float>(tensor.Dimensions) : tensor;
-            TensorPrimitives.Divide(tensor.Span, value, result.Memory.Span);
-            return result;
-        }
-
-
-        /// <summary>
-        /// Multiplies each Tensor value by the specified value.
-        /// </summary>
-        /// <param name="tensor">The tensor.</param>
-        /// <param name="value">The value.</param>
-        /// <param name="isCopy">if set to <c>true</c> copy result to new tensor, othewise tensor is mutated</param>
-        /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        public static Tensor<float> Multiply(this Tensor<float> tensor, float value, bool isCopy = false)
-        {
-            var result = isCopy ? new Tensor<float>(tensor.Dimensions) : tensor;
-            TensorPrimitives.Multiply(tensor.Span, value, result.Memory.Span);
-            return result;
-        }
-
-
-        /// <summary>
-        /// Adds TensorB to tensorA
-        /// </summary>
-        /// <param name="tensorA">The tensor a.</param>
-        /// <param name="tensorB">The tensor b.</param>
-        /// <param name="isCopy">if set to <c>true</c> copy result to new tensor, othewise tensor is mutated</param>
-        /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        public static Tensor<float> Add(this Tensor<float> tensorA, Tensor<float> tensorB, bool isCopy = false)
-        {
-            var result = isCopy ? new Tensor<float>(tensorA.Dimensions) : tensorA;
-            TensorPrimitives.Add(tensorA.Span, tensorB.Span, result.Memory.Span);
-            return result;
-        }
-
-
-        /// <summary>
-        /// Adds the specified value to each Tensor value.
-        /// </summary>
-        /// <param name="tensor">The tensor.</param>
-        /// <param name="value">The value.</param>
-        /// <param name="isCopy">if set to <c>true</c> copy result to new tensor, othewise tensor is mutated</param>
-        /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        public static Tensor<float> Add(this Tensor<float> tensor, float value, bool isCopy = false)
-        {
-            var result = isCopy ? new Tensor<float>(tensor.Dimensions) : tensor;
-            TensorPrimitives.Add(tensor.Span, value, result.Memory.Span);
+            var result = new TensorSpan<float>(tensor.Dimensions);
+            TensorPrimitives.Subtract(tensor.Span, value, result.Span);
             return result;
         }
 
@@ -159,42 +244,93 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="tensorA">The tensor a.</param>
         /// <param name="tensorB">The tensor b.</param>
-        /// <param name="isCopy">if set to <c>true</c> copy result to new tensor, othewise tensor is mutated</param>
         /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        public static Tensor<float> Subtract(this Tensor<float> tensorA, Tensor<float> tensorB, bool isCopy = false)
+        public static Tensor<float> Subtract(this Tensor<float> tensorA, Tensor<float> tensorB)
         {
-            var result = isCopy ? new Tensor<float>(tensorA.Dimensions) : tensorA;
+            TensorPrimitives.Subtract(tensorA.Span, tensorB.Span, tensorA.Memory.Span);
+            return tensorA;
+        }
+
+
+        /// <summary>
+        /// COPY: Subtracts TensorB from TensorA to a new tensor
+        /// </summary>
+        /// <param name="tensorA">The tensor a.</param>
+        /// <param name="tensorB">The tensor b.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> SubtractTo(this Tensor<float> tensorA, Tensor<float> tensorB)
+        {
+            var result = new Tensor<float>(tensorA.Dimensions);
             TensorPrimitives.Subtract(tensorA.Span, tensorB.Span, result.Memory.Span);
             return result;
         }
 
 
         /// <summary>
-        /// Subtracts the specified value from each Tensor value.
+        /// Subtracts the specified value from the Tensor.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
         /// <param name="value">The value.</param>
-        /// <param name="isCopy">if set to <c>true</c> copy result to new tensor, othewise tensor is mutated</param>
         /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        public static Tensor<float> Subtract(this Tensor<float> tensor, float value, bool isCopy = false)
+        public static Tensor<float> Subtract(this Tensor<float> tensor, float value)
         {
-            var result = isCopy ? new Tensor<float>(tensor.Dimensions) : tensor;
+            TensorPrimitives.Subtract(tensor.Span, value, tensor.Memory.Span);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// COPY: Subtracts the specified value from the Tensor to a new tensor.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> SubtractTo(this Tensor<float> tensor, float value)
+        {
+            var result = new Tensor<float>(tensor.Dimensions);
             TensorPrimitives.Subtract(tensor.Span, value, result.Memory.Span);
             return result;
         }
 
+        #endregion
+
+
         /// <summary>
-        /// Reshapes the Tensor with the specified dimensions.
+        /// Sums the tensors.
+        /// </summary>
+        /// <param name="tensors">The tensors.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        public static Tensor<float> SumTensors(this Tensor<float>[] tensors, ReadOnlySpan<int> dimensions)
+        {
+            var result = new Tensor<float>(dimensions);
+            for (int m = 0; m < tensors.Length; m++)
+            {
+                TensorPrimitives.Add(result.Span, tensors[m].Span, result.Memory.Span);
+            }
+            return result;
+        }
+
+
+        /// <summary>
+        /// Reshapes to new tensor.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
         /// <param name="dimensions">The dimensions.</param>
-        /// <param name="isCopy">if set to <c>true</c> copy result to new tensor, othewise tensor is mutated</param>
         /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        public static Tensor<float> Reshape(this Tensor<float> tensor, ReadOnlySpan<int> dimensions, bool isCopy = false)
+        public static Tensor<float> ReshapeTo(this Tensor<float> tensor, ReadOnlySpan<int> dimensions)
         {
-            if (isCopy)
-                return new Tensor<float>(tensor.Memory.ToArray(), dimensions);
+            return new Tensor<float>(tensor.Memory.ToArray(), dimensions);
+        }
 
+
+        /// <summary>
+        /// Reshapes to the specified dimensions.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> Reshape(this Tensor<float> tensor, ReadOnlySpan<int> dimensions)
+        {
             tensor.ReshapeTensor(dimensions);
             return tensor;
         }

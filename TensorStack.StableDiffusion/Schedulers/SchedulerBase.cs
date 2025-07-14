@@ -78,29 +78,27 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <summary>
         /// Scales the input.
         /// </summary>
-        /// <param name="sample">The sample.</param>
         /// <param name="timestep">The timestep.</param>
+        /// <param name="sample">The sample.</param>
         /// <returns></returns>
-        public abstract Tensor<float> ScaleInput(Tensor<float> sample, int timestep);
+        public abstract Tensor<float> ScaleInput(int timestep, Tensor<float> sample);
 
         /// <summary>
-        /// Processes a inference step for the specified model output.
+        /// Computes the next prediction steps
         /// </summary>
-        /// <param name="sample">The model output.</param>
         /// <param name="timestep">The timestep.</param>
-        /// <param name="previousSample">The sample.</param>
-        /// <param name="order">The order.</param>
-        /// <returns></returns>
-        public abstract SchedulerResult Step(Tensor<float> sample, int timestep, Tensor<float> previousSample);
+        /// <param name="sample">The sample.</param>
+        /// <param name="previousSample">The previous sample.</param>
+        public abstract SchedulerResult Step(int timestep, Tensor<float> sample, Tensor<float> previousSample);
 
         /// <summary>
         /// Adds noise to the sample.
         /// </summary>
+        /// <param name="timestep">The timestep.</param>
         /// <param name="sample">The original sample.</param>
         /// <param name="noise">The noise.</param>
-        /// <param name="timestep">The timestep.</param>
         /// <returns></returns>
-        public abstract Tensor<float> ScaleNoise(Tensor<float> sample, Tensor<float> noise, int timestep);
+        public abstract Tensor<float> ScaleNoise(int timestep, Tensor<float> sample, Tensor<float> noise);
 
 
         /// <summary>
@@ -245,13 +243,13 @@ namespace TensorStack.StableDiffusion.Schedulers
             Tensor<float> predOriginalSample = null;
             if (Options.PredictionType == PredictionType.Epsilon)
             {
-                predOriginalSample = sample.Subtract(modelOutput.Multiply(sigma, true), true);
+                predOriginalSample = sample.SubtractTo(modelOutput.MultiplyTo(sigma));
             }
             else if (Options.PredictionType == PredictionType.VariablePrediction)
             {
                 var sigmaSqrt = MathF.Sqrt(sigma * sigma + 1);
-                predOriginalSample = sample.Divide(sigmaSqrt, true)
-                    .Add(modelOutput.Multiply(-sigma / sigmaSqrt, true), true);
+                predOriginalSample = sample.DivideTo(sigmaSqrt)
+                    .AddTo(modelOutput.MultiplyTo(-sigma / sigmaSqrt));
             }
             else if (Options.PredictionType == PredictionType.Sample)
             {

@@ -101,12 +101,14 @@ namespace TensorStack.StableDiffusion.Pipelines
         /// <param name="options">The options.</param>
         protected virtual IScheduler CreateScheduler(GenerateOptions options)
         {
-            var scheduler = options.Scheduler switch
+            IScheduler scheduler = options.Scheduler switch
             {
+                SchedulerType.LMS => new LMSScheduler(options),
+                SchedulerType.Euler => new EulerScheduler(options),
                 SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
+                SchedulerType.LCM => new LCMScheduler(options),
                 _ => default
             };
-
             scheduler.Initialize(options.Strength);
             return scheduler;
         }

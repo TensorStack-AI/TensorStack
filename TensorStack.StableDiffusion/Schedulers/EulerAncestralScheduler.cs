@@ -1,15 +1,13 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using System;
-using System.Linq;
 using TensorStack.Common;
 using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
-using TensorStack.StableDiffusion.Helpers;
 
 namespace TensorStack.StableDiffusion.Schedulers
 {
-    public sealed class EulerAncestralScheduler : SchedulerBase
+    public sealed class EulerAncestralScheduler : EulerScheduler
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EulerAncestralScheduler"/> class.
@@ -19,57 +17,12 @@ namespace TensorStack.StableDiffusion.Schedulers
 
 
         /// <summary>
-        /// Sets the timesteps.
+        /// Computes the next prediction steps
         /// </summary>
-        /// <returns></returns>
-        protected override int[] SetTimesteps()
-        {
-            var sigmas = Sigmas.ToArray();
-            var timesteps = CreateTimestepSpacing();
-            var logSigmas = ArrayHelpers.Log(sigmas);
-            var range = ArrayHelpers.Range(0, sigmas.Length, true);
-            sigmas = Interpolate(timesteps, range, sigmas);
-
-            if (Options.UseKarrasSigmas)
-            {
-                sigmas = ConvertToKarras(sigmas);
-                timesteps = SigmaToTimestep(sigmas, logSigmas);
-            }
-
-            Sigmas = [.. sigmas, 0f];
-
-            SetInitNoiseSigma();
-
-            return timesteps.Select(x => (int)Math.Round(x))
-                 .OrderByDescending(x => x)
-                 .ToArray();
-        }
-
-
-        /// <summary>
-        /// Scales the input.
-        /// </summary>
+        /// <param name="timestep">The timestep.</param>
         /// <param name="sample">The sample.</param>
-        /// <param name="timestep">The timestep.</param>
-        /// <returns></returns>
-        public override Tensor<float> ScaleInput(Tensor<float> sample, int timestep)
-        {
-            var stepIndex = Timesteps.IndexOf(timestep);
-            var sigma = Sigmas[stepIndex];
-            sigma = MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f);
-            return sample.Divide(sigma, true);
-        }
-
-
-        /// <summary>
-        /// Processes a inference step for the specified model output.
-        /// </summary>
-        /// <param name="sample">The model output.</param>
-        /// <param name="timestep">The timestep.</param>
-        /// <param name="previousSample">The sample.</param>
-        /// <param name="order">The order.</param>
-        /// <returns></returns>
-        public override SchedulerResult Step(Tensor<float> sample, int timestep, Tensor<float> previousSample)
+        /// <param name="previousSample">The previous sample.</param>
+        public override SchedulerResult Step(int timestep, Tensor<float> sample, Tensor<float> previousSample)
         {
             var stepIndex = Timesteps.IndexOf(timestep);
             var sigma = Sigmas[stepIndex];
@@ -89,31 +42,14 @@ namespace TensorStack.StableDiffusion.Schedulers
 
             // 2. Convert to an ODE derivative
             var derivative = previousSample
-                .Subtract(predOriginalSample, true)
-                .Divide(sigma, true);
+                .SubtractTo(predOriginalSample)
+                .DivideTo(sigma);
 
             var delta = sigmaDown - sigma;
-            var prevSample = previousSample.Add(derivative.Multiply(delta, true), true);
+            var prevSample = previousSample.AddTo(derivative.MultiplyTo(delta));
             var noise = CreateRandomSample(prevSample.Dimensions);
-            prevSample = prevSample.Add(noise.Multiply(sigmaUp, true), true);
+            prevSample = prevSample.AddTo(noise.MultiplyTo(sigmaUp));
             return new SchedulerResult(prevSample);
-        }
-
-
-        /// <summary>
-        /// Adds noise to the sample.
-        /// </summary>
-        /// <param name="sample">The original sample.</param>
-        /// <param name="noise">The noise.</param>
-        /// <param name="timesteps">The timesteps.</param>
-        /// <returns></returns>
-        public override Tensor<float> ScaleNoise(Tensor<float> sample, Tensor<float> noise, int timestep)
-        {
-            var index = Timesteps.IndexOf(timestep);
-            var sigma = Sigmas[index];
-            return noise
-                .Multiply(sigma)
-                .Add(sample);
         }
 
     }

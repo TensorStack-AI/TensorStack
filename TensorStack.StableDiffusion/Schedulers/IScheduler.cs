@@ -33,20 +33,18 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <summary>
         /// Scales the input.
         /// </summary>
-        /// <param name="sample">The sample.</param>
         /// <param name="timestep">The timestep.</param>
+        /// <param name="sample">The sample.</param>
         /// <returns></returns>
-        Tensor<float> ScaleInput(Tensor<float> sample, int timestep);
+        Tensor<float> ScaleInput(int timestep, Tensor<float> sample);
 
         /// <summary>
-        /// Processes a inference step for the specified model output.
+        /// Computes the next prediction steps
         /// </summary>
-        /// <param name="sample">The model output.</param>
         /// <param name="timestep">The timestep.</param>
-        /// <param name="previousSample">The sample.</param>
-        /// <param name="order">The order.</param>
-        /// <returns></returns>
-        SchedulerResult Step(Tensor<float> sample, int timestep, Tensor<float> previousSample);
+        /// <param name="sample">The sample.</param>
+        /// <param name="previousSample">The previous sample.</param>
+        SchedulerResult Step(int timestep, Tensor<float> sample, Tensor<float> previousSample);
 
         /// <summary>
         /// Adds noise to the sample.
@@ -55,7 +53,7 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <param name="noise">The noise.</param>
         /// <param name="timesteps">The timesteps.</param>
         /// <returns></returns>
-        Tensor<float> ScaleNoise(Tensor<float> sample, Tensor<float> noise, int timestep);
+        Tensor<float> ScaleNoise(int timestep, Tensor<float> sample, Tensor<float> noise);
 
         /// <summary>
         /// Creates a random sample with the specified dimesions.

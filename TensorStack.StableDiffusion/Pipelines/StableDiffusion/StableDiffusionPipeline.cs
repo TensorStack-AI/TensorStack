@@ -243,7 +243,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Inputs.
-                var latentInput = scheduler.ScaleInput(latents, timestep).WithGuidance(isGuidanceEnabled);
+                var latentInput = scheduler.ScaleInput(timestep, latents).WithGuidance(isGuidanceEnabled);
 
                 // Inference
                 var prediction = await Unet.RunAsync(timestep, latentInput, promptInput, cancellationToken: cancellationToken);
@@ -253,7 +253,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                     prediction = ApplyGuidance(prediction, options.GuidanceScale);
 
                 // Scheduler
-                var stepResult = scheduler.Step(prediction, timestep, latents);
+                var stepResult = scheduler.Step(timestep, prediction, latents);
 
                 // Result
                 latents = stepResult.Sample;
@@ -299,7 +299,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Inputs.
-                var latentInput = scheduler.ScaleInput(latents, timestep).WithGuidance(isGuidanceEnabled);
+                var latentInput = scheduler.ScaleInput(timestep, latents).WithGuidance(isGuidanceEnabled);
                 var controlInput = controlImage.WithGuidance(isGuidanceEnabled).AsImageTensor();
 
                 // Inference
@@ -319,7 +319,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                     prediction = ApplyGuidance(prediction, options.GuidanceScale);
 
                 // Scheduler
-                var stepResult = scheduler.Step(prediction, timestep, latents);
+                var stepResult = scheduler.Step(timestep, prediction, latents);
 
                 // Result
                 latents = stepResult.Sample;
@@ -347,7 +347,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
             {
                 var timestep = scheduler.GetStartTimestep();
                 var encoderResult = await EncodeLatentsAsync(options, options.InputImage, cancellationToken);
-                return scheduler.ScaleNoise(encoderResult, noiseTensor, timestep);
+                return scheduler.ScaleNoise(timestep, encoderResult, noiseTensor);
             }
             return noiseTensor.Multiply(scheduler.StartSigma);
         }
@@ -438,7 +438,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// </summary>
         protected override IReadOnlyList<SchedulerType> ConfigureSchedulers()
         {
-            return [SchedulerType.EulerAncestral];
+            return [SchedulerType.LMS, SchedulerType.Euler, SchedulerType.EulerAncestral, SchedulerType.LCM];
         }
 
 
