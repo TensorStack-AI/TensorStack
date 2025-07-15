@@ -60,7 +60,7 @@ namespace TensorStack.StableDiffusion.Helpers
             {
                 var textEncoderResult = await textEncoder.RunAsync(inputTokens, cancellationToken);
                 ApplyPromptWeights(inputTokens, textEncoderResult);
-                return new TextEncoderResult(textEncoderResult.GetHiddenStates(hiddenStateIndex), textEncoderResult.GetTextEmbeds());
+                return new TextEncoderResult(textEncoderResult.GetHiddenStates(hiddenStateIndex), textEncoderResult.TextEmbeds);
             }
             else
             {
@@ -127,7 +127,7 @@ namespace TensorStack.StableDiffusion.Helpers
                         promptEmbeds.AddRange(output);
                     }
 
-                    promptPooledEmbeds.AddRange(result.GetTextEmbeds().Span);
+                    promptPooledEmbeds.AddRange(result.TextEmbeds.Span);
                 }
 
                 var hiddenStates = new Tensor<float>(promptEmbeds.ToArray(), [1, promptEmbeds.Count / textEncoder.HiddenSize, textEncoder.HiddenSize]);
@@ -146,7 +146,7 @@ namespace TensorStack.StableDiffusion.Helpers
         /// <param name="encoderOutput">The encoder output.</param>
         public static void ApplyPromptWeights(TokenizerResult tokenizerOutput, TextEncoderResult encoderOutput)
         {
-            var hiddenStates = encoderOutput.GetHiddenStates();
+            var hiddenStates = encoderOutput.HiddenStates;
             var numTokens = hiddenStates.Dimensions[1];
             var embedDim = hiddenStates.Dimensions[2];
             var weights = tokenizerOutput.Weights.Pad(1, numTokens);

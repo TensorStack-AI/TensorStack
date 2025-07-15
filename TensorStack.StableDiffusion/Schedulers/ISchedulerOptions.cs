@@ -28,8 +28,6 @@ namespace TensorStack.StableDiffusion.Schedulers
         float MaximumBeta { get; set; } 
         List<int> Timesteps { get; set; }
         int TrainSteps { get; set; } 
-        float AestheticScore { get; set; } 
-        float AestheticNegativeScore { get; set; } 
         float Shift { get; set; } 
     }
 }

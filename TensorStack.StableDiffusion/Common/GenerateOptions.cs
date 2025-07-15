@@ -30,6 +30,10 @@ namespace TensorStack.StableDiffusion.Common
         public ImageTensor InputControlImage { get; set; }
         public ControlNetModel ControlNet { get; set; }
 
+        public int ClipSkip { get; set; }
+        public float AestheticScore { get; set; } = 6f;
+        public float AestheticNegativeScore { get; set; } = 2.5f;
+
 
         public bool IsLowMemoryEnabled { get; set; }
         public bool IsLowMemoryComputeEnabled { get; set; }
@@ -67,8 +71,6 @@ namespace TensorStack.StableDiffusion.Common
         public float MaximumBeta { get; set; } = 0.999f;
         public List<int> Timesteps { get; set; }
         public int TrainSteps { get; set; } = 50;
-        public float AestheticScore { get; set; } = 6f;
-        public float AestheticNegativeScore { get; set; } = 2.5f;
         public float Shift { get; set; } = 1f;
 
         #endregion

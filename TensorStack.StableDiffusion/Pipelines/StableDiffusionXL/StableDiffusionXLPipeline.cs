@@ -1,6 +1,5 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -17,38 +16,42 @@ using TensorStack.StableDiffusion.Models;
 using TensorStack.StableDiffusion.Schedulers;
 using TensorStack.StableDiffusion.Tokenizers;
 
-namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
+namespace TensorStack.StableDiffusion.Pipelines.StableDiffusionXL
 {
-    public class StableDiffusionPipeline : PipelineBase, IPipeline<ImageTensor, GenerateOptions, GenerateProgress>
+    public class StableDiffusionXLPipeline : PipelineBase, IPipeline<ImageTensor, GenerateOptions, GenerateProgress>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="StableDiffusionPipeline"/> class.
+        /// Initializes a new instance of the <see cref="StableDiffusionXLPipeline"/> class.
         /// </summary>
         /// <param name="unet">The unet.</param>
         /// <param name="tokenizer">The tokenizer.</param>
         /// <param name="textEncoder">The text encoder.</param>
         /// <param name="autoEncoder">The automatic encoder.</param>
         /// <param name="logger">The logger.</param>
-        public StableDiffusionPipeline(UNetConditionalModel unet, CLIPTokenizer tokenizer, CLIPTextModel textEncoder, AutoEncoderModel autoEncoder, ILogger logger = default) : base(logger)
+        public StableDiffusionXLPipeline(UNetConditionalModel unet, CLIPTokenizer tokenizer, CLIPTokenizer tokenizer2, CLIPTextModel textEncoder, CLIPTextModelWithProjection textEncoder2, AutoEncoderModel autoEncoder, ILogger logger = default) : base(logger)
         {
             Unet = unet;
             Tokenizer = tokenizer;
+            Tokenizer2 = tokenizer2;
             TextEncoder = textEncoder;
+            TextEncoder2 = textEncoder2;
             AutoEncoder = autoEncoder;
             Initialize();
-            Logger?.LogInformation("[StableDiffusionPipeline] Name: {Name}", Name);
+            Logger?.LogInformation("[StableDiffusionXLPipeline] Name: {Name}", Name);
         }
 
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="StableDiffusionPipeline"/> class.
+        /// Initializes a new instance of the <see cref="StableDiffusionXLPipeline"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="logger">The logger.</param>
-        public StableDiffusionPipeline(StableDiffusionConfig configuration, ILogger logger = default) : this(
+        public StableDiffusionXLPipeline(StableDiffusionXLConfig configuration, ILogger logger = default) : this(
             new UNetConditionalModel(configuration.Unet),
             new CLIPTokenizer(configuration.Tokenizer),
+            new CLIPTokenizer(configuration.Tokenizer2),
             new CLIPTextModel(configuration.TextEncoder),
+            new CLIPTextModelWithProjection(configuration.TextEncoder2),
             new AutoEncoderModel(configuration.AutoEncoder),
             logger)
         {
@@ -58,12 +61,12 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <summary>
         /// Gets the type of the pipeline.
         /// </summary>
-        public override PipelineType PipelineType => PipelineType.StableDiffusion;
+        public override PipelineType PipelineType => PipelineType.StableDiffusionXL;
 
         /// <summary>
         /// Gets the friendly name.
         /// </summary>
-        public override string Name { get; init; } = nameof(PipelineType.StableDiffusion);
+        public override string Name { get; init; } = nameof(PipelineType.StableDiffusionXL);
 
         /// <summary>
         /// Gets the tokenizer.
@@ -71,9 +74,19 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         public CLIPTokenizer Tokenizer { get; init; }
 
         /// <summary>
+        /// Gets the tokenizer.
+        /// </summary>
+        public CLIPTokenizer Tokenizer2 { get; init; }
+
+        /// <summary>
         /// Gets the text encoder.
         /// </summary>
         public CLIPTextModel TextEncoder { get; init; }
+
+        /// <summary>
+        /// Gets the text encoder.
+        /// </summary>
+        public CLIPTextModelWithProjection TextEncoder2 { get; init; }
 
         /// <summary>
         /// Gets the unet.
@@ -92,7 +105,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         public Task LoadAsync(CancellationToken cancellationToken = default)
         {
-            // StableDiffusion pipelines are lazy loaded on first run
+            // StableDiffusionXL pipelines are lazy loaded on first run
             return Task.CompletedTask;
         }
 
@@ -103,7 +116,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// <param name="cancellationToken">The cancellation token.</param>
         public async Task UnloadAsync(CancellationToken cancellationToken = default)
         {
-            await Task.WhenAll(Unet.UnloadAsync(), TextEncoder.UnloadAsync(), AutoEncoder.EncoderUnloadAsync(), AutoEncoder.DecoderUnloadAsync());
+            await Task.WhenAll(Unet.UnloadAsync(), TextEncoder.UnloadAsync(), TextEncoder2.UnloadAsync(), AutoEncoder.EncoderUnloadAsync(), AutoEncoder.DecoderUnloadAsync());
             Logger?.LogInformation("[{PipeLineType}] Pipeline Unloaded", PipelineType);
         }
 
@@ -153,13 +166,32 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
             var negativePromptTokens = await TokenizePromptAsync(options.NegativePrompt, cancellationToken);
             var maxPromptTokenCount = Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
 
+            // Tokenizer2
+            var prompt2Tokens = await TokenizePrompt2Async(options.Prompt, cancellationToken);
+            var negativePrompt2Tokens = await TokenizePrompt2Async(options.NegativePrompt, cancellationToken);
+
             // TextEncoder
-            var promptEmbeddings = await EncodePromptAsync(promptTokens, maxPromptTokenCount, cancellationToken);
-            var negativePromptEmbeddings = await EncodePromptAsync(negativePromptTokens, maxPromptTokenCount, cancellationToken);
-            if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
+            var prompt1Embeddings = await EncodePromptAsync(promptTokens, maxPromptTokenCount, cancellationToken);
+            var negativePrompt1Embeddings = await EncodePromptAsync(negativePromptTokens, maxPromptTokenCount, cancellationToken);
+            if (options.IsLowMemoryTextEncoderEnabled)
                 await TextEncoder.UnloadAsync();
 
-            return new PromptResult(promptEmbeddings.HiddenStates, promptEmbeddings.TextEmbeds, negativePromptEmbeddings.HiddenStates, negativePromptEmbeddings.TextEmbeds);
+            // TextEncoder2
+            var hiddenStateIndex = 2 + options.ClipSkip;
+            var prompt2Embeddings = await EncodePrompt2Async(prompt2Tokens, maxPromptTokenCount, hiddenStateIndex, cancellationToken);
+            var negativePrompt2Embeddings = await EncodePrompt2Async(negativePrompt2Tokens, maxPromptTokenCount, hiddenStateIndex, cancellationToken);
+            if (options.IsLowMemoryTextEncoderEnabled)
+                await TextEncoder2.UnloadAsync();
+
+            // Prompt embeds
+            var pooledPromptEmbeds = prompt2Embeddings.TextEmbeds;
+            var promptEmbeddings = prompt1Embeddings.HiddenStates.Concatenate(prompt2Embeddings.HiddenStates, 2);
+
+            // Negative Prompt embeds
+            var pooledNegativePromptEmbeds = negativePrompt2Embeddings.TextEmbeds;
+            var negativePromptEmbeddings = negativePrompt1Embeddings.HiddenStates.Concatenate(negativePrompt2Embeddings.HiddenStates, 2);
+
+            return new PromptResult(promptEmbeddings, pooledPromptEmbeds, negativePromptEmbeddings, pooledNegativePromptEmbeds);
         }
 
 
@@ -178,6 +210,20 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
 
 
         /// <summary>
+        /// Tokenize prompt with Tokenizer2
+        /// </summary>
+        /// <param name="inputText">The input text.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        private async Task<TokenizerResult> TokenizePrompt2Async(string inputText, CancellationToken cancellationToken = default)
+        {
+            var timestamp = Logger.LogBegin(LogLevel.Debug, "[TokenizePrompt2Async] Begin Tokenizer");
+            var tokenizerResult = await PromptParser.TokenizePromptAsync(Tokenizer2, inputText);
+            Logger.LogEnd(LogLevel.Debug, timestamp, "[TokenizePrompt2Async] Tokenizer Complete");
+            return tokenizerResult;
+        }
+
+
+        /// <summary>
         /// Encode prompt tokens.
         /// </summary>
         /// <param name="inputTokens">The input tokens.</param>
@@ -189,6 +235,26 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
             var textEncoderResult = await PromptParser.EncodePromptAsync(TextEncoder, inputTokens, minimumLength, 0, cancellationToken);
             Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodePromptAsync] TextEncoder Complete");
             return textEncoderResult;
+        }
+
+
+        /// <summary>
+        /// Encode prompt tokens with TextEncoder2
+        /// </summary>
+        /// <param name="inputTokens">The input tokens.</param>
+        /// <param name="minimumLength">The minimum length.</param>
+        /// <param name="hiddenStateIndex">Index of the hidden state.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        private async Task<TextEncoderResult> EncodePrompt2Async(TokenizerResult inputTokens, int minimumLength, int hiddenStateIndex, CancellationToken cancellationToken = default)
+        {
+            var textEncoderResult = await PromptParser.EncodePromptAsync(TextEncoder2, inputTokens, minimumLength, hiddenStateIndex, cancellationToken);
+            var hiddenStates = textEncoderResult.HiddenStates;
+            var pooledPromptEmbeds = textEncoderResult.TextEmbeds;
+            int[] pooledPromptDimensions = pooledPromptEmbeds.Dimensions.Length == 2
+                ? [pooledPromptEmbeds.Dimensions[0], pooledPromptEmbeds.Dimensions[1]]
+                : [pooledPromptEmbeds.Dimensions[1], pooledPromptEmbeds.Dimensions[2]];
+            pooledPromptEmbeds = pooledPromptEmbeds.Reshape(pooledPromptDimensions).FirstBatch();
+            return new TextEncoderResult(hiddenStates, pooledPromptEmbeds);
         }
 
 
@@ -242,10 +308,16 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
 
             // Prompt
             var isGuidanceEnabled = IsGuidanceEnabled(options);
-            var promptInput = prompt.GetPromptEmbeds(isGuidanceEnabled);
+            var promptEmbedsCond = prompt.PromptEmbeds;
+            var pooledPromptEmbedsCond = prompt.PromptPooledEmbeds;
+            var promptEmbedsUncond = prompt.NegativePromptEmbeds;
+            var pooledPromptEmbedsUncond = prompt.NegativePromptPooledEmbeds;
 
             // Latents
             var latents = await CreateLatentInputAsync(options, scheduler, cancellationToken);
+
+            // Get TimeIds
+            var timeIds = GetAddTimeIds(options);
 
             // Load Model
             await LoadUnetAsync(options, progressCallback, cancellationToken);
@@ -259,17 +331,18 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Inputs.
-                var latentInput = scheduler.ScaleInput(timestep, latents).WithGuidance(isGuidanceEnabled);
+                var latentInput = scheduler.ScaleInput(timestep, latents);
 
                 // Inference
-                var prediction = await Unet.RunAsync(timestep, latentInput, promptInput, cancellationToken: cancellationToken);
-
-                // Guidance
+                var conditional = await Unet.RunAsync(timestep, latentInput, promptEmbedsCond, pooledPromptEmbedsCond, timeIds, cancellationToken: cancellationToken);
                 if (isGuidanceEnabled)
-                    prediction = ApplyGuidance(prediction, options.GuidanceScale);
+                {
+                    var unconditional = await Unet.RunAsync(timestep, latentInput, promptEmbedsUncond, pooledPromptEmbedsUncond, timeIds, cancellationToken: cancellationToken);
+                    conditional = ApplyGuidance(conditional, unconditional, options.GuidanceScale);
+                }
 
                 // Scheduler
-                var stepResult = scheduler.Step(timestep, prediction, latents);
+                var stepResult = scheduler.Step(timestep, conditional, latents);
 
                 // Result
                 latents = stepResult.Sample;
@@ -304,10 +377,16 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
 
             // Prompt
             var isGuidanceEnabled = IsGuidanceEnabled(options);
-            var promptInput = prompt.GetPromptEmbeds(isGuidanceEnabled);
+            var promptEmbedsCond = prompt.PromptEmbeds;
+            var pooledPromptEmbedsCond = prompt.PromptPooledEmbeds;
+            var promptEmbedsUncond = prompt.NegativePromptEmbeds;
+            var pooledPromptEmbedsUncond = prompt.NegativePromptPooledEmbeds;
 
             // Latents
             var latents = await CreateLatentInputAsync(options, scheduler, cancellationToken);
+
+            // Get TimeIds
+            var timeIds = GetAddTimeIds(options);
 
             // Control Image
             var controlImage = await CreateControlInputAsync(options, cancellationToken);
@@ -329,23 +408,39 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                 var controlInput = controlImage.WithGuidance(isGuidanceEnabled).AsImageTensor();
 
                 // Inference
-                var prediction = await Unet.RunAsync
+                var conditional = await Unet.RunAsync
                 (
                     controlNet,
                     controlInput,
                     options.ControlNetStrength,
-                    timestep,
-                    latentInput,
-                    promptInput,
+                    timestep, 
+                    latentInput, 
+                    promptEmbedsCond, 
+                    pooledPromptEmbedsCond,
+                    timeIds,
                     cancellationToken: cancellationToken
                 );
 
                 // Guidance
                 if (isGuidanceEnabled)
-                    prediction = ApplyGuidance(prediction, options.GuidanceScale);
+                {
+                    var unconditional = await Unet.RunAsync
+                    (
+                        controlNet,
+                        controlInput,
+                        options.ControlNetStrength,
+                        timestep, 
+                        latentInput,
+                        promptEmbedsUncond,
+                        pooledPromptEmbedsUncond,
+                        timeIds, 
+                        cancellationToken: cancellationToken
+                    );
+                    conditional = ApplyGuidance(conditional, unconditional, options.GuidanceScale);
+                }
 
                 // Scheduler
-                var stepResult = scheduler.Step(timestep, prediction, latents);
+                var stepResult = scheduler.Step(timestep, conditional, latents);
 
                 // Result
                 latents = stepResult.Sample;
@@ -398,6 +493,20 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                 controlImageTensor.Invert();
 
             return Task.FromResult(controlImageTensor.NormalizeZeroOne());
+        }
+
+
+        /// <summary>
+        /// Gets the add AddTimeIds.
+        /// </summary>
+        /// <param name="options">The pipeline options.</param>
+        /// <returns></returns>
+        protected Tensor<float> GetAddTimeIds(IPipelineOptions options)
+        {
+            float[] result = Unet.ModelType == ModelType.Refiner
+                ? [options.Height, options.Width, 0, 0, options.AestheticScore]
+                : [options.Height, options.Width, 0, 0, options.Height, options.Width];
+            return new Tensor<float>(result, [1, result.Length]);
         }
 
 
@@ -455,6 +564,8 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
             // Check LowMemory status
             if ((options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled) && TextEncoder.IsLoaded())
                 await TextEncoder.UnloadAsync();
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled) && TextEncoder2.IsLoaded())
+                await TextEncoder2.UnloadAsync();
             if ((options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled) && Unet.IsLoaded())
                 await Unet.UnloadAsync();
             if ((options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled) && Unet.IsControlNetLoaded())
@@ -471,7 +582,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// </summary>
         protected override IReadOnlyList<SchedulerType> ConfigureSchedulers()
         {
-            return 
+            return
             [
                 SchedulerType.LMS,
                 SchedulerType.Euler,
@@ -490,15 +601,30 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// </summary>
         protected override GenerateOptions ConfigureDefaultOptions()
         {
-            return new GenerateOptions
+            var options = new GenerateOptions
             {
-                Steps = 30,
-                Width = 512,
-                Height = 512,
-                GuidanceScale = 7.5f,
-                Scheduler = SchedulerType.EulerAncestral,
+                Steps = 28,
+                Width = 1024,
+                Height = 1024,
+                GuidanceScale = 5f,
+                Scheduler = SchedulerType.DDPM,
                 TimestepSpacing = TimestepSpacingType.Trailing
             };
+
+            // SDXL-Turbo Models , 4 Steps, No Guidance
+            if (Unet.ModelType == ModelType.Turbo)
+            {
+                return options with
+                {
+                    Steps = 4,
+                    Width = 512,
+                    Height = 512,
+                    GuidanceScale = 0,
+                    Scheduler = SchedulerType.EulerAncestral
+                };
+            }
+
+            return options;
         }
 
 
@@ -508,7 +634,9 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         public void Dispose()
         {
             Tokenizer?.Dispose();
+            Tokenizer2?.Dispose();
             TextEncoder?.Dispose();
+            TextEncoder2?.Dispose();
             Unet?.Dispose();
             AutoEncoder?.Dispose();
             GC.SuppressFinalize(this);
@@ -516,29 +644,29 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
 
 
         /// <summary>
-        /// Create StableDiffusion pipeline from StableDiffusionConfig file
+        /// Create StableDiffusionXL pipeline from StableDiffusionConfig file
         /// </summary>
         /// <param name="configFile">The configuration file.</param>
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
-        /// <returns>StableDiffusionPipeline.</returns>
-        public static StableDiffusionPipeline FromConfig(string configFile, ExecutionProvider executionProvider, ILogger logger = default)
+        /// <returns>StableDiffusionXLPipeline.</returns>
+        public static StableDiffusionXLPipeline FromConfig(string configFile, ExecutionProvider executionProvider, ILogger logger = default)
         {
-            return new StableDiffusionPipeline(StableDiffusionConfig.FromFile(configFile, executionProvider), logger);
+            return new StableDiffusionXLPipeline(StableDiffusionXLConfig.FromFile(configFile, executionProvider), logger);
         }
 
 
         /// <summary>
-        /// Create StableDiffusion pipeline from folder structure
+        /// Create StableDiffusionXL pipeline from folder structure
         /// </summary>
         /// <param name="modelFolder">The model folder.</param>
         /// <param name="modelType">Type of the model.</param>
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
-        /// <returns>StableDiffusionPipeline.</returns>
-        public static StableDiffusionPipeline FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
+        /// <returns>StableDiffusionXLPipeline.</returns>
+        public static StableDiffusionXLPipeline FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
         {
-            return new StableDiffusionPipeline(StableDiffusionConfig.FromFolder(modelFolder, modelType, executionProvider), logger);
+            return new StableDiffusionXLPipeline(StableDiffusionXLConfig.FromFolder(modelFolder, modelType, executionProvider), logger);
         }
     }
 }

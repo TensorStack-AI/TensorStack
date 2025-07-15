@@ -329,6 +329,17 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Split first tensor from batch and return
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <returns></returns>
+        public static Tensor<T> FirstBatch<T>(this Tensor<T> tensor)
+        {
+            return Split(tensor).FirstOrDefault();
+        }
+
+
+        /// <summary>
         /// Reshapes to new tensor.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
@@ -529,7 +540,7 @@ namespace TensorStack.Common
         /// <param name="axis">The axis.</param>
         /// <returns>IEnumerable&lt;Tensor&lt;System.Single&gt;&gt;.</returns>
         /// <exception cref="NotImplementedException">Only axis 0 is supported</exception>
-        public static IEnumerable<Tensor<float>> Split(this Tensor<float> tensor, int axis = 0)
+        public static IEnumerable<Tensor<T>> Split<T>(this Tensor<T> tensor, int axis = 0)
         {
             if (axis != 0)
                 throw new NotImplementedException("Only axis 0 is supported");
@@ -542,7 +553,7 @@ namespace TensorStack.Common
             for (int i = 0; i < count; i++)
             {
                 var start = i * newLength;
-                yield return new Tensor<float>(tensor.Memory.Slice(start, newLength), dimensions);
+                yield return new Tensor<T>(tensor.Memory.Slice(start, newLength), dimensions);
             }
         }
 

@@ -20,12 +20,11 @@ namespace TensorStack.StableDiffusion.Common
             : this([hiddenStates], textEmbeds) { }
 
 
-        public Tensor<float> GetTextEmbeds()
-        {
-            return _textEmbeds;
-        }
+        public Tensor<float> TextEmbeds => _textEmbeds;
+        public Tensor<float> HiddenStates => _hiddenStates[0];
 
-        public Tensor<float> GetHiddenStates(int index = 0)
+
+        public Tensor<float> GetHiddenStates(int index)
         {
             if (index > 0)
                 return _hiddenStates[^index];
