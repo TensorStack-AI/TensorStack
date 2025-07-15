@@ -15,6 +15,21 @@ namespace TensorStack.StableDiffusion.Schedulers
         float StartSigma { get; }
 
         /// <summary>
+        /// Gets or sets the total steps.
+        /// </summary>
+        public int TotalSteps { get; set; }
+
+        /// <summary>
+        /// Gets or sets the current step.
+        /// </summary>
+        public int CurrentStep { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this step is final order.
+        /// </summary>
+        bool IsFinalOrder { get; }
+
+        /// <summary>
         /// Initialize
         /// </summary>
         /// <param name="strength">The strength.</param>

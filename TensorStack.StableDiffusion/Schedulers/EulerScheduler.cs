@@ -70,6 +70,7 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <returns>SchedulerResult.</returns>
         public override SchedulerResult Step(int timestep, Tensor<float> sample, Tensor<float> previousSample)
         {
+            CurrentStep++;
             float s_churn = 0f;
             float s_tmin = 0f;
             float s_tmax = float.PositiveInfinity;

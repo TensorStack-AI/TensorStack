@@ -3,6 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
+using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
 
 namespace TensorStack.StableDiffusion
@@ -17,6 +18,39 @@ namespace TensorStack.StableDiffusion
         public static void Notify(this IProgress<GenerateProgress> progressCallback, string message)
         {
             progressCallback?.Report(new GenerateProgress(message));
+        }
+
+
+        /// <summary>
+        /// Notifies the specified message.
+        /// </summary>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="message">The message.</param>
+        public static void Notify(this IProgress<GenerateProgress> progressCallback, GenerateProgress message)
+        {
+            progressCallback?.Report(message);
+        }
+
+
+        /// <summary>
+        /// Notifies the specified step.
+        /// </summary>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="step">The step.</param>
+        /// <param name="steps">The steps.</param>
+        /// <param name="latents">The latents.</param>
+        /// <param name="elapsed">The elapsed.</param>
+        public static void Notify(this IProgress<GenerateProgress> progressCallback, int step, int steps, Tensor<float> latents, long elapsed)
+        {
+            progressCallback?.Report(new GenerateProgress
+            {
+                Max = steps,
+                Value = step,
+                Tensor = latents.Clone(),
+                Type = GenerateProgress.ProgressType.Step,
+                Message = $"Step: {step:D2}/{steps:D2}",
+                Elapsed = elapsed > 0 ? Stopwatch.GetElapsedTime(elapsed) : TimeSpan.Zero
+            });
         }
 
 

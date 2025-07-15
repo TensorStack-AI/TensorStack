@@ -106,6 +106,10 @@ namespace TensorStack.StableDiffusion.Pipelines
                 SchedulerType.LMS => new LMSScheduler(options),
                 SchedulerType.Euler => new EulerScheduler(options),
                 SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
+                SchedulerType.DDPM => new DDPMScheduler(options),
+                SchedulerType.DDIM => new DDIMScheduler(options),
+                SchedulerType.KDPM2 => new KDPM2Scheduler(options),
+                SchedulerType.KDPM2Ancestral => new KDPM2AncestralScheduler(options),
                 SchedulerType.LCM => new LCMScheduler(options),
                 _ => default
             };
@@ -140,5 +144,6 @@ namespace TensorStack.StableDiffusion.Pipelines
             unconditional.Memory.Lerp(conditional.Memory, guidanceScale);
             return unconditional;
         }
+
     }
 }

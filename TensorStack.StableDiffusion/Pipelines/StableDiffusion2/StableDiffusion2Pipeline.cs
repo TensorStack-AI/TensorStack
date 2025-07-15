@@ -64,7 +64,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion2
         /// </summary>
         protected override IReadOnlyList<SchedulerType> ConfigureSchedulers()
         {
-            return [SchedulerType.LMS, SchedulerType.Euler, SchedulerType.EulerAncestral, SchedulerType.LCM];
+            return [SchedulerType.DDPM, SchedulerType.DDIM];
         }
 
 
@@ -79,7 +79,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion2
                 Width = 768,
                 Height = 768,
                 GuidanceScale = 7.5f,
-                Scheduler = SchedulerType.Euler,
+                Scheduler = SchedulerType.DDPM,
                 PredictionType = PredictionType.VariablePrediction
             };
         }

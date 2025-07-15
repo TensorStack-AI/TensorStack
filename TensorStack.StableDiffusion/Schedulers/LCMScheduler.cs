@@ -82,6 +82,7 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <returns>SchedulerResult.</returns>
         public override SchedulerResult Step(int timestep, Tensor<float> sample, Tensor<float> previousSample)
         {
+            CurrentStep++;
             //# Latent Consistency Models paper https://arxiv.org/abs/2310.04378
             int currentTimestep = timestep;
 

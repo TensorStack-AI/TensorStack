@@ -70,6 +70,26 @@ namespace TensorStack.StableDiffusion.Schedulers
         public float StartSigma => _startSigma;
 
         /// <summary>
+        /// Gets or sets the order.
+        /// </summary>
+        public virtual int Order { get; } = 1;
+
+        /// <summary>
+        /// Gets a value indicating if this step is final order.
+        /// </summary>
+        public virtual bool IsFinalOrder { get; } = true;
+
+        /// <summary>
+        /// Gets or sets the total steps.
+        /// </summary>
+        public int TotalSteps { get; set; }
+
+        /// <summary>
+        /// Gets or sets the current step.
+        /// </summary>
+        public int CurrentStep { get; set; }
+
+        /// <summary>
         /// Sets the timesteps.
         /// </summary>
         /// <returns></returns>
@@ -153,6 +173,9 @@ namespace TensorStack.StableDiffusion.Schedulers
             _timesteps = [.. SetTimesteps()];
             _startStep = GetStartStep(strength);
             _random = new Random(_options.Seed);
+
+            CurrentStep = 0;
+            TotalSteps = Order > 1 ? (_timesteps.Count + 1) / 2 : _timesteps.Count;
         }
 
 

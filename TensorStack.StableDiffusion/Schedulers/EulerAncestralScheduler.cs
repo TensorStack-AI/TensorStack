@@ -24,6 +24,7 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <param name="previousSample">The previous sample.</param>
         public override SchedulerResult Step(int timestep, Tensor<float> sample, Tensor<float> previousSample)
         {
+            CurrentStep++;
             var stepIndex = Timesteps.IndexOf(timestep);
             var sigma = Sigmas[stepIndex];
 

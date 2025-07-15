@@ -312,6 +312,23 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Clips to the specified minimum/maximum value.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="minValue">The minimum value.</param>
+        /// <param name="maxValue">The maximum value.</param>
+        public static Tensor<float> ClipTo(this Tensor<float> tensor, float minValue, float maxValue)
+        {
+            var clipTensor = new Tensor<float>(tensor.Dimensions);
+            for (int i = 0; i < tensor.Length; i++)
+            {
+                clipTensor.SetValue(i, Math.Clamp(tensor.Memory.Span[i], minValue, maxValue));
+            }
+            return clipTensor;
+        }
+
+
+        /// <summary>
         /// Reshapes to new tensor.
         /// </summary>
         /// <param name="tensor">The tensor.</param>

@@ -274,6 +274,10 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                 // Result
                 latents = stepResult.Sample;
 
+                // Progress
+                if (scheduler.IsFinalOrder)
+                    progressCallback.Notify(scheduler.CurrentStep, scheduler.TotalSteps, latents, steptime);
+
                 Logger.LogEnd(LogLevel.Debug, steptime, $"[RunInferenceAsync] Step: {i + 1}/{timesteps.Count}");
             }
 
@@ -345,6 +349,10 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
 
                 // Result
                 latents = stepResult.Sample;
+
+                // Progress
+                if (scheduler.IsFinalOrder)
+                    progressCallback.Notify(scheduler.CurrentStep, scheduler.TotalSteps, latents, steptime);
 
                 Logger.LogEnd(LogLevel.Debug, steptime, $"[RunInferenceAsync] Step: {i + 1}/{timesteps.Count}");
             }
@@ -463,7 +471,17 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         /// </summary>
         protected override IReadOnlyList<SchedulerType> ConfigureSchedulers()
         {
-            return [SchedulerType.LMS, SchedulerType.Euler, SchedulerType.EulerAncestral, SchedulerType.LCM];
+            return 
+            [
+                SchedulerType.LMS,
+                SchedulerType.Euler,
+                SchedulerType.EulerAncestral,
+                SchedulerType.DDPM,
+                SchedulerType.DDIM,
+                SchedulerType.KDPM2,
+                SchedulerType.KDPM2Ancestral,
+                SchedulerType.LCM
+            ];
         }
 
 
@@ -478,7 +496,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                 Width = 512,
                 Height = 512,
                 GuidanceScale = 7.5f,
-                Scheduler = SchedulerType.Euler,
+                Scheduler = SchedulerType.EulerAncestral,
                 TimestepSpacing = TimestepSpacingType.Trailing
             };
         }

@@ -12,7 +12,7 @@ namespace TensorStack.StableDiffusion.Schedulers
 {
     public class LMSScheduler : SchedulerBase
     {
-        private int _order = 4;
+        private int _derivativesCount = 4;
         private Queue<Tensor<float>> _derivatives;
 
         /// <summary>
@@ -78,6 +78,7 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <returns>SchedulerResult.</returns>
         public override SchedulerResult Step(int timestep, Tensor<float> sample, Tensor<float> previousSample)
         {
+            CurrentStep++;
             int stepIndex = Timesteps.IndexOf(timestep);
             var sigma = Sigmas[stepIndex];
 
@@ -90,13 +91,13 @@ namespace TensorStack.StableDiffusion.Schedulers
                 .DivideTo(sigma);
 
             _derivatives.Enqueue(derivativeSample);
-            if (_derivatives.Count > _order)
+            if (_derivatives.Count > _derivativesCount)
                 _derivatives.Dequeue();
 
             // 3. compute linear multistep coefficients
-            _order = Math.Min(stepIndex + 1, _order);
-            var lmsCoeffs = Enumerable.Range(0, _order)
-                .Select(currOrder => GetLmsCoefficient(_order, stepIndex, currOrder));
+            _derivativesCount = Math.Min(stepIndex + 1, _derivativesCount);
+            var lmsCoeffs = Enumerable.Range(0, _derivativesCount)
+                .Select(currOrder => GetLmsCoefficient(_derivativesCount, stepIndex, currOrder));
 
             // 4. compute previous sample based on the derivative path
             // Reverse list of tensors this.derivatives
