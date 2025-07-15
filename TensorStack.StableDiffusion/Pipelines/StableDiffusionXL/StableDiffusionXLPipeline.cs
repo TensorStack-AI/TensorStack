@@ -116,7 +116,14 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusionXL
         /// <param name="cancellationToken">The cancellation token.</param>
         public async Task UnloadAsync(CancellationToken cancellationToken = default)
         {
-            await Task.WhenAll(Unet.UnloadAsync(), TextEncoder.UnloadAsync(), TextEncoder2.UnloadAsync(), AutoEncoder.EncoderUnloadAsync(), AutoEncoder.DecoderUnloadAsync());
+            await Task.WhenAll
+            (
+                Unet.UnloadAsync(),
+                TextEncoder.UnloadAsync(),
+                TextEncoder2.UnloadAsync(),
+                AutoEncoder.EncoderUnloadAsync(),
+                AutoEncoder.DecoderUnloadAsync()
+            );
             Logger?.LogInformation("[{PipeLineType}] Pipeline Unloaded", PipelineType);
         }
 
@@ -404,14 +411,13 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusionXL
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Inputs.
-                var latentInput = scheduler.ScaleInput(timestep, latents).WithGuidance(isGuidanceEnabled);
-                var controlInput = controlImage.WithGuidance(isGuidanceEnabled).AsImageTensor();
+                var latentInput = scheduler.ScaleInput(timestep, latents);
 
                 // Inference
                 var conditional = await Unet.RunAsync
                 (
                     controlNet,
-                    controlInput,
+                    controlImage,
                     options.ControlNetStrength,
                     timestep, 
                     latentInput, 
@@ -427,7 +433,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusionXL
                     var unconditional = await Unet.RunAsync
                     (
                         controlNet,
-                        controlInput,
+                        controlImage,
                         options.ControlNetStrength,
                         timestep, 
                         latentInput,
@@ -486,13 +492,13 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusionXL
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private Task<Tensor<float>> CreateControlInputAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
+        private Task<ImageTensor> CreateControlInputAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
             var controlImageTensor = options.InputControlImage.ResizeImage(options.Width, options.Height);
             if (options.ControlNet.InvertInput)
                 controlImageTensor.Invert();
 
-            return Task.FromResult(controlImageTensor.NormalizeZeroOne());
+            return Task.FromResult(controlImageTensor.NormalizeZeroOne().AsImageTensor());
         }
 
 

@@ -110,6 +110,7 @@ namespace TensorStack.StableDiffusion.Pipelines
                 SchedulerType.DDIM => new DDIMScheduler(options),
                 SchedulerType.KDPM2 => new KDPM2Scheduler(options),
                 SchedulerType.KDPM2Ancestral => new KDPM2AncestralScheduler(options),
+                SchedulerType.DDPMWuerstchen => new DDPMWuerstchenScheduler(options),
                 SchedulerType.LCM => new LCMScheduler(options),
                 _ => default
             };

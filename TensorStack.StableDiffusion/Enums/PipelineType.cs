@@ -7,6 +7,7 @@ namespace TensorStack.StableDiffusion.Enums
         StableDiffusion = 0,
         StableDiffusion2 = 1,
         StableDiffusionXL = 2,
+        StableCascade = 4,
         LatentConsistency = 10,
       
     }

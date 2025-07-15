@@ -20,6 +20,7 @@ namespace TensorStack.StableDiffusion.Common
         public string Prompt { get; set; }
         public string NegativePrompt { get; set; }
         public float GuidanceScale { get; set; }
+        public float GuidanceScale2 { get; set; }
         public SchedulerType Scheduler { get; set; }
 
         public float Strength { get; set; } = 1;

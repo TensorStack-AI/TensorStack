@@ -27,6 +27,9 @@ namespace TensorStack.StableDiffusion.Enums
         [Display(Name = "KDPM2-Ancestral")]
         KDPM2Ancestral = 6,
 
+        [Display(Name = "DDPM-Wuerstchen")]
+        DDPMWuerstchen = 10,
+
         [Display(Name = "LCM")]
         LCM = 20
     }
