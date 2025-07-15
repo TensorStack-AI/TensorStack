@@ -5,6 +5,7 @@ namespace TensorStack.StableDiffusion.Enums
     public enum PipelineType
     {
         StableDiffusion = 0,
-        StableDiffusion2 = 1
+        StableDiffusion2 = 1,
+        LatentConsistency = 10
     }
 }

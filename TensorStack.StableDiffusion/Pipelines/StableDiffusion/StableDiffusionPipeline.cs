@@ -478,7 +478,8 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
                 Width = 512,
                 Height = 512,
                 GuidanceScale = 7.5f,
-                Scheduler = SchedulerType.EulerAncestral
+                Scheduler = SchedulerType.Euler,
+                TimestepSpacing = TimestepSpacingType.Trailing
             };
         }
 
