@@ -191,11 +191,17 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
             var hiddenStateIndex = 1 + options.ClipSkip;
             var promptEmbeddings = await EncodePromptAsync(promptTokens, maxPromptTokenCount, hiddenStateIndex, cancellationToken);
             var negativePromptEmbeddings = await EncodePromptAsync(negativePromptTokens, maxPromptTokenCount, hiddenStateIndex, cancellationToken);
-            if (options.IsLowMemoryTextEncoderEnabled)
+            if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
                 await TextEncoder.UnloadAsync();
 
-            var textEmbeds = promptEmbeddings.TextEmbeds.Reshape([1, .. promptEmbeddings.TextEmbeds.Dimensions]);
-            var negativeTextEmbeds = negativePromptEmbeddings.TextEmbeds.Reshape([1, .. negativePromptEmbeddings.TextEmbeds.Dimensions]);
+            var textEmbeds = promptEmbeddings.TextEmbeds.Rank == 3
+                ? promptEmbeddings.TextEmbeds
+                : promptEmbeddings.TextEmbeds.Reshape([1, .. promptEmbeddings.TextEmbeds.Dimensions]);
+
+            var negativeTextEmbeds = negativePromptEmbeddings.TextEmbeds.Rank == 3
+               ? negativePromptEmbeddings.TextEmbeds
+               : negativePromptEmbeddings.TextEmbeds.Reshape([1, .. negativePromptEmbeddings.TextEmbeds.Dimensions]);
+
             return new PromptResult(promptEmbeddings.HiddenStates, textEmbeds, negativePromptEmbeddings.HiddenStates, negativeTextEmbeds);
         }
 
@@ -297,7 +303,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
                 }
 
                 // Unload if required
-                if (options.IsLowMemoryComputeEnabled)
+                if (options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled)
                     await PriorUnet.UnloadAsync();
 
                 Logger.LogEnd(LogLevel.Debug, timestamp, "[RunPriorAsync] Prior Inference Complete");
@@ -374,7 +380,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
                 }
 
                 // Unload if required
-                if (options.IsLowMemoryComputeEnabled)
+                if (options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled)
                     await DecoderUnet.UnloadAsync();
 
                 Logger.LogEnd(LogLevel.Debug, timestamp, "[RunDecoderAsync] Decoder Inference Complete");
@@ -431,7 +437,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         private async Task<ImageTensor> DecodeLatentsAsync(IPipelineOptions options, Tensor<float> latents, CancellationToken cancellationToken = default)
         {
             var decoderResult = await ImageDecoder.RunAsync(latents, cancellationToken: cancellationToken);
-            if (options.IsLowMemoryDecoderEnabled)
+            if (options.IsLowMemoryEnabled || options.IsLowMemoryDecoderEnabled)
                 await ImageDecoder.UnloadAsync();
 
             return decoderResult.AsImageTensor();
@@ -445,15 +451,15 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         protected override async Task CheckPipelineState(IPipelineOptions options)
         {
             // Check LowMemory status
-            if (options.IsLowMemoryTextEncoderEnabled && TextEncoder.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled) && TextEncoder.IsLoaded())
                 await TextEncoder.UnloadAsync();
-            if (options.IsLowMemoryComputeEnabled && PriorUnet.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled) && PriorUnet.IsLoaded())
                 await PriorUnet.UnloadAsync();
-            if (options.IsLowMemoryComputeEnabled && DecoderUnet.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled) && DecoderUnet.IsLoaded())
                 await DecoderUnet.UnloadAsync();
-            if (options.IsLowMemoryEncoderEnabled && ImageDecoder.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryEncoderEnabled) && ImageDecoder.IsLoaded())
                 await ImageDecoder.UnloadAsync();
-            if (options.IsLowMemoryDecoderEnabled && ImageEncoder.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryDecoderEnabled) && ImageEncoder.IsLoaded())
                 await ImageEncoder.UnloadAsync();
         }
 

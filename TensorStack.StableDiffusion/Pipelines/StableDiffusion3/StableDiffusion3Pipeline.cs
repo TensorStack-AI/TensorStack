@@ -203,20 +203,20 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
             // TextEncoder
             var prompt1Embeddings = await EncodePromptAsync(promptTokens, maxPromptTokenCount, cancellationToken);
             var negativePrompt1Embeddings = await EncodePromptAsync(negativePromptTokens, maxPromptTokenCount, cancellationToken);
-            if (options.IsLowMemoryTextEncoderEnabled)
+            if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
                 await TextEncoder.UnloadAsync();
 
             // TextEncoder2
             var hiddenStateIndex = 2 + options.ClipSkip;
             var prompt2Embeddings = await EncodePrompt2Async(prompt2Tokens, maxPromptTokenCount, hiddenStateIndex, cancellationToken);
             var negativePrompt2Embeddings = await EncodePrompt2Async(negativePrompt2Tokens, maxPromptTokenCount, hiddenStateIndex, cancellationToken);
-            if (options.IsLowMemoryTextEncoderEnabled)
+            if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
                 await TextEncoder2.UnloadAsync();
 
             // TextEncoder3
             var prompt3Embeddings = await EncodePrompt3Async(prompt3Tokens, cancellationToken);
             var negativePrompt3Embeddings = await EncodePrompt3Async(negativePrompt3Tokens, cancellationToken);
-            if (options.IsLowMemoryTextEncoderEnabled)
+            if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
                 await TextEncoder3.UnloadAsync();
 
             // Positive Prompt
@@ -617,19 +617,19 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
                 await Transformer.UnloadControlNetAsync();
 
             // Check LowMemory status
-            if (options.IsLowMemoryTextEncoderEnabled && TextEncoder.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)&& TextEncoder.IsLoaded())
                 await TextEncoder.UnloadAsync();
-            if (options.IsLowMemoryComputeEnabled && Transformer.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled) && Transformer.IsLoaded())
                 await Transformer.UnloadAsync();
-            if (options.IsLowMemoryComputeEnabled && Transformer.IsControlNetLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryComputeEnabled)&& Transformer.IsControlNetLoaded())
                 await Transformer.UnloadControlNetAsync();
-            if (options.IsLowMemoryTextEncoderEnabled && TextEncoder3.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled) && TextEncoder3.IsLoaded())
                 await TextEncoder3.UnloadAsync();
-            if (options.IsLowMemoryTextEncoderEnabled && TextEncoder2.IsLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled) && TextEncoder2.IsLoaded())
                 await TextEncoder2.UnloadAsync();
-            if (options.IsLowMemoryEncoderEnabled && AutoEncoder.IsEncoderLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryEncoderEnabled)&& AutoEncoder.IsEncoderLoaded())
                 await AutoEncoder.EncoderUnloadAsync();
-            if (options.IsLowMemoryDecoderEnabled && AutoEncoder.IsDecoderLoaded())
+            if ((options.IsLowMemoryEnabled || options.IsLowMemoryDecoderEnabled) && AutoEncoder.IsDecoderLoaded())
                 await AutoEncoder.DecoderUnloadAsync();
         }
 
@@ -664,6 +664,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
                 return options with
                 {
                     Steps = 4,
+                    Shift = 3f,
                     Width = 1024,
                     Height = 1024,
                     GuidanceScale = 0,

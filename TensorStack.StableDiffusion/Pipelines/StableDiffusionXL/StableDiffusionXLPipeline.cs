@@ -180,14 +180,14 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusionXL
             // TextEncoder
             var prompt1Embeddings = await EncodePromptAsync(promptTokens, maxPromptTokenCount, cancellationToken);
             var negativePrompt1Embeddings = await EncodePromptAsync(negativePromptTokens, maxPromptTokenCount, cancellationToken);
-            if (options.IsLowMemoryTextEncoderEnabled)
+            if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
                 await TextEncoder.UnloadAsync();
 
             // TextEncoder2
             var hiddenStateIndex = 2 + options.ClipSkip;
             var prompt2Embeddings = await EncodePrompt2Async(prompt2Tokens, maxPromptTokenCount, hiddenStateIndex, cancellationToken);
             var negativePrompt2Embeddings = await EncodePrompt2Async(negativePrompt2Tokens, maxPromptTokenCount, hiddenStateIndex, cancellationToken);
-            if (options.IsLowMemoryTextEncoderEnabled)
+            if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
                 await TextEncoder2.UnloadAsync();
 
             // Prompt embeds

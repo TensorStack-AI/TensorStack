@@ -76,6 +76,11 @@ namespace TensorStack.Common.Tensor
         /// </summary>
         public ReadOnlySpan<int> Dimensions => _dimensions;
 
+        /// <summary>
+        /// Gets the rank.
+        /// </summary>
+        public int Rank => _dimensions.Length;
+
 
         /// <summary>
         /// Gets or sets the <see cref="T"/> with the specified indices.

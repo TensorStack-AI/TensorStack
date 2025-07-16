@@ -16,6 +16,7 @@ namespace TensorStack.StableDiffusion.Pipelines
         string Prompt { get; set; }
         string NegativePrompt { get; set; }
         float GuidanceScale { get; set; }
+        float GuidanceScale2 { get; set; }
         public SchedulerType Scheduler { get; set; }
 
         float Strength { get; set; }

@@ -8,7 +8,7 @@ namespace TensorStack.StableDiffusion.Config
     {
         public int Scale { get; set; } = 8;
         public float ScaleFactor { get; set; }
-        public float ShiftFactor { get; set; } = 1;
+        public float ShiftFactor { get; set; }
         public int InChannels { get; set; } = 3;
         public int OutChannels { get; set; } = 3;
         public int LatentChannels { get; set; } = 4;
