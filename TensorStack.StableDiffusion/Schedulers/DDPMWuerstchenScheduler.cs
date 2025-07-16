@@ -30,10 +30,10 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <param name="strength">The strength.</param>
         public override void Initialize(float strength)
         {
-            base.Initialize(strength);
             _s = 0.008f;
             _scaler = 1.0f;
             _initAlphaCumprod = MathF.Pow(MathF.Cos(_s / (1f + _s) * MathF.PI * 0.5f), 2f);
+            base.Initialize(strength);
         }
 
 

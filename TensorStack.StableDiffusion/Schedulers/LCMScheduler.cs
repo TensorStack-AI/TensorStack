@@ -27,11 +27,11 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <param name="strength">The strength.</param>
         public override void Initialize(float strength)
         {
-            base.Initialize(strength);
             bool setAlphaToOne = false;
             _finalAlphaCumprod = setAlphaToOne
                 ? 1.0f
             : AlphasCumProd.First();
+            base.Initialize(strength);
         }
 
 

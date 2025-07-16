@@ -112,6 +112,8 @@ namespace TensorStack.StableDiffusion.Pipelines
                 SchedulerType.KDPM2Ancestral => new KDPM2AncestralScheduler(options),
                 SchedulerType.DDPMWuerstchen => new DDPMWuerstchenScheduler(options),
                 SchedulerType.LCM => new LCMScheduler(options),
+                SchedulerType.FlowMatchEulerDiscrete => new FlowMatchEulerDiscreteScheduler(options),
+                SchedulerType.FlowMatchEulerDynamic => new FlowMatchEulerDynamicScheduler(options),
                 _ => default
             };
             scheduler.Initialize(options.Strength);

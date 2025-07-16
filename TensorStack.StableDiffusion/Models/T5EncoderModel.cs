@@ -36,6 +36,9 @@ namespace TensorStack.StableDiffusion.Models
             if (IsFixedSequenceLength)
                 tokenInput = PadOrTruncate(tokenInput);
 
+            if (tokenInput.InputIds.Length == 0)
+                return new TextEncoderResult(new Tensor<float>([1, 1, HiddenSize]), default);
+
             var sequenceLength = tokenInput.InputIds.Length;
             var supportsAttentionMask = Metadata.Outputs.Count == 2;
             var inputTensor = new TensorSpan<long>(tokenInput.InputIds, [1, sequenceLength]);

@@ -31,6 +31,12 @@ namespace TensorStack.StableDiffusion.Enums
         DDPMWuerstchen = 10,
 
         [Display(Name = "LCM")]
-        LCM = 20
+        LCM = 20,
+
+        [Display(Name = "FlowMatch-EulerDiscrete")]
+        FlowMatchEulerDiscrete = 30,
+
+        [Display(Name = "FlowMatch-EulerDynamic")]
+        FlowMatchEulerDynamic = 31
     }
 }

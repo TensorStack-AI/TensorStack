@@ -590,6 +590,40 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Pads the end dimenison by the specified length.
+        /// </summary>
+        /// <param name="tensor1">The tensor.</param>
+        /// <param name="padLength">Length of the pad.</param>
+        /// <exception cref="System.ArgumentException">Rank 2 or 3 currently supported</exception>
+        public static Tensor<float> PadEnd(this Tensor<float> tensor1, int padLength)
+        {
+            var dimensions = tensor1.Dimensions.ToArray();
+            dimensions[^1] += padLength;
+            var concatenatedTensor = new Tensor<float>(dimensions);
+
+            if (tensor1.Dimensions.Length == 2)
+            {
+                for (int i = 0; i < tensor1.Dimensions[0]; i++)
+                    for (int j = 0; j < tensor1.Dimensions[1]; j++)
+                        concatenatedTensor[i, j] = tensor1[i, j];
+            }
+            else if (tensor1.Dimensions.Length == 3)
+            {
+                for (int i = 0; i < tensor1.Dimensions[0]; i++)
+                    for (int j = 0; j < tensor1.Dimensions[1]; j++)
+                        for (int k = 0; k < tensor1.Dimensions[2]; k++)
+                            concatenatedTensor[i, j, k] = tensor1[i, j, k];
+            }
+            else
+            {
+                throw new ArgumentException("Rank 2 or 3 currently supported");
+            }
+
+            return concatenatedTensor;
+        }
+
+
+        /// <summary>
         /// Generates the next random tensor
         /// </summary>
         /// <param name="random">The random.</param>
