@@ -32,7 +32,7 @@ namespace TensorStack.StableDiffusion.Models
         /// <param name="txtIds">The text ids.</param>
         /// <param name="guidanceTensor">The guidance tensor.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public async Task<Tensor<float>> RunAsync(int timestep, Tensor<float> hiddenStates, Tensor<float> encoderHiddenStates, Tensor<float> pooledProjections, Tensor<float> imgIds, Tensor<float> txtIds, Tensor<float> guidanceTensor, CancellationToken cancellationToken = default)
+        public async Task<Tensor<float>> RunAsync(int timestep, Tensor<float> hiddenStates, Tensor<float> encoderHiddenStates, Tensor<float> pooledProjections, Tensor<float> imgIds, Tensor<float> txtIds, float guidanceScale, CancellationToken cancellationToken = default)
         {
             if (!Transformer.IsLoaded())
                 await Transformer.LoadAsync(cancellationToken: cancellationToken);
@@ -48,7 +48,7 @@ namespace TensorStack.StableDiffusion.Models
                 transformerParams.AddInput(imgIds.AsTensorSpan());
                 transformerParams.AddInput(txtIds.AsTensorSpan());
                 if (supportsGuidance)
-                    transformerParams.AddInput(guidanceTensor.AsTensorSpan());
+                    transformerParams.AddScalarInput(guidanceScale);
 
                 // Outputs
                 transformerParams.AddOutput(hiddenStates.Dimensions);
