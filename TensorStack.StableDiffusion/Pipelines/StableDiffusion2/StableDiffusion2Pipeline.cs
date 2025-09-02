@@ -21,32 +21,17 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion2
         /// <param name="textEncoder">The text encoder.</param>
         /// <param name="autoEncoder">The automatic encoder.</param>
         /// <param name="logger">The logger.</param>
-        public StableDiffusion2Pipeline(UNetConditionalModel unet, CLIPTokenizer tokenizer, CLIPTextModel textEncoder, AutoEncoderModel autoEncoder, ILogger logger = default)
-            : base(unet, tokenizer, textEncoder, autoEncoder, logger)
-        {
-            Unet = unet;
-            Tokenizer = tokenizer;
-            TextEncoder = textEncoder;
-            AutoEncoder = autoEncoder;
-            Initialize();
-            Logger?.LogInformation("[StableDiffusion2Pipeline] Name: {Name}", Name);
-        }
-
+        public StableDiffusion2Pipeline(UNetConditionalModel unet, CLIPTokenizer tokenizer, CLIPTextModel textEncoder, AutoEncoderModel autoEncoder, ILogger logger = null)
+            : base(unet, tokenizer, textEncoder, autoEncoder, logger) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StableDiffusion2Pipeline"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="logger">The logger.</param>
-        public StableDiffusion2Pipeline(StableDiffusion2Config configuration, ILogger logger = default) : this(
-            new UNetConditionalModel(configuration.Unet),
-            new CLIPTokenizer(configuration.Tokenizer),
-            new CLIPTextModel(configuration.TextEncoder),
-            new AutoEncoderModel(configuration.AutoEncoder),
-            logger)
-        {
-            Name = configuration.Name;
-        }
+        public StableDiffusion2Pipeline(StableDiffusion2Config configuration, ILogger logger = null)
+            : base(configuration, logger) { }
+
 
         /// <summary>
         /// Gets the type of the pipeline.

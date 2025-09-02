@@ -13,7 +13,7 @@ using TensorStack.StableDiffusion.Schedulers;
 
 namespace TensorStack.StableDiffusion.Pipelines
 {
-    public abstract class PipelineBase
+    public abstract class PipelineBase : IDisposable
     {
         private GenerateOptions _defaultOptions;
         private IReadOnlyList<SchedulerType> _schedulers;
@@ -148,5 +148,20 @@ namespace TensorStack.StableDiffusion.Pipelines
             return unconditional;
         }
 
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        protected abstract void Dispose(bool disposing);
     }
 }

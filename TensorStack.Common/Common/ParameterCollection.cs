@@ -3,6 +3,7 @@
 using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TensorStack.Common
 {
@@ -10,6 +11,7 @@ namespace TensorStack.Common
     {
         private readonly List<NamedMetadata> _metaData;
         private readonly Dictionary<string, OrtValue> _values;
+        private readonly List<string> _disposables;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ParameterCollection"/> class.
@@ -18,6 +20,7 @@ namespace TensorStack.Common
         {
             _metaData = new List<NamedMetadata>();
             _values = new Dictionary<string, OrtValue>();
+            _disposables = new List<string>();
         }
 
 
@@ -26,10 +29,14 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         /// <param name="value">The value.</param>
-        public void Add(NamedMetadata metaData, OrtValue value)
+        public void Add(NamedMetadata metaData, OrtValue value, bool dispose = true)
         {
             _metaData.Add(metaData);
             _values.Add(metaData.Name, value);
+            if (dispose)
+            {
+                _disposables.Add(metaData.Name);
+            }
         }
 
 
@@ -37,10 +44,14 @@ namespace TensorStack.Common
         /// Adds the name only.
         /// </summary>
         /// <param name="metaData">The meta data.</param>
-        public void AddName(NamedMetadata metaData)
+        public void AddName(NamedMetadata metaData, bool dispose = true)
         {
             _metaData.Add(metaData);
             _values.Add(metaData.Name, default);
+            if (dispose)
+            {
+                _disposables.Add(metaData.Name);
+            }
         }
 
         /// <summary>
@@ -66,8 +77,13 @@ namespace TensorStack.Common
         /// </summary>
         public void Dispose()
         {
-            foreach (var ortValue in _values.Values)
-                ortValue?.Dispose();
+            foreach (var value in _values)
+            {
+                if (!_disposables.Contains(value.Key))
+                    continue;
+
+                value.Value?.Dispose();
+            }
 
             _values.Clear();
             _metaData.Clear();

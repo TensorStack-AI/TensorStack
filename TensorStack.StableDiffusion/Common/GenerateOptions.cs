@@ -11,7 +11,7 @@ namespace TensorStack.StableDiffusion.Common
 {
     public record GenerateOptions : IPipelineOptions, ISchedulerOptions
     {
-        #region IGenerateOptions
+        #region IPipelineOptions
 
         public int Seed { get; set; }
         public int Width { get; set; }
@@ -31,6 +31,10 @@ namespace TensorStack.StableDiffusion.Common
         public ImageTensor InputControlImage { get; set; }
         public ControlNetModel ControlNet { get; set; }
 
+
+        public VideoTensor InputVideo { get; set; }
+
+
         public int ClipSkip { get; set; }
         public float AestheticScore { get; set; } = 6f;
         public float AestheticNegativeScore { get; set; } = 2.5f;
@@ -48,7 +52,6 @@ namespace TensorStack.StableDiffusion.Common
         public bool HasInputControlImage => InputControlImage is not null;
 
         #endregion
-
 
         #region ISchedulerOptions
 

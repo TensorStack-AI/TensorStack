@@ -350,9 +350,7 @@ site/
 docker-test-output/*
 
 Examples/*
-TensorStack.Tokenizers/*
 TensorStack.UI.WPF/*
 TensorStackFull.sln
-TensorStack.Converter/*
 TensorStack.Diffusers/*
-TensorStack.Converter/*
+TensorStudio/*

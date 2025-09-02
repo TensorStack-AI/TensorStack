@@ -21,32 +21,17 @@ namespace TensorStack.StableDiffusion.Pipelines.LatentConsistency
         /// <param name="textEncoder">The text encoder.</param>
         /// <param name="autoEncoder">The automatic encoder.</param>
         /// <param name="logger">The logger.</param>
-        public LatentConsistencyPipeline(UNetConditionalModel unet, CLIPTokenizer tokenizer, CLIPTextModel textEncoder, AutoEncoderModel autoEncoder, ILogger logger = default)
-            : base(unet, tokenizer, textEncoder, autoEncoder, logger)
-        {
-            Unet = unet;
-            Tokenizer = tokenizer;
-            TextEncoder = textEncoder;
-            AutoEncoder = autoEncoder;
-            Initialize();
-            Logger?.LogInformation("[LatentConsistencyPipeline] Name: {Name}", Name);
-        }
-
+        public LatentConsistencyPipeline(UNetConditionalModel unet, CLIPTokenizer tokenizer, CLIPTextModel textEncoder, AutoEncoderModel autoEncoder, ILogger logger = null)
+            : base(unet, tokenizer, textEncoder, autoEncoder, logger) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LatentConsistencyPipeline"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="logger">The logger.</param>
-        public LatentConsistencyPipeline(LatentConsistencyConfig configuration, ILogger logger = default) : this(
-            new UNetConditionalModel(configuration.Unet),
-            new CLIPTokenizer(configuration.Tokenizer),
-            new CLIPTextModel(configuration.TextEncoder),
-            new AutoEncoderModel(configuration.AutoEncoder),
-            logger)
-        {
-            Name = configuration.Name;
-        }
+        public LatentConsistencyPipeline(LatentConsistencyConfig configuration, ILogger logger = null)
+            : base(configuration, logger) { }
+
 
         /// <summary>
         /// Gets the type of the pipeline.

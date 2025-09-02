@@ -338,6 +338,11 @@ namespace TensorStack.Common
             return Split(tensor).FirstOrDefault();
         }
 
+        public static Tensor<T> LastBatch<T>(this Tensor<T> tensor)
+        {
+            return Split(tensor).LastOrDefault();
+        }
+
 
         /// <summary>
         /// Reshapes to new tensor.

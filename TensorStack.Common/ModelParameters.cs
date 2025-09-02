@@ -84,9 +84,9 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         /// <param name="value">The value.</param>
-        public void AddInput(OrtValue value)
+        public void AddInput(OrtValue value, bool dispose = true)
         {
-            _inputs.Add(GetNextInputMetadata(), value);
+            _inputs.Add(GetNextInputMetadata(), value, dispose);
         }
 
 
@@ -95,10 +95,10 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="index">The index.</param>
         /// <param name="value">The value.</param>
-        public void AddInput(int index, OrtValue value)
+        public void AddInput(int index, OrtValue value, bool dispose = true)
         {
             var metadata = _metadata.Inputs[index];
-            _inputs.Add(metadata, value);
+            _inputs.Add(metadata, value, dispose);
         }
 
 
@@ -124,9 +124,6 @@ namespace TensorStack.Common
             var metadata = _metadata.Inputs[index];
             _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
         }
-
-
-
 
 
         /// <summary>
@@ -199,6 +196,71 @@ namespace TensorStack.Common
             var metadata = _metadata.Inputs[index];
             _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
         }
+
+
+        /// <summary>
+        /// Adds a tensor input.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput<T>(Tensor<T> value) where T : unmanaged, INumber<T> => AddInput(value.AsTensorSpan());
+
+
+
+        /// <summary>
+        /// Adds a tensor input at the specified index.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput<T>(int index, Tensor<T> value) where T : unmanaged, INumber<T> => AddInput(index, value.AsTensorSpan());
+
+
+        /// <summary>
+        /// Adds a tensor input.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(Tensor<string> value) => AddInput(value.AsTensorSpan());
+
+
+        /// <summary>
+        /// Adds a tensor input at the specified index.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(int index, Tensor<string> value) => AddInput(index, value.AsTensorSpan());
+
+
+        /// <summary>
+        /// Adds a tensor input.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(Tensor<bool> value) => AddInput(value.AsTensorSpan());
+
+
+        /// <summary>
+        /// Adds a tensor input at the specified index.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(int index, Tensor<bool> value) => AddInput(index, value.AsTensorSpan());
+
+
+        /// <summary>
+        /// Adds a tensor input.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(Tensor<byte> value) => AddInput(value.AsTensorSpan());
+
+
+        /// <summary>
+        /// Adds a tensor input at the specified index.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(int index, Tensor<byte> value) => AddInput(index, value.AsTensorSpan());
 
 
         /// <summary>

@@ -182,10 +182,23 @@ namespace TensorStack.Common
         /// <param name="tensor">The tensor input.</param>
         private static OrtValue CreateOrtValue<T>(NamedMetadata metadata, TensorSpan<T> tensor) where T : unmanaged, INumber<T>
         {
+            return CreateOrtValue(metadata.Value.ElementDataType, tensor);
+        }
+
+
+        /// <summary>
+        /// Creates a OrtValue from Tensor
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="ortType">Type of the ort.</param>
+        /// <param name="tensor">The tensor.</param>
+        /// <returns>OrtValue.</returns>
+        public static OrtValue CreateOrtValue<T>(OrtType ortType, TensorSpan<T> tensor) where T : unmanaged, INumber<T>
+        {
             var buffer = tensor.Span;
             var dimensions = tensor.Dimensions.ToLong();
             var memoryInstance = OrtMemoryInfo.DefaultInstance;
-            return metadata.Value.ElementDataType switch
+            return ortType switch
             {
                 OrtType.Float => OrtValue.CreateTensorValueFromMemory<float>(memoryInstance, buffer.ConvertBuffer<T, float>(), dimensions),
                 OrtType.UInt8 => OrtValue.CreateTensorValueFromMemory<byte>(memoryInstance, buffer.ConvertBuffer<T, byte>(), dimensions),
@@ -201,6 +214,40 @@ namespace TensorStack.Common
                 OrtType.BFloat16 => OrtValue.CreateTensorValueFromMemory<BFloat16>(memoryInstance, buffer.ConvertBufferBFloat16(), dimensions),
                 _ => throw new NotImplementedException("Conversion is not currently implemented.")
             };
+        }
+
+
+        /// <summary>
+        /// Clones the specified OrtValue.
+        /// </summary>
+        /// <param name="original">The original.</param>
+        /// <returns>OrtValue.</returns>
+        public static OrtValue Clone(this OrtValue original)
+        {
+            var info = original.GetTensorTypeAndShape();
+            return info.ElementDataType switch
+            {
+                OrtType.Float => original.Clone<float>(info),
+                OrtType.Float16 => original.Clone<Float16>(info),
+                _ => throw new NotSupportedException($"Unsupported element type: {info.ElementDataType}")
+            };
+        }
+
+
+        /// <summary>
+        /// Clones the specified OrtValue.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="original">The original.</param>
+        /// <param name="info">The information.</param>
+        /// <returns>OrtValue.</returns>
+        public static OrtValue Clone<T>(this OrtValue original, OrtTensorTypeAndShapeInfo info) where T : unmanaged
+        {
+            var newValue = OrtValue.CreateAllocatedTensorValue(OrtAllocator.DefaultInstance, info.ElementDataType, info.Shape);
+            var source = original.GetTensorDataAsSpan<T>();
+            var destination = newValue.GetTensorMutableDataAsSpan<T>();
+            source.CopyTo(destination);
+            return newValue;
         }
 
 
