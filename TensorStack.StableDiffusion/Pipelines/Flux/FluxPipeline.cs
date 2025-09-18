@@ -64,7 +64,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
         /// <returns>FluxPipeline.</returns>
-        public static FluxBase FromConfig(string configFile, ExecutionProvider executionProvider, ILogger logger = default)
+        public static FluxPipeline FromConfig(string configFile, ExecutionProvider executionProvider, ILogger logger = default)
         {
             return new FluxPipeline(FluxConfig.FromFile(configFile, executionProvider), logger);
         }
@@ -78,7 +78,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>
         /// <returns>FluxPipeline.</returns>
-        public static FluxBase FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
+        public static FluxPipeline FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
         {
             return new FluxPipeline(FluxConfig.FromFolder(modelFolder, modelType, executionProvider), logger);
         }

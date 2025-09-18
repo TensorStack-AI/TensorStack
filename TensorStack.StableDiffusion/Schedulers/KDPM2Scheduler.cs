@@ -41,10 +41,10 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <param name="strength">The strength.</param>
         public override void Initialize(float strength)
         {
+            base.Initialize(strength);
             _stepIndex = 0;
             _sample = null;
             Options.TimestepSpacing = TimestepSpacingType.Trailing;
-            base.Initialize(strength);
         }
 
 

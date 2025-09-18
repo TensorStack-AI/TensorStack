@@ -23,8 +23,8 @@ namespace TensorStack.StableDiffusion.Schedulers
 
         public override void Initialize(float strength)
         {
-            _derivatives = new Queue<Tensor<float>>();
             base.Initialize(strength);
+            _derivatives = new Queue<Tensor<float>>();
         }
 
         /// <summary>
