@@ -133,9 +133,11 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
             var currentLabel = new List<long>();
             var currentCoordinates = new List<int>();
             var results = new List<CoordinateResult>();
+            var index = 0;
             foreach (var tokenId in tokens)
             {
-                if (!_tokenizer.TryGetCoordinate(tokenId, out var coordinate))
+                index++;
+                if (!_tokenizer.TryGetCoordinate(tokenId, out var coordinate) || index == tokens.Count)
                 {
                     if (currentCoordinates.Count > 0)
                     {
@@ -148,6 +150,9 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
 
                             coordinates.Add(new Coordinate<int>(position[0], position[1]));
                         }
+
+                        if (coordinates.Count == 0)
+                            return new List<CoordinateResult>();
 
                         var scaledCoordinates = _coordinateScaler.ScaleUp(coordinates.ToArray(), sourceImage);
                         var coordinateBox = new CoordinateBox<int>

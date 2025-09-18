@@ -84,6 +84,9 @@ namespace TensorStack.TextGeneration.Processing
             {
                 if (i % 4 == 0)
                 {
+
+                    // TODO: Allocate entire Maxlength and update the buffer
+
                     _values[i].Dispose();
                     _values[i + 1].Dispose();
 

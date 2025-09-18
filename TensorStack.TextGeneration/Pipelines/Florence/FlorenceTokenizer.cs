@@ -21,6 +21,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         private readonly MapCollection<byte, char> _unicodeMap;
         private readonly MapCollection<long, int> _coordinateMap;
         private readonly MapCollection<long, string> _vocabularyMap;
+        private readonly Dictionary<MergeToken, int> _mergesMap;
         private readonly MapCollection<long, string> _specialTokensMap;
 
         /// <summary>
@@ -34,6 +35,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
             _specialTokensMap = CreateSpecialTokenMapping();
             _vocabularyMap = CreateVocabMapping();
             _coordinateMap = CreateCoordinateMapping();
+            _mergesMap = CreateMergesMapping();
             _preTokenizeRegex = new Regex(@"'s|'t|'re|'ve|'m|'ll|'d|<loc_[\p{L}\p{N}_]+>| ?[\p{L}_][\p{L}\p{N}_]*|[^ \s\p{L}\p{N}]+|\s+(?!\S)|\s+", RegexOptions.Compiled);
         }
 
@@ -214,6 +216,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         private long[] StringToTokens(ReadOnlySpan<char> input)
         {
             var tokens = PreTokenize(input)
+                .SelectMany(ApplyMerges)
                 .Select(TokenToId)
                 .Prepend(_configuration.BOS)
                 .Append(_configuration.EOS)
@@ -238,6 +241,42 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
                         .ToArray()
                 )).ToArray();
             return tokens;
+        }
+
+
+        /// <summary>
+        /// Applies the merges.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        private List<string> ApplyMerges(string token)
+        {
+            if (_specialTokensMap.ContainsKey(token))
+                return [token];
+
+            var symbols = token.Select(c => c.ToString()).ToList();
+            while (symbols.Count > 1)
+            {
+                int bestIndex = -1;
+                int bestRank = int.MaxValue;
+                for (int i = 0; i < symbols.Count - 1; i++)
+                {
+                    var pair = new MergeToken(symbols[i], symbols[i + 1]);
+                    if (_mergesMap.TryGetValue(pair, out int rank) && rank < bestRank)
+                    {
+                        bestRank = rank;
+                        bestIndex = i;
+                    }
+                }
+
+                if (bestIndex == -1)
+                    break;
+
+                // Merge the pair
+                string merged = symbols[bestIndex] + symbols[bestIndex + 1];
+                symbols[bestIndex] = merged;
+                symbols.RemoveAt(bestIndex + 1);
+            }
+            return symbols;
         }
 
 
@@ -338,6 +377,22 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
 
 
         /// <summary>
+        /// Creates the merges mapping.
+        /// </summary>
+        private Dictionary<MergeToken, int> CreateMergesMapping()
+        {
+            var mergesFile = Path.Combine(_configuration.Path, "merges.txt");
+            return File.ReadLines(mergesFile)
+                .Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+                .Select((line, index) =>
+                {
+                    var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    return (new MergeToken(parts[0], parts[1]), index);
+                }).ToDictionary(x => x.Item1, x => x.index);
+        }
+
+
+        /// <summary>
         /// Creates the coordinate mapping.
         /// </summary>
         private MapCollection<long, int> CreateCoordinateMapping()
@@ -374,5 +429,8 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
             [JsonPropertyName("content")]
             public string Content { get; set; }
         }
+
+        private record MergeToken(string PartA, string PartB);
+
     }
 }

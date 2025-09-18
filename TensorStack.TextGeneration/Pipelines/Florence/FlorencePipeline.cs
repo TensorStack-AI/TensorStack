@@ -2,8 +2,10 @@
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
@@ -15,7 +17,9 @@ using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines.Florence
 {
-    public class FlorencePipeline : EncoderDecoderPipeline
+    public class FlorencePipeline : EncoderDecoderPipeline,
+         IPipeline<GenerateResult, FlorenceOptions>,
+         IPipelineStream<GenerateResult, FlorenceSearchOptions>
     {
         private readonly FlorenceConfig _configuration;
         private readonly PreProcessor _preProcessor;
@@ -99,6 +103,35 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
                     Result = processedBeamOutput.Result,
                     CoordinateResults = processedBeamOutput.CoordinateResults
                 };
+            }
+        }
+
+
+        public virtual async IAsyncEnumerable<GenerateResult> RunAsync(FlorenceSearchOptions options, IProgress<RunProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var textPrompt = _preProcessor.ProcessPrompt(options);
+            var imagePrompt = _preProcessor.ProcessImage(options);
+
+            TokenizerOutput = await Tokenizer.EncodeAsync(textPrompt);
+            var embedsOutput = await RunTextEmbedAsync(TokenizerOutput.InputIds);
+            _visionOutput = await RunVisionEncoderAsync(embedsOutput, imagePrompt);
+            EncoderOutput = await RunEncoderAsync();
+
+            var sequences = await BeamSearchAsync(options, cancellationToken);
+            foreach (var sequence in sequences)
+            {
+                using (sequence)
+                {
+                    var processedBeamOutput = _postProcessor.Process(options, sequence.Tokens);
+                    yield return new GenerateResult
+                    {
+                        Beam = sequence.Id,
+                        Score = sequence.Score,
+                        PenaltyScore = sequence.PenaltyScore,
+                        Result = processedBeamOutput.Result,
+                        CoordinateResults = processedBeamOutput.CoordinateResults
+                    };
+                }
             }
         }
 
@@ -233,14 +266,20 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         /// <param name="embedModel">The embed model.</param>
         /// <param name="visionModel">The vision model.</param>
         /// <returns>FlorencePipeline.</returns>
-        public static FlorencePipeline Create(ExecutionProvider provider, string modelPath, string encoderModel = "encoder_model.onnx", string decoderModel = "decoder_model_merged.onnx", string embedModel = "embed_tokens.onnx", string visionModel = "vision_encoder.onnx")
+        public static FlorencePipeline Create(ExecutionProvider provider, string modelPath, FlorenceType modelType, string encoderModel = "encoder_model.onnx", string decoderModel = "decoder_model_merged.onnx", string embedModel = "embed_tokens.onnx", string visionModel = "vision_encoder.onnx")
         {
-            // Florence Large
-            //NumLayers = 12,
-            //NumHeads = 16,
-            //NumKVHeads = 16,
-            //HiddenSize = 768,
-            //VocabSize = 51289
+            var numLayers = 6;
+            var numHeads = 12;
+            var numKVHeads = 12;
+            var hiddenSize = 768;
+            var vocabSize = 51289;
+            if (modelType == FlorenceType.Large)
+            {
+                numLayers = 12;
+                numHeads = 16;
+                numKVHeads = 16;
+                hiddenSize = 1024;
+            }
 
             var config = new FlorenceConfig
             {
@@ -251,20 +290,20 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
                 }),
                 EncoderConfig = new EncoderConfig
                 {
-                    NumLayers = 6,
-                    NumHeads = 12,
-                    NumKVHeads = 12,
-                    HiddenSize = 768,
-                    VocabSize = 51289,
+                    NumLayers = numLayers,
+                    NumHeads = numHeads,
+                    NumKVHeads = numKVHeads,
+                    HiddenSize = hiddenSize,
+                    VocabSize = vocabSize,
                     Path = Path.Combine(modelPath, encoderModel),
                 },
                 DecoderConfig = new DecoderConfig
                 {
-                    NumLayers = 6,
-                    NumHeads = 12,
-                    NumKVHeads = 12,
-                    HiddenSize = 768,
-                    VocabSize = 51289,
+                    NumLayers = numLayers,
+                    NumHeads = numHeads,
+                    NumKVHeads = numKVHeads,
+                    HiddenSize = hiddenSize,
+                    VocabSize = vocabSize,
                     Path = Path.Combine(modelPath, decoderModel),
                 },
                 EmbedsConfig = new ModelConfig
@@ -278,6 +317,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
             };
 
             config.EncoderConfig.SetProvider(provider);
+            //config.DecoderConfig.SetProvider(provider);
             config.DecoderConfig.SetProvider(ProviderCPU()); // TODO
             config.EmbedsConfig.SetProvider(provider);
             config.VisionConfig.SetProvider(provider);
@@ -301,5 +341,11 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
                 return sessionOptions;
             });
         }
+    }
+
+    public enum FlorenceType
+    {
+        Base = 0,
+        Large = 1
     }
 }

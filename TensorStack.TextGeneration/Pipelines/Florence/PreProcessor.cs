@@ -43,7 +43,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
                 TaskType.REGION_PROPOSAL => "Locate the region proposals in the image.",
                 TaskType.CAPTION_TO_PHRASE_GROUNDING => $"Locate the phrases in the caption: {options.Prompt}",
                 TaskType.REFERRING_EXPRESSION_SEGMENTATION => $"Locate {options.Prompt} in the image with mask",
-                TaskType.REGION_TO_SEGMENTATION => $"What is the mask of region {regionTokens}",
+                TaskType.REGION_TO_SEGMENTATION => $"What is the polygon mask of region {regionTokens}",
                 TaskType.OPEN_VOCABULARY_DETECTION => $"Locate {options.Prompt} in the image.",
                 TaskType.REGION_TO_CATEGORY => $"What is the region {regionTokens}?",
                 TaskType.REGION_TO_DESCRIPTION => $"What does the region {regionTokens} describe?",

@@ -13,8 +13,14 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         public CoordinateBox<float> Region { get; set; }
     }
 
+    public record FlorenceSearchOptions : FlorenceOptions;
+
+
+
+
     public enum TaskType
     {
+        NONE,
         OCR,
         OCR_WITH_REGION,
         CAPTION,

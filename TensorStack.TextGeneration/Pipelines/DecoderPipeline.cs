@@ -1,7 +1,6 @@
 // Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 
-using Google.Protobuf.WellKnownTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -245,7 +244,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// </summary>
         /// <param name="candidates">The sequences.</param>
         /// <param name="options">The options.</param>
-        protected IEnumerable<Sequence> GetSequenceCandidates(SequenceCollection candidates, GenerateOptions options)
+        protected virtual IEnumerable<Sequence> GetSequenceCandidates(SequenceCollection candidates, GenerateOptions options)
         {
             // TODO: Diversity Penalty
             _sequenceComparer.SetLength(options.DiversityLength);

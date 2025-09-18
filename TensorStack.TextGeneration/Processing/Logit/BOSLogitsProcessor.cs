@@ -27,6 +27,7 @@ namespace TensorStack.TextGeneration.Processing
         {
             if (inputs.Count == 0)
             {
+                inputs.Add(_bosTokenId);
                 logits.Fill(float.NegativeInfinity);
                 logits[0, 0] = float.NegativeZero;
             }
