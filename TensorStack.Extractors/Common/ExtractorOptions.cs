@@ -11,37 +11,28 @@ namespace TensorStack.Extractors.Common
     public record ExtractorOptions : IRunOptions
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ExtractorOptions"/> class.
-        /// </summary>
-        /// <param name="tileMode">Enable/Disable TileMode, splitting image into smaller tiles to save memory.</param>
-        /// <param name="maxTileSize">The maximum size of the tile for TileMode</param>
-        /// <param name="tileOverlap">The tile overlap in pixels to avoid visible seams.</param>
-        public ExtractorOptions(bool mergeInput = false, TileMode tileMode = TileMode.None, int maxTileSize = 512, int tileOverlap = 16)
-        {
-            MergeInput = mergeInput;
-            TileMode = tileMode;
-            MaxTileSize = maxTileSize;
-            TileOverlap = tileOverlap;
-        }
-
-        /// <summary>
         /// Megre the input and output result into a new tensor.
         /// </summary>
-        public bool MergeInput { get; set; }
+        public bool MergeInput { get; init; }
 
         /// <summary>
         /// Enable/Disable TileMode, splitting image into smaller tiles to save memory.
         /// </summary>
-        public TileMode TileMode { get; }
+        public TileMode TileMode { get; init; }
 
         /// <summary>
         /// The maximum size of the tile.
         /// </summary>
-        public int MaxTileSize { get; }
+        public int MaxTileSize { get; init; }
 
         /// <summary>
         /// The tile overlap in pixels to avoid visible seams.
         /// </summary>
-        public int TileOverlap { get; }
+        public int TileOverlap { get; init; }
+
+        /// <summary>
+        /// Gets a value indicating whether the output is inverted.
+        /// </summary>
+        public bool IsInverted { get; init; }
     }
 }

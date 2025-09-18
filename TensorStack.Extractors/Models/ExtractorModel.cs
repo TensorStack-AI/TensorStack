@@ -35,11 +35,6 @@ namespace TensorStack.Extractors.Models
         public Normalization OutputNormalization => Configuration.OutputNormalization;
 
         /// <summary>
-        /// If the result should ne inverted
-        /// </summary>
-        public bool IsOutputInverted => Configuration.IsOutputInverted;
-
-        /// <summary>
         /// The channels the model supports 1 = Greyscale, RGB = 3, RGBA = 4.
         /// </summary>
         public int OutputChannels => Configuration.OutputChannels;

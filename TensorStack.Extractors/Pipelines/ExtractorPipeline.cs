@@ -19,7 +19,7 @@ namespace TensorStack.Extractors.Pipelines
     /// <summary>
     /// Basic ExtractorPipeline. This class cannot be inherited.
     /// </summary>
-    public sealed class ExtractorPipeline
+    public class ExtractorPipeline
         : IPipeline<ImageTensor, ExtractorImageOptions>,
           IPipeline<VideoTensor, ExtractorVideoOptions>,
           IPipelineStream<VideoFrame, ExtractorStreamOptions>
@@ -68,9 +68,11 @@ namespace TensorStack.Extractors.Pipelines
                 options.Input.NormalizeZeroToOne();
 
             var resultTensor = await ExtractInternalAsync(options.Input, options, cancellationToken);
-            NormalizeResult(resultTensor);
+            NormalizeResult(resultTensor, options.IsInverted);
+
             if (_extractorModel.Normalization == Normalization.ZeroToOne)
                 options.Input.NormalizeOneToOne();
+
             if (options.MergeInput)
                 resultTensor = MergeResult(options.Input, resultTensor);
 
@@ -98,7 +100,7 @@ namespace TensorStack.Extractors.Pipelines
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 var resultTensor = await ExtractInternalAsync(frame, options, cancellationToken);
-                NormalizeResult(resultTensor);
+                NormalizeResult(resultTensor, options.IsInverted);
                 if (_extractorModel.Normalization == Normalization.ZeroToOne)
                     frame.NormalizeOneToOne();
                 if (options.MergeInput)
@@ -134,14 +136,14 @@ namespace TensorStack.Extractors.Pipelines
                     videoFrame.Frame.NormalizeZeroToOne();
 
                 var resultTensor = await ExtractInternalAsync(videoFrame.Frame, options, cancellationToken);
-                NormalizeResult(resultTensor);
+                NormalizeResult(resultTensor, options.IsInverted);
                 if (_extractorModel.Normalization == Normalization.ZeroToOne)
                     videoFrame.Frame.NormalizeOneToOne();
                 if (options.MergeInput)
                     resultTensor = MergeResult(videoFrame.Frame, resultTensor);
 
                 progressCallback?.Report(new RunProgress(++frameCount, 0, frameTime));
-                yield return new VideoFrame(resultTensor, videoFrame.SourceFrameRate);
+                yield return new VideoFrame(videoFrame.Index, resultTensor, videoFrame.SourceFrameRate);
             }
             progressCallback?.Report(new RunProgress(timestamp));
         }
@@ -176,11 +178,18 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="imageTensor">The image tensor.</param>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExecuteExtractorAsync(ImageTensor inputTensor, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExecuteExtractorAsync(ImageTensor imageInput, CancellationToken cancellationToken = default)
         {
+            // Resize Input
+            var inputTensor = imageInput;
+            if (_extractorModel.SampleSize > 0)
+                inputTensor = inputTensor.ResizeImage(_extractorModel.SampleSize, _extractorModel.SampleSize, ResizeMode.Stretch);
+
             ThrowIfInvalidInput(inputTensor);
+
             var metadata = await _extractorModel.LoadAsync(cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+
             var outputShape = new[] { 1, _extractorModel.OutputChannels, inputTensor.Dimensions[2], inputTensor.Dimensions[3] };
             var outputBuffer = metadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
             using (var modelParameters = new ModelParameters(metadata, cancellationToken))
@@ -191,9 +200,14 @@ namespace TensorStack.Extractors.Pipelines
                 {
                     var outputTensor = results[0].ToTensor();
                     if (outputBuffer.Length != 4)
-                        outputTensor.Reshape(outputShape);
+                        outputTensor.Reshape([1, .. outputTensor.Dimensions]);
 
-                    return outputTensor.AsImageTensor();
+                    // Resize Output
+                    var outputImage = outputTensor.AsImageTensor();
+                    if (_extractorModel.SampleSize > 0 || outputImage.Width != imageInput.Width || outputImage.Height != imageInput.Height)
+                        outputImage = outputImage.ResizeImage(imageInput.Width, imageInput.Height, ResizeMode.Stretch);
+
+                    return outputImage;
                 }
             }
         }
@@ -235,17 +249,15 @@ namespace TensorStack.Extractors.Pipelines
         /// Normalizes the output result.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
-        private void NormalizeResult(ImageTensor tensor)
+        private void NormalizeResult(ImageTensor tensor, bool isInverted)
         {
-            if (_extractorModel.IsOutputInverted)
-                tensor.Memory.Span.Invert();
-
             if (_extractorModel.OutputNormalization == Normalization.MinMax)
                 tensor.Memory.Span.NormalizeMinMaxToZeroToOne();
             else if (_extractorModel.Normalization == Normalization.OneToOne)
                 tensor.NormalizeOneToOne();
 
-
+            if (isInverted)
+                tensor.Memory.Span.Invert();
         }
 
 

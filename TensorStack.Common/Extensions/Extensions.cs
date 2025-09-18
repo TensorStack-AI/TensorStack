@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TensorStack.Common
 {
@@ -140,6 +142,30 @@ namespace TensorStack.Common
         public static float ZeroIfNan(this float value)
         {
             return float.IsNaN(value) ? 0f : value;
+        }
+
+
+        public static bool CanBeCanceled(this CancellationTokenSource cancellationTokenSource)
+        {
+            if (cancellationTokenSource is null)
+                return false;
+
+            try
+            {
+                return cancellationTokenSource.Token.CanBeCanceled;
+            }
+            catch { }
+            return false;
+        }
+
+
+        public static async Task SafeCancelAsync(this CancellationTokenSource cancellationTokenSource)
+        {
+            try
+            {
+                await cancellationTokenSource.CancelAsync();
+            }
+            catch { }
         }
     }
 }

@@ -581,16 +581,16 @@ namespace TensorStack.Common
             dimensions[0] *= count;
 
             var newLength = (int)tensor.Length;
-            var buffer = new float[newLength * count].AsMemory();
+            var buffer = new Tensor<float>(dimensions);
 
             var index = 0;
             foreach (var item in tensors)
             {
                 var start = index * newLength;
-                item.Memory.CopyTo(buffer[start..]);
+                item.Memory.CopyTo(buffer.Memory[start..]);
                 index++;
             }
-            return new Tensor<float>(buffer, dimensions);
+            return buffer;
         }
 
 
@@ -997,7 +997,7 @@ namespace TensorStack.Common
         /// <param name="resizeMode">The resize mode.</param>
         /// <param name="resizeMethod">The resize method.</param>
         /// <returns>ImageTensor.</returns>
-        public static ImageTensor ResizeImage(this ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch, ResizeMethod resizeMethod = ResizeMethod.Bicubic)
+        public static ImageTensor ResizeImage(this ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch, ResizeMethod resizeMethod = ResizeMethod.Bilinear)
         {
             return resizeMethod switch
             {

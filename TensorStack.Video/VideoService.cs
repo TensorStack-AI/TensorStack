@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using TensorStack.Common;
 using TensorStack.Common.Tensor;
@@ -29,7 +30,16 @@ namespace TensorStack.Video
                 if (!videoReader.IsOpened())
                     throw new Exception("Failed to open video file.");
 
-                return new VideoInfo(filename, videoReader.FrameWidth, videoReader.FrameHeight, (float)videoReader.Fps, videoReader.FrameCount);
+                using (var frame = new Mat())
+                {
+                    videoReader.Read(frame);
+
+                    var thumbnailSize = GetNewVideoSize(100, default, frame.Size(),  ResizeMode.Crop);
+                    Cv2.Resize(frame, frame, thumbnailSize);
+
+                    var thumbnail = frame.ToTensor();
+                    return new VideoInfo(filename, videoReader.FrameWidth, videoReader.FrameHeight, (float)videoReader.Fps, videoReader.FrameCount, thumbnail);
+                }
             }
         }
 
@@ -38,13 +48,13 @@ namespace TensorStack.Video
         /// Loads the VideoTensor from file.
         /// </summary>
         /// <param name="videoFile">The video file.</param>
-        /// <param name="frameRate">The frame rate.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
+        /// <param name="widthOverride">The width.</param>
+        /// <param name="heightOverride">The height.</param>
+        ///  <param name="frameRateOverride">The frame rate.</param>
         /// <returns>VideoTensor.</returns>
-        public static VideoTensor LoadVideoTensor(string videoFile, int? width = default, int? height = default, float? frameRate = default, ResizeMode resizeMode = ResizeMode.Crop)
+        public static VideoTensor LoadVideoTensor(string videoFile, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop)
         {
-            return ReadVideo(videoFile, width, height, frameRate, resizeMode);
+            return ReadVideo(videoFile, widthOverride, heightOverride, frameRateOverride, resizeMode);
         }
 
 
@@ -57,9 +67,9 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>Task&lt;VideoTensor&gt;.</returns>
-        public static Task<VideoTensor> LoadVideoTensorAsync(string videoFile, int? width = default, int? height = default, float? frameRate = default, ResizeMode resizeMode = ResizeMode.Crop, CancellationToken cancellationToken = default)
+        public static Task<VideoTensor> LoadVideoTensorAsync(string videoFile, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => ReadVideo(videoFile, width, height, frameRate, resizeMode, cancellationToken));
+            return Task.Run(() => ReadVideo(videoFile, widthOverride, heightOverride, frameRateOverride, resizeMode, cancellationToken));
         }
 
 
@@ -71,13 +81,14 @@ namespace TensorStack.Video
         /// <param name="framerate">The framerate.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveVideoTensorAync(VideoTensor videoTensor, string videoFile, float? framerate = default, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task SaveVideoTensorAync(string videoFile, VideoTensor videoTensor, float? frameRateOverride = default, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
         {
             var frames = videoTensor
                 .Split()
                 .Select(frame => new ImageTensor(frame))
                 .ToAsyncEnumerable();
-            await frames.SaveAync(videoFile, framerate ?? videoTensor.FrameRate, videoTensor.Width, videoTensor.Height, videoCodec, cancellationToken);
+            var frameRate = frameRateOverride ?? videoTensor.FrameRate;
+            await frames.SaveAync(videoFile, frameRate, videoTensor.Width, videoTensor.Height, videoCodec, cancellationToken);
         }
 
 
@@ -85,19 +96,37 @@ namespace TensorStack.Video
         /// Save video stream as an asynchronous operation.
         /// </summary>
         /// <param name="videoFile">The video file.</param>
-        /// <param name="imageFrames">The image frames.</param>
+        /// <param name="videoFrames">The image frames.</param>
         /// <param name="videoCodec">The video codec.</param>
-        /// <param name="framerate">The framerate.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
+        /// <param name="widthOverride">The width.</param>
+        /// <param name="heightOverride">The height.</param>
+        /// <param name="framerateOverride">The framerate.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        internal static async Task WriteVideoStreamAsync(IAsyncEnumerable<VideoFrame> videoFrames, string videoFile, float framerate, int width, int height, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        internal static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
         {
-            var frameSize = new Size(width, height);
             var fourcc = VideoWriter.FourCC(videoCodec);
-            var imageFrames = videoFrames.AsImageTensors(cancellationToken);
-            await WriteVideoFramesAsync(imageFrames, videoFile, frameSize, framerate, fourcc, cancellationToken);
+            await WriteVideoFramesAsync(videoFile, videoFrames, fourcc, widthOverride, heightOverride, frameRateOverride, cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Write video stream with buffered read/write
+        /// </summary>
+        /// <param name="videoFile">The video file.</param>
+        /// <param name="videoFrames">The video frames.</param>
+        /// <param name="frameProcessor">The frame processor.</param>
+        /// <param name="readBuffer">The read buffer.</param>
+        /// <param name="writeBuffer">The write buffer.</param>
+        /// <param name="widthOverride">The width override.</param>
+        /// <param name="heightOverride">The height override.</param>
+        /// <param name="frameRateOverride">The frame rate override.</param>
+        /// <param name="videoCodec">The video codec.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        internal static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        {
+            var fourcc = VideoWriter.FourCC(videoCodec);
+            await WriteVideoFramesAsync(videoFile, videoFrames, frameProcessor, readBuffer, writeBuffer, fourcc, widthOverride, heightOverride, frameRateOverride, cancellationToken);
         }
 
 
@@ -105,13 +134,13 @@ namespace TensorStack.Video
         /// Get video stream as an asynchronous operation.
         /// </summary>
         /// <param name="videoFile">The video file.</param>
-        /// <param name="frameRate">The frame rate.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
+        /// <param name="frameRateOverride">The frame rate.</param>
+        /// <param name="widthOverride">The width.</param>
+        /// <param name="heightOverride">The height.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
         /// <exception cref="System.Exception">Failed to open video file.</exception>
-        internal static async IAsyncEnumerable<VideoFrame> ReadStreamAsync(string videoFile, float? frameRate = default, int? width = default, int? height = default, ResizeMode resizeMode = ResizeMode.Stretch, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        internal static async IAsyncEnumerable<VideoFrame> ReadStreamAsync(string videoFile, float? frameRateOverride = default, int? widthOverride = default, int? heightOverride = default, ResizeMode resizeMode = ResizeMode.Stretch, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             using (var videoReader = new VideoCapture(videoFile))
             {
@@ -120,11 +149,12 @@ namespace TensorStack.Video
 
                 await Task.Yield();
                 var frameCount = 0;
+                var frameIndex = 0;
                 var videoSize = new Size(videoReader.FrameWidth, videoReader.FrameHeight);
-                var videoNewSize = GetNewVideoSize(width, height, videoSize, resizeMode);
-                var videoCropSize = GetCropVideoSize(width, height, videoNewSize, resizeMode);
-                var videoframeRate = GetVideoFrameRate(videoReader.Fps, frameRate);
-                var frameSkipInterval = GetFrameInterval(videoReader.Fps, frameRate);
+                var videoNewSize = GetNewVideoSize(widthOverride, heightOverride, videoSize, resizeMode);
+                var videoCropSize = GetCropVideoSize(widthOverride, heightOverride, videoNewSize, resizeMode);
+                var videoframeRate = GetVideoFrameRate(videoReader.Fps, frameRateOverride);
+                var frameSkipInterval = GetFrameInterval(videoReader.Fps, frameRateOverride);
                 using (var frame = new Mat())
                 {
                     while (true)
@@ -140,7 +170,7 @@ namespace TensorStack.Video
                             if (videoSize != videoNewSize)
                                 Cv2.Resize(frame, frame, videoNewSize);
 
-                            yield return new VideoFrame(frame.ToTensor(videoCropSize), videoframeRate);
+                            yield return new VideoFrame(frameIndex++, frame.ToTensor(videoCropSize), videoframeRate);
                         }
                         frameCount++;
                     }
@@ -160,7 +190,7 @@ namespace TensorStack.Video
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>VideoTensor.</returns>
         /// <exception cref="System.Exception">Failed to open video file.</exception>
-        internal static VideoTensor ReadVideo(string videoFile, int? width = default, int? height = default, float? frameRate = default, ResizeMode resizeMode = ResizeMode.Stretch, CancellationToken cancellationToken = default)
+        internal static VideoTensor ReadVideo(string videoFile, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Stretch, CancellationToken cancellationToken = default)
         {
             using (var videoReader = new VideoCapture(videoFile))
             {
@@ -170,10 +200,10 @@ namespace TensorStack.Video
                 var frameCount = 0;
                 var result = new List<ImageTensor>();
                 var videoSize = new Size(videoReader.FrameWidth, videoReader.FrameHeight);
-                var videoNewSize = GetNewVideoSize(width, height, videoSize, resizeMode);
-                var videoCropSize = GetCropVideoSize(width, height, videoNewSize, resizeMode);
-                var videoframeRate = GetVideoFrameRate(videoReader.Fps, frameRate);
-                var frameSkipInterval = GetFrameInterval(videoReader.Fps, frameRate);
+                var videoNewSize = GetNewVideoSize(widthOverride, heightOverride, videoSize, resizeMode);
+                var videoCropSize = GetCropVideoSize(widthOverride, heightOverride, videoNewSize, resizeMode);
+                var videoframeRate = GetVideoFrameRate(videoReader.Fps, frameRateOverride);
+                var frameSkipInterval = GetFrameInterval(videoReader.Fps, frameRateOverride);
                 using (var frame = new Mat())
                 {
                     while (true)
@@ -302,35 +332,98 @@ namespace TensorStack.Video
 
 
         /// <summary>
-        /// Write video frames to disk.
+        /// Writes the VideoFrames to file
         /// </summary>
-        /// <param name="videoFile">The video file.</param>
-        /// <param name="framerate">The framerate.</param>
+        /// <param name="videoOutputFile">The video output file.</param>
+        /// <param name="videoFrames">The video frames.</param>
         /// <param name="fourcc">The fourcc.</param>
-        /// <param name="videoFrames">The full sequence.</param>
-        /// <param name="frameSize">Size of the frame.</param>
+        /// <param name="widthOverride">The width override.</param>
+        /// <param name="heightOverride">The height override.</param>
+        /// <param name="frameRateOverride">The frame rate override.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        internal static async Task WriteVideoFramesAsync(IAsyncEnumerable<ImageTensor> videoFrames, string videoFile, Size frameSize, float framerate, int fourcc, CancellationToken cancellationToken)
+        private static async Task WriteVideoFramesAsync(string videoOutputFile, IAsyncEnumerable<VideoFrame> videoFrames, int fourcc, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
             await Task.Run(async () =>
             {
-                using (var writer = new VideoWriter(videoFile, fourcc, framerate, frameSize))
+                await using var enumerator = videoFrames.GetAsyncEnumerator(cancellationToken);
+
+                if (!await enumerator.MoveNextAsync())
+                    throw new Exception("No frames to write.");
+
+                var firstFrame = enumerator.Current;
+                var frameSize = new Size(widthOverride ?? firstFrame.Width, heightOverride ?? firstFrame.Height);
+                var frameRate = frameRateOverride ?? firstFrame.SourceFrameRate;
+
+                using (var writer = new VideoWriter(videoOutputFile, fourcc, frameRate, frameSize))
                 {
                     if (!writer.IsOpened())
                         throw new Exception("Failed to open VideoWriter..");
 
-                    await foreach (var imageFrame in videoFrames)
+                    // Write first
+                    using (var matrix = firstFrame.Frame.ToMatrix())
+                        writer.Write(matrix);
+
+                    // Write the rest
+                    while (await enumerator.MoveNextAsync())
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        using (var mat = imageFrame.ToMat())
-                        {
-                            writer.Write(mat);
-                        }
+                        using (var matrix = enumerator.Current.Frame.ToMatrix())
+                            writer.Write(matrix);
                     }
                 }
             }, cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Reads frames, processes frames and write frames asynchronously with buffering
+        /// </summary>
+        /// <param name="videoOutputFile">The output video file.</param>
+        /// <param name="videoFrames">The video frames.</param>
+        /// <param name="frameProcessor">The frame processor.</param>
+        /// <param name="readBuffer">The read buffer.</param>
+        /// <param name="writeBuffer">The write buffer.</param>
+        /// <param name="fourcc">The fourcc.</param>
+        /// <param name="widthOverride">The output width override.</param>
+        /// <param name="heightOverride">The output height override.</param>
+        /// <param name="frameRateOverride">The output framerate override.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        private static async Task WriteVideoFramesAsync(string videoOutputFile, IAsyncEnumerable<VideoFrame> videoFrames, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer, int writeBuffer, int fourcc, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, CancellationToken cancellationToken = default)
+        {
+            var readChannel = Channel.CreateBounded<VideoFrame>(readBuffer);
+            var writeChannel = Channel.CreateBounded<VideoFrame>(writeBuffer);
+
+            // Read frames
+            var readerTask = Task.Run(async () =>
+            {
+                await foreach (var frame in videoFrames.WithCancellation(cancellationToken))
+                {
+                    await readChannel.Writer.WriteAsync(frame, cancellationToken);
+                }
+                readChannel.Writer.Complete();
+            }, cancellationToken);
+
+
+            // Process Frames
+            var processTask = Task.Run(async () =>
+            {
+                await foreach (var frame in readChannel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    var processedFrame = await frameProcessor(frame);
+                    await writeChannel.Writer.WriteAsync(processedFrame, cancellationToken);
+                }
+                writeChannel.Writer.Complete();
+            }, cancellationToken);
+
+
+            // Write Frames
+            var writeFrames = writeChannel.Reader.ReadAllAsync(cancellationToken);
+            var writerTask = WriteVideoFramesAsync(videoOutputFile, writeFrames, fourcc, widthOverride, heightOverride, frameRateOverride, cancellationToken);
+
+            // Block
+            await Task.WhenAll(readerTask, processTask, writerTask);
         }
     }
 }

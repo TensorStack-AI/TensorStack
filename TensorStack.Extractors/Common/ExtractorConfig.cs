@@ -27,11 +27,6 @@ namespace TensorStack.Extractors.Common
         public Normalization OutputNormalization { get; init; }
 
         /// <summary>
-        /// If the result should ne inverted
-        /// </summary>
-        public bool IsOutputInverted { get; init; }
-
-        /// <summary>
         /// The channels the model supports 1 = Greyscale, RGB = 3, RGBA = 4.
         /// </summary>
         public int OutputChannels { get; init; } = 1;

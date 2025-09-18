@@ -1,8 +1,10 @@
-﻿using System.IO;
-using System;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using System.Windows;
 
 namespace TensorStack.Image
 {
@@ -24,6 +26,16 @@ namespace TensorStack.Image
 
 
         /// <summary>
+        /// Load as an asynchronous operation.
+        /// </summary>
+        /// <param name="filePath">The file path.</param>
+        public static async Task<WriteableBitmap> LoadFromFileAsync(string filePath)
+        {
+            return await Task.Run(() => Load(filePath));
+        }
+
+
+        /// <summary>
         /// Loads the specified imagefile.
         /// </summary>
         /// <param name="filePath">The file path.</param>
@@ -39,17 +51,31 @@ namespace TensorStack.Image
 
             var imageUri = new Uri(filePath);
             var rotation = GetRotation(imageUri);
-            return DefaultDispatcher.Invoke(() =>
+            var bitmapSource = new BitmapImage();
+            bitmapSource.BeginInit();
+            bitmapSource.Rotation = rotation;
+            bitmapSource.UriSource = new Uri(filePath);
+            bitmapSource.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapSource.EndInit();
+            bitmapSource.Freeze();
+
+            if (bitmapSource.Format == PixelFormats.Bgra32 || bitmapSource.Format == PixelFormats.Bgr32)
             {
-                var image = new BitmapImage();
-                image.BeginInit();
-                image.Rotation = rotation;
-                image.UriSource = new Uri(filePath);
-                image.CacheOption = BitmapCacheOption.OnLoad;
-                image.EndInit();
-                image.Freeze();
-                return new WriteableBitmap(image);
-            });
+                // BGRA32 WriteableBitmap
+                var writeableBitmap = new WriteableBitmap(bitmapSource);
+                writeableBitmap.Freeze();
+                return writeableBitmap;
+            }
+
+            // Convert to BGRA32 WriteableBitmap
+            var convertTarget = new WriteableBitmap(bitmapSource.PixelWidth, bitmapSource.PixelHeight, bitmapSource.DpiX, bitmapSource.DpiY, PixelFormats.Bgra32, null);
+            var stride = convertTarget.PixelWidth * (convertTarget.Format.BitsPerPixel / 8);
+            var buffer = new byte[stride * convertTarget.PixelHeight];
+            var convertSource = new FormatConvertedBitmap(bitmapSource, PixelFormats.Bgra32, null, 0);
+            convertSource.CopyPixels(buffer, stride, 0);
+            convertTarget.WritePixels(new Int32Rect(0, 0, convertTarget.PixelWidth, convertTarget.PixelHeight), buffer, stride, 0);
+            convertTarget.Freeze();
+            return convertTarget;
         }
 
 

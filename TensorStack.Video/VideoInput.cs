@@ -23,8 +23,8 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="videoCodec">The video codec.</param>
-        public VideoInput(string filename, int? width = default, int? height = default, float? frameRate = default, ResizeMode resizeMode = ResizeMode.Crop, string videoCodec = "mp4v")
-            : this(VideoService.LoadVideoTensor(filename, width, height, frameRate, resizeMode), videoCodec)
+        public VideoInput(string filename, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop, string videoCodec = "mp4v")
+            : this(VideoService.LoadVideoTensor(filename, widthOverride, heightOverride, frameRateOverride, resizeMode), videoCodec)
         {
             _filename = filename;
         }
@@ -50,12 +50,12 @@ namespace TensorStack.Video
         /// Save the VideoTensor to file
         /// </summary>
         /// <param name="filename">The filename.</param>
-        /// <param name="framerate">The framerate.</param>
+        /// <param name="framerateOverride">The framerate.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        public async Task SaveAsync(string filename, float? framerate = default, CancellationToken cancellationToken = default)
+        public async Task SaveAsync(string filename, float? frameRateOverride = default, CancellationToken cancellationToken = default)
         {
-            await VideoService.SaveVideoTensorAync(this, filename, framerate, _videoCodec, cancellationToken);
+            await VideoService.SaveVideoTensorAync(filename, this, frameRateOverride, _videoCodec, cancellationToken);
         }
 
 
@@ -63,14 +63,14 @@ namespace TensorStack.Video
         /// Load as VideoInput asynchronously
         /// </summary>
         /// <param name="filename">The filename.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="frameRate">The frame rate.</param>
+        /// <param name="widthOverride">The width.</param>
+        /// <param name="heightOverride">The height.</param>
+        /// <param name="frameRateOverride ">The frame rate.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;VideoInput&gt; representing the asynchronous operation.</returns>
-        public static async Task<VideoInput> LoadAsync(string filename, int? width = default, int? height = default, float? frameRate = default, ResizeMode resizeMode = ResizeMode.Crop, CancellationToken cancellationToken = default)
+        public static async Task<VideoInput> LoadAsync(string filename, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop, CancellationToken cancellationToken = default)
         {
-            return new VideoInput(await VideoService.LoadVideoTensorAsync(filename, width, height, frameRate, resizeMode, cancellationToken));
+            return new VideoInput(await VideoService.LoadVideoTensorAsync(filename, widthOverride, heightOverride, frameRateOverride, resizeMode, cancellationToken));
         }
 
 

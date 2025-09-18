@@ -141,7 +141,7 @@ namespace TensorStack.Upscaler.Pipelines
                     videoFrame.Frame.NormalizeOneToOne();
                 }
                 progressCallback?.Report(new RunProgress(++frameCount, 0, frameTime));
-                yield return new VideoFrame(resultTensor, videoFrame.SourceFrameRate);
+                yield return new VideoFrame(videoFrame.Index, resultTensor, videoFrame.SourceFrameRate);
             }
             progressCallback?.Report(new RunProgress(timestamp));
         }

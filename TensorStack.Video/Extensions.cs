@@ -24,11 +24,10 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveAync(this IAsyncEnumerable<ImageTensor> imageFrames, string videoFile, float framerate, int width, int height, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task SaveAync(this IAsyncEnumerable<ImageTensor> imageFrames, string videoFile, float framerate, int? widthOverride = null, int? heightOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
         {
-            var frameSize = new Size(width, height);
-            var fourcc = VideoWriter.FourCC(videoCodec);
-            await VideoService.WriteVideoFramesAsync(imageFrames, videoFile, frameSize, framerate, fourcc, cancellationToken);
+            var videoFrames = imageFrames.AsVideoFrames(framerate, cancellationToken);
+            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, widthOverride, heightOverride, framerate, videoCodec, cancellationToken);
         }
 
 
@@ -40,12 +39,31 @@ namespace TensorStack.Video
         /// <param name="framerate">The framerate.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveAync(this IAsyncEnumerable<VideoFrame> videoFrames, string videoFile, float framerate, int width, int height, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task SaveAync(this IAsyncEnumerable<VideoFrame> videoFrames, string videoFile, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
         {
-            var frameSize = new Size(width, height);
-            var fourcc = VideoWriter.FourCC(videoCodec);
-            var imageFrames = videoFrames.AsImageTensors(cancellationToken);
-            await VideoService.WriteVideoFramesAsync(imageFrames, videoFile, frameSize, framerate, fourcc, cancellationToken);
+            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, widthOverride, heightOverride, frameRateOverride, videoCodec, cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Saves the video frames processing each frame [Read -> Process -> Write].
+        /// Reads an writes are buffered allowing higher processing thoughput
+        /// </summary>
+        /// <param name="videoInput">The VideoInputStream.</param>
+        /// <param name="videoFile">The video file.</param>
+        /// <param name="frameProcessor">The frame processor.</param>
+        /// <param name="readBuffer">The read buffer (frames).</param>
+        /// <param name="writeBuffer">The write buffer (frames).</param>
+        /// <param name="widthOverride">The output width override.</param>
+        /// <param name="heightOverride">The output height override.</param>
+        /// <param name="frameRateOverride">The output frame rate override.</param>
+        /// <param name="videoCodec">The video codec.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public static async Task<VideoInputStream> SaveAync(this VideoInputStream videoInput, string videoFile, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        {
+            var videoFrames = videoInput.GetAsync(cancellationToken: cancellationToken);
+            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, frameProcessor, readBuffer, writeBuffer, widthOverride, heightOverride, frameRateOverride, videoCodec, cancellationToken);
+            return new VideoInputStream(videoFile, videoCodec);
         }
 
 
@@ -54,79 +72,91 @@ namespace TensorStack.Video
         /// </summary>
         /// <param name="mat">The mat.</param>
         /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        internal static ImageTensor ToTensor(this Mat mat, Size cropSize = default)
+        internal static unsafe ImageTensor ToTensor(this Mat mat, Size cropSize = default)
         {
-            var cropX = 0;
-            var cropY = 0;
-            var height = mat.Rows;
-            var width = mat.Cols;
-            if (width == cropSize.Width)
-            {
-                cropY = (height - cropSize.Height) / 2;
-                height = cropSize.Height;
-            }
-            else if (height == cropSize.Height)
-            {
-                cropX = (width - cropSize.Width) / 2;
-                width = cropSize.Width;
-            }
+            int cropX = 0;
+            int cropY = 0;
+            int height = mat.Rows;
+            int width = mat.Cols;
 
-            var tensor = new ImageTensor([1, 4, height, width]);
-            unsafe
+            if (cropSize != default)
             {
-                byte* dataPtr = mat.DataPointer;
-                for (int y = 0; y < tensor.Height; y++)
+                if (width == cropSize.Width)
                 {
-                    for (int x = 0; x < tensor.Width; x++)
-                    {
-                        int pixelIndex = ((y + cropY) * mat.Cols + (x + cropX)) * 3;
-                        tensor[0, 0, y, x] = GetFloatValue(dataPtr[pixelIndex + 2]); // R
-                        tensor[0, 1, y, x] = GetFloatValue(dataPtr[pixelIndex + 1]); // G
-                        tensor[0, 2, y, x] = GetFloatValue(dataPtr[pixelIndex + 0]); // B
-                        tensor[0, 3, y, x] = GetFloatValue(byte.MaxValue);           // A
-                    }
+                    cropY = (height - cropSize.Height) / 2;
+                    height = cropSize.Height;
+                }
+                else if (height == cropSize.Height)
+                {
+                    cropX = (width - cropSize.Width) / 2;
+                    width = cropSize.Width;
                 }
             }
-            return tensor;
-        }
 
+            var imageTensor = new ImageTensor([1, 4, height, width]);
+            var destination = imageTensor.Memory.Span;
 
-        /// <summary>
-        /// Converts Tensor to Mat.
-        /// </summary>
-        /// <param name="tensor">The tensor.</param>
-        /// <returns>Mat.</returns>
-        internal static Mat ToMat(this Tensor<float> tensor)
-        {
-            var channels = tensor.Dimensions[1];
-            var height = tensor.Dimensions[2];
-            var width = tensor.Dimensions[3];
-            var mat = new Mat(height, width, MatType.CV_8UC3);
             unsafe
             {
-                byte* dataPtr = mat.DataPointer;
+                var source = mat.DataPointer;
+                int srcStride = mat.Cols * 3;
+                int dstStride = height * width;
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
                     {
-                        int pixelIndex = (y * width + x) * 3;
-                        if (channels == 1)
-                        {
-                            var grayscale = GetByteValue(tensor[0, 0, y, x]);
-                            dataPtr[pixelIndex + 2] = grayscale; // R
-                            dataPtr[pixelIndex + 1] = grayscale; // G
-                            dataPtr[pixelIndex + 0] = grayscale; // B
-                        }
-                        else
-                        {
-                            dataPtr[pixelIndex + 2] = GetByteValue(tensor[0, 0, y, x]); // R
-                            dataPtr[pixelIndex + 1] = GetByteValue(tensor[0, 1, y, x]); // G
-                            dataPtr[pixelIndex + 0] = GetByteValue(tensor[0, 2, y, x]); // B
-                        }
+                        int srcIndex = ((y + cropY) * mat.Cols + (x + cropX)) * 3;
+                        int dstIndex = y * width + x;
+
+                        destination[0 * dstStride + dstIndex] = GetFloatValue(source[srcIndex + 2]); // R
+                        destination[1 * dstStride + dstIndex] = GetFloatValue(source[srcIndex + 1]); // G
+                        destination[2 * dstStride + dstIndex] = GetFloatValue(source[srcIndex + 0]); // B
+                        destination[3 * dstStride + dstIndex] = GetFloatValue(byte.MaxValue);        // A
                     }
                 }
             }
-            return mat;
+
+            return imageTensor;
+        }
+
+
+        /// <summary>
+        /// Converts Tensor to OpenCv Matrix.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <returns>Mat.</returns>
+        internal static unsafe Mat ToMatrix(this Tensor<float> tensor)
+        {
+            var channels = tensor.Dimensions[1];
+            var height = tensor.Dimensions[2];
+            var width = tensor.Dimensions[3];
+
+            var matrix = new Mat(height, width, MatType.CV_8UC3);
+            var source = tensor.Span;
+            var destination = matrix.DataPointer;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int offset = y * width + x;
+
+                    if (channels == 1)
+                    {
+                        byte gray = GetByteValue(source[offset]);
+                        destination[offset * 3 + 0] = gray; // B
+                        destination[offset * 3 + 1] = gray; // G
+                        destination[offset * 3 + 2] = gray; // R
+                    }
+                    else
+                    {
+                        destination[offset * 3 + 0] = GetByteValue(source[2 * width * height + offset]); // B
+                        destination[offset * 3 + 1] = GetByteValue(source[1 * width * height + offset]); // G
+                        destination[offset * 3 + 2] = GetByteValue(source[0 * width * height + offset]); // R
+                    }
+                }
+            }
+
+            return matrix;
         }
 
 
@@ -164,16 +194,12 @@ namespace TensorStack.Video
         }
 
 
-        /// <summary>
-        /// Gets the image tensors.
-        /// </summary>
-        /// <param name="videoFrames">The video frames.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        internal static async IAsyncEnumerable<ImageTensor> AsImageTensors(this IAsyncEnumerable<VideoFrame> videoFrames, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        internal static async IAsyncEnumerable<VideoFrame> AsVideoFrames(this IAsyncEnumerable<ImageTensor> videoFrames, float frameRate, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            var frameIndex = 0;
             await foreach (var videoFrame in videoFrames.WithCancellation(cancellationToken))
             {
-                yield return videoFrame.Frame;
+                yield return new VideoFrame(frameIndex++, videoFrame, frameRate);
             }
         }
     }

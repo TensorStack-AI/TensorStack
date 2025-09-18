@@ -7,12 +7,6 @@ namespace TensorStack.Extractors.Common
 {
     public record ExtractorVideoOptions : ExtractorOptions
     {
-        public ExtractorVideoOptions(VideoTensor input, bool mergeInput = false, TileMode tileMode = TileMode.None, int maxTileSize = 512, int tileOverlap = 16)
-            : base(mergeInput, tileMode, maxTileSize, tileOverlap)
-        {
-            Input = input;
-        }
-
         public VideoTensor Input { get; }
     }
 }
