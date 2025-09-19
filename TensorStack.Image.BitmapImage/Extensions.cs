@@ -69,15 +69,12 @@ namespace TensorStack.Image
         /// <param name="filePath">The file path.</param>
         internal static void Save(this WriteableBitmap bitmap, string filePath)
         {
-            ImageService.DefaultDispatcher.Invoke(() =>
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using (FileStream stream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             {
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                using (FileStream stream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                {
-                    encoder.Save(stream);
-                }
-            });
+                encoder.Save(stream);
+            }
         }
 
 
@@ -91,29 +88,27 @@ namespace TensorStack.Image
             var channels = imageTensor.Dimensions[1];
             var height = imageTensor.Dimensions[2];
             var width = imageTensor.Dimensions[3];
-            return ImageService.DefaultDispatcher.Invoke(() =>
-            {
-                if (channels == 1)
-                    return imageTensor.ToSingleChannelImage();
 
-                var stride = width * 4;
-                var pixelBuffer = new byte[height * stride];
-                var writeableBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
-                for (int y = 0; y < height; y++)
+            if (channels == 1)
+                return imageTensor.ToSingleChannelImage();
+
+            var stride = width * 4;
+            var pixelBuffer = new byte[height * stride];
+            var writeableBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
                 {
-                    for (int x = 0; x < width; x++)
-                    {
-                        int pixelIndex = (y * width + x) * 4;
-                        pixelBuffer[pixelIndex + 0] = GetByteValue(imageTensor[0, 2, y, x]); // B
-                        pixelBuffer[pixelIndex + 1] = GetByteValue(imageTensor[0, 1, y, x]); // G
-                        pixelBuffer[pixelIndex + 2] = GetByteValue(imageTensor[0, 0, y, x]); // R
-                        pixelBuffer[pixelIndex + 3] = channels == 4 ? GetByteValue(imageTensor[0, 3, y, x]) : byte.MaxValue; // A
-                    }
+                    int pixelIndex = (y * width + x) * 4;
+                    pixelBuffer[pixelIndex + 0] = GetByteValue(imageTensor[0, 2, y, x]); // B
+                    pixelBuffer[pixelIndex + 1] = GetByteValue(imageTensor[0, 1, y, x]); // G
+                    pixelBuffer[pixelIndex + 2] = GetByteValue(imageTensor[0, 0, y, x]); // R
+                    pixelBuffer[pixelIndex + 3] = channels == 4 ? GetByteValue(imageTensor[0, 3, y, x]) : byte.MaxValue; // A
                 }
-                writeableBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixelBuffer, stride, 0);
-                writeableBitmap.Freeze();
-                return writeableBitmap;
-            });
+            }
+            writeableBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixelBuffer, stride, 0);
+            writeableBitmap.Freeze();
+            return writeableBitmap;
         }
 
 

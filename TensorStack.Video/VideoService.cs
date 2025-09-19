@@ -21,26 +21,56 @@ namespace TensorStack.Video
         /// Load the video information.
         /// </summary>
         /// <param name="filename">The filename.</param>
+        /// <param name="thumbSize">Size of the thumb (largest side).</param>
+        /// <param name="thumbPos">The seek position % to capture the thumbnail.</param>
         /// <returns>VideoInfo.</returns>
         /// <exception cref="System.Exception">Failed to open video file.</exception>
-        public static VideoInfo LoadVideoInfo(string filename)
+        /// <exception cref="System.Exception">Failed to read video frame.</exception>
+        public static VideoInfo LoadVideoInfo(string filename, int thumbSize = 100, float thumbPos = 0.10f)
         {
             using (var videoReader = new VideoCapture(filename))
             {
                 if (!videoReader.IsOpened())
                     throw new Exception("Failed to open video file.");
 
-                using (var frame = new Mat())
+                // Seek to n% for thumbnail
+                var totalFrames = (int)videoReader.Get(VideoCaptureProperties.FrameCount);
+                var targetFrame = (int)Math.Clamp(totalFrames * thumbPos, 0, totalFrames - 1);
+                videoReader.Set(VideoCaptureProperties.PosFrames, targetFrame);
+
+                using (var thumbFrame = new Mat())
                 {
-                    videoReader.Read(frame);
+                    if (!videoReader.Read(thumbFrame) || thumbFrame.Empty())
+                        throw new Exception("Failed to read video frame.");
 
-                    var thumbnailSize = GetNewVideoSize(100, default, frame.Size(),  ResizeMode.Crop);
-                    Cv2.Resize(frame, frame, thumbnailSize);
-
-                    var thumbnail = frame.ToTensor();
-                    return new VideoInfo(filename, videoReader.FrameWidth, videoReader.FrameHeight, (float)videoReader.Fps, videoReader.FrameCount, thumbnail);
+                    Cv2.Resize(thumbFrame, thumbFrame, GetNewVideoSize(thumbSize, default, thumbFrame.Size(), ResizeMode.Crop));
+                    return new VideoInfo
+                    {
+                        FileName = filename,
+                        Width = videoReader.FrameWidth,
+                        Height = videoReader.FrameHeight,
+                        FrameRate = (float)videoReader.Fps,
+                        FrameCount = videoReader.FrameCount,
+                        Thumbnail = thumbFrame.ToTensor(),
+                        VideoCodec = videoReader.FourCC
+                    };
                 }
             }
+        }
+
+
+        /// <summary>
+        /// Load the video information.
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        /// <param name="thumbSize">Size of the thumb (largest side).</param>
+        /// <param name="thumbPos">The seek position % to capture the thumbnail.</param>
+        /// <returns>VideoInfo.</returns>
+        /// <exception cref="System.Exception">Failed to open video file.</exception>
+        /// <exception cref="System.Exception">Failed to read video frame.</exception>
+        public static Task<VideoInfo> LoadVideoInfoAsync(string filename, int thumbSize = 100, float thumbPos = 0.10f)
+        {
+            return Task.Run(() => LoadVideoInfo(filename, thumbSize, thumbPos));
         }
 
 
@@ -81,14 +111,14 @@ namespace TensorStack.Video
         /// <param name="framerate">The framerate.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveVideoTensorAync(string videoFile, VideoTensor videoTensor, float? frameRateOverride = default, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task SaveVideoTensorAync(string videoFile, VideoTensor videoTensor, string videoCodec = "mp4v", float? frameRateOverride = default, CancellationToken cancellationToken = default)
         {
             var frames = videoTensor
                 .Split()
                 .Select(frame => new ImageTensor(frame))
                 .ToAsyncEnumerable();
             var frameRate = frameRateOverride ?? videoTensor.FrameRate;
-            await frames.SaveAync(videoFile, frameRate, videoTensor.Width, videoTensor.Height, videoCodec, cancellationToken);
+            await frames.SaveAync(videoFile, frameRate, videoCodec, videoTensor.Width, videoTensor.Height, cancellationToken);
         }
 
 
@@ -103,7 +133,7 @@ namespace TensorStack.Video
         /// <param name="framerateOverride">The framerate.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        internal static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        internal static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
             var fourcc = VideoWriter.FourCC(videoCodec);
             await WriteVideoFramesAsync(videoFile, videoFrames, fourcc, widthOverride, heightOverride, frameRateOverride, cancellationToken);
@@ -123,7 +153,7 @@ namespace TensorStack.Video
         /// <param name="frameRateOverride">The frame rate override.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        internal static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        internal static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
             var fourcc = VideoWriter.FourCC(videoCodec);
             await WriteVideoFramesAsync(videoFile, videoFrames, frameProcessor, readBuffer, writeBuffer, fourcc, widthOverride, heightOverride, frameRateOverride, cancellationToken);

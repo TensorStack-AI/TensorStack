@@ -13,7 +13,11 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         public CoordinateBox<float> Region { get; set; }
     }
 
-    public record FlorenceSearchOptions : FlorenceOptions;
+    public record FlorenceSearchOptions : FlorenceOptions
+    {
+        public FlorenceSearchOptions(){ }
+        public FlorenceSearchOptions(FlorenceOptions options) : base(options) { }
+    }
 
 
 

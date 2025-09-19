@@ -2,6 +2,7 @@
 // Licensed under the Apache 2.0 License.
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,9 +14,17 @@ namespace TensorStack.Video
 {
     public class VideoInputStream
     {
-        private readonly string _filename;
-        private readonly string _videoCodec;
         private readonly VideoInfo _videoInfo;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VideoInputStream"/> class.
+        /// </summary>
+        /// <param name="videoInfo">The video information.</param>
+        /// <param name="videoCodec">The video codec.</param>
+        public VideoInputStream(VideoInfo videoInfo)
+        {
+            _videoInfo = videoInfo;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VideoInputStream"/> class.
@@ -23,18 +32,13 @@ namespace TensorStack.Video
         /// <param name="filename">The filename.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <exception cref="System.Exception">Failed to open video file.</exception>
-        public VideoInputStream(string filename, string videoCodec = "mp4v")
-        {
-            _filename = filename;
-            _videoCodec = videoCodec;
-            _videoInfo = VideoService.LoadVideoInfo(_filename);
-        }
+        public VideoInputStream(string filename) : this(VideoService.LoadVideoInfo(filename)) { }
 
         /// <summary>
         /// Gets the filename.
         /// </summary>
         /// <value>The filename.</value>
-        public string Filename => _filename;
+        public string Filename => _videoInfo.FileName;
 
         /// <summary>
         /// Gets the video width.
@@ -57,6 +61,11 @@ namespace TensorStack.Video
         public int FrameCount => _videoInfo.FrameCount;
 
         /// <summary>
+        /// Gets the video codec.
+        /// </summary>
+        public string VideoCodec => _videoInfo.VideoCodec;
+
+        /// <summary>
         /// Gets the duration.
         /// </summary>
         public TimeSpan Duration => _videoInfo.Duration;
@@ -65,6 +74,7 @@ namespace TensorStack.Video
         /// Gets the thumbnail.
         /// </summary>
         public ImageTensor Thumbnail => _videoInfo.Thumbnail;
+
 
         /// <summary>
         /// Gets the VideoFrame stream.
@@ -76,7 +86,7 @@ namespace TensorStack.Video
         /// <returns>IAsyncEnumerable&lt;ImageFrame&gt;.</returns>
         public IAsyncEnumerable<VideoFrame> GetAsync(int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Stretch, CancellationToken cancellationToken = default)
         {
-            return VideoService.ReadStreamAsync(_filename, frameRateOverride, widthOverride, heightOverride, resizeMode, cancellationToken);
+            return VideoService.ReadStreamAsync(_videoInfo.FileName, frameRateOverride, widthOverride, heightOverride, resizeMode, cancellationToken);
         }
 
 
@@ -90,9 +100,9 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>Task.</returns>
-        public Task SaveAsync(IAsyncEnumerable<VideoFrame> stream, string filename, int? widthOverride, int? heightOverride, float? frameRateOverride, CancellationToken cancellationToken = default)
+        public Task SaveAsync(IAsyncEnumerable<VideoFrame> stream, string filename, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
-            return VideoService.WriteVideoStreamAsync(filename, stream,  widthOverride, heightOverride, frameRateOverride, _videoCodec, cancellationToken);
+            return VideoService.WriteVideoStreamAsync(_videoInfo.FileName, stream, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
         }
 
 
@@ -110,6 +120,55 @@ namespace TensorStack.Video
                 .Select(x => x.Frame)
                 .ToArrayAsync(cancellationToken);
             return new VideoTensor(buffered.Join(), frameRateOverride ?? FrameRate);
+        }
+
+
+        /// <summary>
+        /// Move a VideoInputStream asynchronously
+        /// </summary>
+        /// <param name="videoStream">The video stream.</param>
+        /// <param name="newFilename">The new filename.</param>
+        /// <returns>A Task&lt;VideoInputStream&gt; representing the asynchronous operation.</returns>
+        /// <exception cref="System.Exception">Source video not found</exception>
+        /// <exception cref="System.Exception">Destination video already exists</exception>
+        public async Task<VideoInputStream> MoveAsync(string newFilename, bool overwrite = true)
+        {
+            if (!File.Exists(Filename))
+                throw new Exception("Source video not found");
+
+            File.Move(Filename, newFilename, overwrite);
+            return await CreateAsync(newFilename);
+        }
+
+
+        /// <summary>
+        /// Copy a VideoInputStream asynchronously
+        /// </summary>
+        /// <param name="videoStream">The video stream.</param>
+        /// <param name="newFilename">The new filename.</param>
+        /// <returns>A Task&lt;VideoInputStream&gt; representing the asynchronous operation.</returns>
+        /// <exception cref="System.Exception">Source video not found</exception>
+        /// <exception cref="System.Exception">Destination video already exists</exception>
+        public async Task<VideoInputStream> CopyAsync(string newFilename, bool overwrite = true)
+        {
+            if (!File.Exists(Filename))
+                throw new Exception("Source video not found");
+
+            File.Copy(Filename, newFilename, overwrite);
+            return await CreateAsync(newFilename);
+        }
+
+
+        /// <summary>
+        /// Create a VideoInputStream asynchronously
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        /// <param name="videoCodec">The video codec.</param>
+        /// <returns>A Task&lt;VideoInputStream&gt; representing the asynchronous operation.</returns>
+        public static async Task<VideoInputStream> CreateAsync(string filename)
+        {
+            var videoInfo = await VideoService.LoadVideoInfoAsync(filename);
+            return new VideoInputStream(videoInfo);
         }
     }
 }

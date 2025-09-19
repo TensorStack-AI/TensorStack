@@ -24,10 +24,10 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveAync(this IAsyncEnumerable<ImageTensor> imageFrames, string videoFile, float framerate, int? widthOverride = null, int? heightOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task SaveAync(this IAsyncEnumerable<ImageTensor> imageFrames, string videoFile, float framerate, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, CancellationToken cancellationToken = default)
         {
             var videoFrames = imageFrames.AsVideoFrames(framerate, cancellationToken);
-            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, widthOverride, heightOverride, framerate, videoCodec, cancellationToken);
+            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, videoCodec, widthOverride, heightOverride, framerate, cancellationToken);
         }
 
 
@@ -39,9 +39,9 @@ namespace TensorStack.Video
         /// <param name="framerate">The framerate.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveAync(this IAsyncEnumerable<VideoFrame> videoFrames, string videoFile, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task SaveAync(this IAsyncEnumerable<VideoFrame> videoFrames, string videoFile, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
-            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, widthOverride, heightOverride, frameRateOverride, videoCodec, cancellationToken);
+            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
         }
 
 
@@ -59,11 +59,11 @@ namespace TensorStack.Video
         /// <param name="frameRateOverride">The output frame rate override.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task<VideoInputStream> SaveAync(this VideoInputStream videoInput, string videoFile, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, string videoCodec = "mp4v", CancellationToken cancellationToken = default)
+        public static async Task<VideoInputStream> SaveAync(this VideoInputStream videoInput, string videoFile, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
             var videoFrames = videoInput.GetAsync(cancellationToken: cancellationToken);
-            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, frameProcessor, readBuffer, writeBuffer, widthOverride, heightOverride, frameRateOverride, videoCodec, cancellationToken);
-            return new VideoInputStream(videoFile, videoCodec);
+            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, frameProcessor, readBuffer, writeBuffer, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
+            return await VideoInputStream.CreateAsync(videoFile);
         }
 
 

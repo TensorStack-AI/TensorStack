@@ -31,6 +31,8 @@ namespace TensorStack.Image
             : base(image.ToTensor())
         {
             _image = image;
+            if (!_image.IsFrozen)
+                _image.Freeze();
         }
 
         /// <summary>
@@ -56,7 +58,7 @@ namespace TensorStack.Image
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="resizeMode">The resize mode.</param>
-        public ImageInput(string filename, int width, int height, ResizeMode resizeMode = ResizeMode.Stretch) 
+        public ImageInput(string filename, int width, int height, ResizeMode resizeMode = ResizeMode.Stretch)
             : this(ImageService.Load(filename))
         {
             Resize(width, height, resizeMode);

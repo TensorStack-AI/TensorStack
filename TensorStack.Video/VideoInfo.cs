@@ -5,8 +5,15 @@ using TensorStack.Common.Tensor;
 
 namespace TensorStack.Video
 {
-    public readonly record struct VideoInfo(string FileName, int Width, int Height, float FrameRate, int FrameCount, ImageTensor Thumbnail)
+    public record VideoInfo
     {
+        public string FileName { get; init; }
+        public int Width { get; init; }
+        public int Height { get; init; }
+        public float FrameRate { get; init; }
+        public int FrameCount { get; init; }
+        public string VideoCodec { get; init; }
+        public ImageTensor Thumbnail { get; init; }
         public TimeSpan Duration => TimeSpan.FromSeconds(FrameCount / FrameRate);
     }
 }

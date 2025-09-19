@@ -4,16 +4,13 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 
 namespace TensorStack.Image
 {
     public static class ImageService
     {
         const string RotationQuery = "System.Photo.Orientation";
-        internal static Dispatcher DefaultDispatcher => Application.Current.Dispatcher;
-
-
+   
         /// <summary>
         /// Loads image from file.
         /// </summary>
