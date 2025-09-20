@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.1.1</Version>
+    <Company>TensorStack</Company>
+    <Copyright>TensorStack 2025</Copyright>
+    <RepositoryUrl>https://github.com/TensorStack-AI/TensorStack</RepositoryUrl>
+    <PackageTags>onnx;onnx-runtime;</PackageTags>
+    <Authors>sa_ddam213</Authors>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <PackageOutputPath>..\..\Nuget</PackageOutputPath>
+  </PropertyGroup>
+</Project>
