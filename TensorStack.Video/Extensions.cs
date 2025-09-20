@@ -2,82 +2,23 @@
 // Licensed under the Apache 2.0 License.
 using OpenCvSharp;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using TensorStack.Common.Tensor;
-using TensorStack.Common.Video;
 
 namespace TensorStack.Video
 {
     public static class Extensions
     {
         /// <summary>
-        /// Saves the video.
+        /// Converts Matrix to Tensor.
         /// </summary>
-        /// <param name="imageFrames">The image frames.</param>
-        /// <param name="videoFile">The video file.</param>
-        /// <param name="framerate">The framerate.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="videoCodec">The video codec.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveAync(this IAsyncEnumerable<ImageTensor> imageFrames, string videoFile, float framerate, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, CancellationToken cancellationToken = default)
-        {
-            var videoFrames = imageFrames.AsVideoFrames(framerate, cancellationToken);
-            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, videoCodec, widthOverride, heightOverride, framerate, cancellationToken);
-        }
-
-
-        /// <summary>
-        /// Saves the video.
-        /// </summary>
-        /// <param name="imageFrames">The image frames.</param>
-        /// <param name="videoFile">The video file.</param>
-        /// <param name="framerate">The framerate.</param>
-        /// <param name="videoCodec">The video codec.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveAync(this IAsyncEnumerable<VideoFrame> videoFrames, string videoFile, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
-        {
-            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
-        }
-
-
-        /// <summary>
-        /// Saves the video frames processing each frame [Read -> Process -> Write].
-        /// Reads an writes are buffered allowing higher processing thoughput
-        /// </summary>
-        /// <param name="videoInput">The VideoInputStream.</param>
-        /// <param name="videoFile">The video file.</param>
-        /// <param name="frameProcessor">The frame processor.</param>
-        /// <param name="readBuffer">The read buffer (frames).</param>
-        /// <param name="writeBuffer">The write buffer (frames).</param>
-        /// <param name="widthOverride">The output width override.</param>
-        /// <param name="heightOverride">The output height override.</param>
-        /// <param name="frameRateOverride">The output frame rate override.</param>
-        /// <param name="videoCodec">The video codec.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task<VideoInputStream> SaveAync(this VideoInputStream videoInput, string videoFile, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
-        {
-            var videoFrames = videoInput.GetAsync(cancellationToken: cancellationToken);
-            await VideoService.WriteVideoStreamAsync(videoFile, videoFrames, frameProcessor, readBuffer, writeBuffer, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
-            return await VideoInputStream.CreateAsync(videoFile);
-        }
-
-
-        /// <summary>
-        /// Converts Mat to Tensor.
-        /// </summary>
-        /// <param name="mat">The mat.</param>
+        /// <param name="matrix">The matrix.</param>
         /// <returns>Tensor&lt;System.Single&gt;.</returns>
-        internal static unsafe ImageTensor ToTensor(this Mat mat, Size cropSize = default)
+        internal static unsafe ImageTensor ToTensor(this Mat matrix, Size cropSize = default)
         {
             int cropX = 0;
             int cropY = 0;
-            int height = mat.Rows;
-            int width = mat.Cols;
+            int height = matrix.Rows;
+            int width = matrix.Cols;
 
             if (cropSize != default)
             {
@@ -98,14 +39,14 @@ namespace TensorStack.Video
 
             unsafe
             {
-                var source = mat.DataPointer;
-                int srcStride = mat.Cols * 3;
+                var source = matrix.DataPointer;
+                int srcStride = matrix.Cols * 3;
                 int dstStride = height * width;
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
                     {
-                        int srcIndex = ((y + cropY) * mat.Cols + (x + cropX)) * 3;
+                        int srcIndex = ((y + cropY) * matrix.Cols + (x + cropX)) * 3;
                         int dstIndex = y * width + x;
 
                         destination[0 * dstStride + dstIndex] = GetFloatValue(source[srcIndex + 2]); // R
@@ -193,14 +134,5 @@ namespace TensorStack.Video
             return value;
         }
 
-
-        internal static async IAsyncEnumerable<VideoFrame> AsVideoFrames(this IAsyncEnumerable<ImageTensor> videoFrames, float frameRate, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            var frameIndex = 0;
-            await foreach (var videoFrame in videoFrames.WithCancellation(cancellationToken))
-            {
-                yield return new VideoFrame(frameIndex++, videoFrame, frameRate);
-            }
-        }
     }
 }

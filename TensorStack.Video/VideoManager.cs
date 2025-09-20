@@ -14,9 +14,8 @@ using TensorStack.Common.Video;
 
 namespace TensorStack.Video
 {
-    public static class VideoService
+    public static class VideoManager
     {
-
         /// <summary>
         /// Load the video information.
         /// </summary>
@@ -82,7 +81,7 @@ namespace TensorStack.Video
         /// <param name="heightOverride">The height.</param>
         ///  <param name="frameRateOverride">The frame rate.</param>
         /// <returns>VideoTensor.</returns>
-        public static VideoTensor LoadVideoTensor(string videoFile, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop)
+        internal static VideoTensor LoadVideoTensor(string videoFile, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop)
         {
             return ReadVideo(videoFile, widthOverride, heightOverride, frameRateOverride, resizeMode);
         }
@@ -97,7 +96,7 @@ namespace TensorStack.Video
         /// <param name="height">The height.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>Task&lt;VideoTensor&gt;.</returns>
-        public static Task<VideoTensor> LoadVideoTensorAsync(string videoFile, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop, CancellationToken cancellationToken = default)
+        internal static Task<VideoTensor> LoadVideoTensorAsync(string videoFile, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop, CancellationToken cancellationToken = default)
         {
             return Task.Run(() => ReadVideo(videoFile, widthOverride, heightOverride, frameRateOverride, resizeMode, cancellationToken));
         }
@@ -111,14 +110,15 @@ namespace TensorStack.Video
         /// <param name="framerate">The framerate.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static async Task SaveVideoTensorAync(string videoFile, VideoTensor videoTensor, string videoCodec = "mp4v", float? frameRateOverride = default, CancellationToken cancellationToken = default)
+        internal static async Task SaveVideoTensorAync(string videoFile, VideoTensor videoTensor, string videoCodec = "mp4v", float? frameRateOverride = default, CancellationToken cancellationToken = default)
         {
-            var frames = videoTensor
-                .Split()
-                .Select(frame => new ImageTensor(frame))
-                .ToAsyncEnumerable();
             var frameRate = frameRateOverride ?? videoTensor.FrameRate;
-            await frames.SaveAync(videoFile, frameRate, videoCodec, videoTensor.Width, videoTensor.Height, cancellationToken);
+            var videoFrames = videoTensor
+                .Split()
+                .Select((frame, i) => new VideoFrame(i, frame, frameRate))
+                .ToAsyncEnumerable();
+
+            await WriteVideoStreamAsync(videoFile, videoFrames, videoCodec, cancellationToken: cancellationToken);
         }
 
 
@@ -133,7 +133,7 @@ namespace TensorStack.Video
         /// <param name="framerateOverride">The framerate.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        internal static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
+        public static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
             var fourcc = VideoWriter.FourCC(videoCodec);
             await WriteVideoFramesAsync(videoFile, videoFrames, fourcc, widthOverride, heightOverride, frameRateOverride, cancellationToken);
@@ -153,7 +153,7 @@ namespace TensorStack.Video
         /// <param name="frameRateOverride">The frame rate override.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        internal static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
+        public static async Task WriteVideoStreamAsync(string videoFile, IAsyncEnumerable<VideoFrame> videoFrames, Func<VideoFrame, Task<VideoFrame>> frameProcessor, int readBuffer = 16, int writeBuffer = 16, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
             var fourcc = VideoWriter.FourCC(videoCodec);
             await WriteVideoFramesAsync(videoFile, videoFrames, frameProcessor, readBuffer, writeBuffer, fourcc, widthOverride, heightOverride, frameRateOverride, cancellationToken);

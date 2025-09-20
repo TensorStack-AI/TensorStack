@@ -32,7 +32,8 @@ namespace TensorStack.Video
         /// <param name="filename">The filename.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <exception cref="System.Exception">Failed to open video file.</exception>
-        public VideoInputStream(string filename) : this(VideoService.LoadVideoInfo(filename)) { }
+        public VideoInputStream(string filename) 
+            : this(VideoManager.LoadVideoInfo(filename)) { }
 
         /// <summary>
         /// Gets the filename.
@@ -86,7 +87,7 @@ namespace TensorStack.Video
         /// <returns>IAsyncEnumerable&lt;ImageFrame&gt;.</returns>
         public IAsyncEnumerable<VideoFrame> GetAsync(int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Stretch, CancellationToken cancellationToken = default)
         {
-            return VideoService.ReadStreamAsync(_videoInfo.FileName, frameRateOverride, widthOverride, heightOverride, resizeMode, cancellationToken);
+            return VideoManager.ReadStreamAsync(_videoInfo.FileName, frameRateOverride, widthOverride, heightOverride, resizeMode, cancellationToken);
         }
 
 
@@ -102,7 +103,7 @@ namespace TensorStack.Video
         /// <returns>Task.</returns>
         public Task SaveAsync(IAsyncEnumerable<VideoFrame> stream, string filename, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
-            return VideoService.WriteVideoStreamAsync(_videoInfo.FileName, stream, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
+            return VideoManager.WriteVideoStreamAsync(_videoInfo.FileName, stream, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
         }
 
 
@@ -167,7 +168,7 @@ namespace TensorStack.Video
         /// <returns>A Task&lt;VideoInputStream&gt; representing the asynchronous operation.</returns>
         public static async Task<VideoInputStream> CreateAsync(string filename)
         {
-            var videoInfo = await VideoService.LoadVideoInfoAsync(filename);
+            var videoInfo = await VideoManager.LoadVideoInfoAsync(filename);
             return new VideoInputStream(videoInfo);
         }
     }

@@ -23,7 +23,7 @@ namespace TensorStack.Video
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="videoCodec">The video codec.</param>
         public VideoInput(string filename, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop)
-            : this(VideoService.LoadVideoTensor(filename, widthOverride, heightOverride, frameRateOverride, resizeMode))
+            : this(VideoManager.LoadVideoTensor(filename, widthOverride, heightOverride, frameRateOverride, resizeMode))
         {
             _filename = filename;
         }
@@ -50,7 +50,7 @@ namespace TensorStack.Video
         /// <returns>A Task representing the asynchronous operation.</returns>
         public async Task SaveAsync(string filename, string videoCodec = "mp4v", float? frameRateOverride = default, CancellationToken cancellationToken = default)
         {
-            await VideoService.SaveVideoTensorAync(filename, this, videoCodec, frameRateOverride, cancellationToken);
+            await VideoManager.SaveVideoTensorAync(filename, this, videoCodec, frameRateOverride, cancellationToken);
         }
 
 
@@ -95,7 +95,7 @@ namespace TensorStack.Video
         /// <returns>A Task&lt;VideoInput&gt; representing the asynchronous operation.</returns>
         public static async Task<VideoInput> CreateAsync(string filename, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop, CancellationToken cancellationToken = default)
         {
-            return new VideoInput(await VideoService.LoadVideoTensorAsync(filename, widthOverride, heightOverride, frameRateOverride, resizeMode, cancellationToken));
+            return new VideoInput(await VideoManager.LoadVideoTensorAsync(filename, widthOverride, heightOverride, frameRateOverride, resizeMode, cancellationToken));
         }
     }
 }
