@@ -2,10 +2,8 @@
 // Licensed under the Apache 2.0 License.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
@@ -17,9 +15,7 @@ using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines.Phi
 {
-    public class Phi3Pipeline : DecoderPipeline,
-        IPipeline<GenerateResult, GenerateOptions>,
-        IPipelineStream<GenerateResult, SearchOptions>
+    public class Phi3Pipeline : DecoderPipeline, ITextGeneration
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Phi3Pipeline"/> class.
@@ -34,8 +30,9 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
 
         public Phi3Config Configuration { get; }
 
+
         /// <summary>
-        /// Runs the model inference
+        /// Runs the GreedySearch inference
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -56,21 +53,23 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
 
 
         /// <summary>
-        /// Run PhiPipeline
+        /// Runs the BeamSearch inference
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
-        public virtual async IAsyncEnumerable<GenerateResult> RunAsync(SearchOptions options, IProgress<RunProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async Task<GenerateResult[]> RunAsync(SearchOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             await TokenizePromptAsync(options);
+
             var sequences = await BeamSearchAsync(options, cancellationToken);
-            foreach (var sequence in sequences)
+            var results = new GenerateResult[sequences.Length];
+            for (int i = 0; i < sequences.Length; i++)
             {
+                var sequence = sequences[i];
                 using (sequence)
                 {
-                    yield return new GenerateResult
+                    results[i] = new GenerateResult
                     {
                         Beam = sequence.Id,
                         Score = sequence.Score,
@@ -79,6 +78,7 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
                     };
                 }
             }
+            return results;
         }
 
 
@@ -194,8 +194,35 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
         /// <param name="tokenizerModel">The tokenizer model.</param>
         /// <param name="decoderModel">The decoder model.</param>
         /// <returns>Phi3Pipeline.</returns>
-        public static Phi3Pipeline Create(ExecutionProvider provider, string modelPath, string tokenizerModel = "tokenizer.model", string decoderModel = "model.onnx")
+        public static Phi3Pipeline Create(ExecutionProvider provider, string modelPath, PhiType modelType, string tokenizerModel = "tokenizer.model", string decoderModel = "model.onnx")
         {
+            var numHeads = 32;
+            var numLayers = 32;
+            var hiddenSize = 3072;
+            var numKVHeads = 32;
+            var vocabSize = 32064;
+            if (modelType == PhiType.Mini)
+            {
+                numHeads = 32;
+                numLayers = 32;
+                hiddenSize = 3072;
+                numKVHeads = 32;
+            }
+            else if (modelType == PhiType.Small)
+            {
+                numHeads = 32;
+                numLayers = 32;
+                hiddenSize = 4096;
+                numKVHeads = 8;
+            }
+            else if (modelType == PhiType.Medium)
+            {
+                numHeads = 40;
+                numLayers = 40;
+                hiddenSize = 5120;
+                numKVHeads = 10;
+            }
+
             var config = new Phi3Config
             {
                 Tokenizer = new T5Tokenizer(new TokenizerConfig
@@ -207,20 +234,11 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
                 DecoderConfig = new DecoderConfig
                 {
                     Path = Path.Combine(modelPath, decoderModel),
-
-                    //Mini
-                    VocabSize = 32064,
-                    NumHeads = 32,
-                    NumLayers = 32,
-                    HiddenSize = 3072,
-                    NumKVHeads = 32
-
-                    ////Medium
-                    //VocabSize = 32064,
-                    //NumHeads = 40,
-                    //NumLayers = 40,
-                    //HiddenSize = 5120,
-                    //NumKVHeads = 10
+                    VocabSize = vocabSize,
+                    NumHeads = numHeads,
+                    NumLayers = numLayers,
+                    HiddenSize = hiddenSize,
+                    NumKVHeads = numKVHeads
                 }
             };
 

@@ -29,9 +29,8 @@ namespace TensorStack.TextGeneration.Pipelines
         /// <param name="decoderConfig">The decoder configuration.</param>
         public DecoderPipeline(ITokenizer tokenizer, DecoderConfig decoderConfig)
         {
-            _decoderConfig = decoderConfig;
-     
             _tokenizer = tokenizer;
+            _decoderConfig = decoderConfig;
             _decoder = new ModelSession(_decoderConfig);
             _sequenceComparer = new SequenceComparer(_tokenizer.SpecialTokens, 5);
         }
@@ -126,7 +125,7 @@ namespace TensorStack.TextGeneration.Pipelines
                     logitsProcessor.Process(sequence.Tokens, logits);
 
                 // Sample
-                var sample = sampler.Sample(logits,  temperature: options.Temperature).First();
+                var sample = sampler.Sample(logits, temperature: options.Temperature).First();
                 sequence.Tokens.Add(sample.TokenId);
                 sequence.Score += sample.Score;
 

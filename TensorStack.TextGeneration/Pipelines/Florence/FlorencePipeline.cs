@@ -268,6 +268,26 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         /// <returns>FlorencePipeline.</returns>
         public static FlorencePipeline Create(ExecutionProvider provider, string modelPath, FlorenceType modelType, string encoderModel = "encoder_model.onnx", string decoderModel = "decoder_model_merged.onnx", string embedModel = "embed_tokens.onnx", string visionModel = "vision_encoder.onnx")
         {
+            return Create(provider, provider, provider, provider, modelPath, modelType, encoderModel, decoderModel, embedModel, visionModel);
+        }
+
+
+        /// <summary>
+        /// Creates a FlorencePipeline with the specified configuration.
+        /// </summary>
+        /// <param name="encoderProvider">The encoder provider.</param>
+        /// <param name="decoderProvider">The decoder provider.</param>
+        /// <param name="embedsProvider">The embeds provider.</param>
+        /// <param name="visionProvider">The vision provider.</param>
+        /// <param name="modelPath">The model path.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="encoderModel">The encoder model.</param>
+        /// <param name="decoderModel">The decoder model.</param>
+        /// <param name="embedModel">The embed model.</param>
+        /// <param name="visionModel">The vision model.</param>
+        /// <returns>FlorencePipeline.</returns>
+        public static FlorencePipeline Create(ExecutionProvider encoderProvider, ExecutionProvider decoderProvider, ExecutionProvider embedsProvider, ExecutionProvider visionProvider, string modelPath, FlorenceType modelType, string encoderModel = "encoder_model.onnx", string decoderModel = "decoder_model_merged.onnx", string embedModel = "embed_tokens.onnx", string visionModel = "vision_encoder.onnx")
+        {
             var numLayers = 6;
             var numHeads = 12;
             var numKVHeads = 12;
@@ -316,36 +336,11 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
                 }
             };
 
-            config.EncoderConfig.SetProvider(provider);
-            //config.DecoderConfig.SetProvider(provider);
-            config.DecoderConfig.SetProvider(ProviderCPU()); // TODO
-            config.EmbedsConfig.SetProvider(provider);
-            config.VisionConfig.SetProvider(provider);
+            config.EncoderConfig.SetProvider(encoderProvider);
+            config.DecoderConfig.SetProvider(decoderProvider);
+            config.EmbedsConfig.SetProvider(embedsProvider);
+            config.VisionConfig.SetProvider(visionProvider);
             return new FlorencePipeline(config);
         }
-
-
-        private static ExecutionProvider ProviderCPU()
-        {
-            return new ExecutionProvider("CPU", configuration =>
-            {
-                var sessionOptions = new SessionOptions
-                {
-                    ExecutionMode = ExecutionMode.ORT_PARALLEL,
-                    EnableCpuMemArena = true,
-                    EnableMemoryPattern = true,
-                    GraphOptimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL
-                };
-
-                sessionOptions.AppendExecutionProvider_CPU();
-                return sessionOptions;
-            });
-        }
-    }
-
-    public enum FlorenceType
-    {
-        Base = 0,
-        Large = 1
     }
 }

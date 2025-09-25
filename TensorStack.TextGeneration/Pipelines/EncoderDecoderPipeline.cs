@@ -1,22 +1,16 @@
 // Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
-using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
 using TensorStack.TextGeneration.Common;
 using TensorStack.TextGeneration.Processing;
 
 namespace TensorStack.TextGeneration.Pipelines
 {
-    public abstract class EncoderDecoderPipeline : DecoderPipeline,
-        IPipeline<GenerateResult, GenerateOptions>,
-        IPipelineStream<GenerateResult, SearchOptions>
+    public abstract class EncoderDecoderPipeline : DecoderPipeline
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EncoderDecoderPipeline"/> class.
@@ -55,55 +49,6 @@ namespace TensorStack.TextGeneration.Pipelines
         {
             await base.UnloadAsync(cancellationToken: cancellationToken);
             await Encoder.UnloadAsync();
-        }
-
-        /// <summary>
-        /// Run pipeline GreedySearch
-        /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;GenerateResult&gt; representing the asynchronous operation.</returns>
-        public virtual async Task<GenerateResult> RunAsync(GenerateOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
-        {
-            await TokenizePromptAsync(options);
-
-            var sequence = await GreedySearchAsync(options, cancellationToken);
-            using (sequence)
-            {
-                return new GenerateResult
-                {
-                    Score = sequence.Score,
-                    Result = Tokenizer.Decode(sequence.Tokens)
-                };
-            }
-        }
-
-
-        /// <summary>
-        /// Run pipeline BeamSearch
-        /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="progressCallback">The progress callback.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
-        public virtual async IAsyncEnumerable<GenerateResult> RunAsync(SearchOptions options, IProgress<RunProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            await TokenizePromptAsync(options);
-
-            var sequences = await BeamSearchAsync(options, cancellationToken);
-            foreach (var sequence in sequences)
-            {
-                using (sequence)
-                {
-                    yield return new GenerateResult
-                    {
-                        Beam = sequence.Id,
-                        Score = sequence.Score,
-                        Result = Tokenizer.Decode(sequence.Tokens)
-                    };
-                }
-            }
         }
 
 
