@@ -1,12 +1,7 @@
 // Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TensorStack.Common;
@@ -14,34 +9,19 @@ using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines.Florence
 {
-    public class FlorenceTokenizer : ITokenizer
+    public sealed partial class FlorenceTokenizer : BPETokenizer
     {
-        private readonly Regex _preTokenizeRegex;
-        private readonly TokenizerConfig _configuration;
-        private readonly MapCollection<byte, char> _unicodeMap;
         private readonly MapCollection<long, int> _coordinateMap;
-        private readonly MapCollection<long, string> _vocabularyMap;
-        private readonly Dictionary<MergeToken, int> _mergesMap;
-        private readonly MapCollection<long, string> _specialTokensMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FlorenceTokenizer"/> class.
         /// </summary>
         /// <param name="config">The configuration.</param>
-        public FlorenceTokenizer(TokenizerConfig configuration)
+        public FlorenceTokenizer(TokenizerConfig configuration) 
+            : base(configuration)
         {
-            _configuration = configuration;
-            _unicodeMap = CreateUnicodeMapping();
-            _specialTokensMap = CreateSpecialTokenMapping();
-            _vocabularyMap = CreateVocabMapping();
             _coordinateMap = CreateCoordinateMapping();
-            _mergesMap = CreateMergesMapping();
-            _preTokenizeRegex = new Regex(@"'s|'t|'re|'ve|'m|'ll|'d|<loc_[\p{L}\p{N}_]+>| ?[\p{L}_][\p{L}\p{N}_]*|[^ \s\p{L}\p{N}]+|\s+(?!\S)|\s+", RegexOptions.Compiled);
         }
-
-        public long BOS => _configuration.BOS;
-        public long EOS => _configuration.EOS;
-        public IReadOnlyDictionary<long, string> SpecialTokens => _specialTokensMap.AsReadOnly();
 
 
         /// <summary>
@@ -49,7 +29,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         /// </summary>
         /// <param name="tokens">The tokens.</param>
         /// <param name="considerSpecialTokens">if set to <c>true</c> decode special tokens.</param>
-        public Task<TokenizerResult> EncodeAsync(ReadOnlySpan<char> text)
+        public override Task<TokenizerResult> EncodeAsync(ReadOnlySpan<char> text)
         {
             return EncodeAsync(text, default);
         }
@@ -67,82 +47,6 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
 
 
         /// <summary>
-        /// Decodes the specified tokens to string.
-        /// </summary>
-        /// <param name="tokens">The tokens.</param>
-        /// <param name="considerSpecialTokens">if set to <c>true</c> decode special tokens.</param>
-        public string Decode(IEnumerable<int> tokens, bool considerSpecialTokens = false)
-        {
-            return Decode([.. tokens.Select(Convert.ToInt64)], considerSpecialTokens);
-        }
-
-
-        /// <summary>
-        /// Decodes the specified tokens to string.
-        /// </summary>
-        /// <param name="tokens">The tokens.</param>
-        /// <param name="considerSpecialTokens">if set to <c>true</c> decode special tokens.</param>
-        public string Decode(IEnumerable<long> tokens, bool considerSpecialTokens = false)
-        {
-            var tokenIds = considerSpecialTokens
-                ? tokens.Select(IdToToken)
-                : tokens.Except(_specialTokensMap.Keys).Select(IdToToken);
-
-            return TokensToString(tokenIds);
-        }
-
-
-        /// <summary>
-        /// Decodes the specified tokens to string.
-        /// </summary>
-        /// <param name="tokens">The tokens.</param>
-        /// <param name="considerSpecialTokens">if set to <c>true</c> decode special tokens.</param>
-        public Task<string> DecodeAsync(IEnumerable<int> tokens, bool considerSpecialTokens = false)
-        {
-            return Task.Run(() => Decode(tokens, considerSpecialTokens));
-        }
-
-
-        /// <summary>
-        /// Decodes the specified tokens to string.
-        /// </summary>
-        /// <param name="tokens">The tokens.</param>
-        /// <param name="considerSpecialTokens">if set to <c>true</c> decode special tokens.</param>
-        public Task<string> DecodeAsync(IEnumerable<long> tokens, bool considerSpecialTokens = false)
-        {
-            return Task.Run(() => Decode(tokens, considerSpecialTokens));
-        }
-
-
-        /// <summary>
-        /// TokenId to Token.
-        /// </summary>
-        /// <param name="id">The identifier.</param>
-        public string IdToToken(long id)
-        {
-            if (_vocabularyMap.TryGetValue(id, out string token))
-            {
-                return token;
-            }
-            return _specialTokensMap[_configuration.UNK];
-        }
-
-
-        /// <summary>
-        /// Token to TokenId.
-        /// </summary>
-        /// <param name="token">The token.</param>
-        public long TokenToId(string token)
-        {
-            if (_vocabularyMap.TryGetValue(token, out long tokenId))
-            {
-                return tokenId;
-            }
-            return _configuration.UNK;
-        }
-
-
-        /// <summary>
         /// Tries the get coordinate.
         /// </summary>
         /// <param name="tokenId">The token identifier.</param>
@@ -151,6 +55,16 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         public bool TryGetCoordinate(long tokenId, out int coordinate)
         {
             return _coordinateMap.TryGetValue(tokenId, out coordinate);
+        }
+
+
+        /// <summary>
+        /// Creates the pre-tokenize regex.
+        /// </summary>
+        /// <returns>Regex.</returns>
+        protected override Regex CreatePreTokenizeRegex()
+        {
+            return FlorencePreTokenizeRegex();
         }
 
 
@@ -174,109 +88,22 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
                 }
             }
 
-            var sequenceLength = Math.Min(_configuration.MaxLength, tokenized.Length);
-            var padding = Enumerable.Repeat(0L, sequenceLength - Math.Min(_configuration.MaxLength, tokenized.Length));
+            var sequenceLength = Math.Min(Configuration.MaxLength, tokenized.Length);
+            var padding = Enumerable.Repeat(0L, sequenceLength - Math.Min(Configuration.MaxLength, tokenized.Length));
 
             var inputIds = tokenized
-                .Take(_configuration.MaxLength)
+                .Take(Configuration.MaxLength)
                 .Select(token => token)
                 .Concat(padding)
                 .ToArray();
 
             var inputMask = tokenized
-                .Take(_configuration.MaxLength)
+                .Take(Configuration.MaxLength)
                 .Select(o => 1L)
                 .Concat(padding)
                 .ToArray();
 
             return new TokenizerResult(inputIds, inputMask);
-        }
-
-
-        /// <summary>
-        /// Tokens to string.
-        /// </summary>
-        /// <param name="tokens">The tokens.</param>
-        /// <returns>System.String.</returns>
-        private string TokensToString(IEnumerable<string> tokens)
-        {
-            byte[] byteArray = tokens
-                .SelectMany(c => c)
-                .Select(c => _unicodeMap[c])
-                .ToArray();
-            return Encoding.UTF8.GetString(byteArray);
-        }
-
-
-        /// <summary>
-        /// String to TokenIds.
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <returns>System.Int64[].</returns>
-        private long[] StringToTokens(ReadOnlySpan<char> input)
-        {
-            var tokens = PreTokenize(input)
-                .SelectMany(ApplyMerges)
-                .Select(TokenToId)
-                .Prepend(_configuration.BOS)
-                .Append(_configuration.EOS)
-                .ToArray();
-            return tokens;
-        }
-
-
-        /// <summary>
-        /// Pre-tokenize.
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <returns>System.String[].</returns>
-        private string[] PreTokenize(ReadOnlySpan<char> input)
-        {
-            var tokens = _preTokenizeRegex.Matches(input.ToString())
-                .Select(m => m.Value)
-                .Select(t => new string
-                (
-                    Encoding.UTF8.GetBytes(t)
-                        .Select(b => _unicodeMap[b])
-                        .ToArray()
-                )).ToArray();
-            return tokens;
-        }
-
-
-        /// <summary>
-        /// Applies the merges.
-        /// </summary>
-        /// <param name="token">The token.</param>
-        private List<string> ApplyMerges(string token)
-        {
-            if (_specialTokensMap.ContainsKey(token))
-                return [token];
-
-            var symbols = token.Select(c => c.ToString()).ToList();
-            while (symbols.Count > 1)
-            {
-                int bestIndex = -1;
-                int bestRank = int.MaxValue;
-                for (int i = 0; i < symbols.Count - 1; i++)
-                {
-                    var pair = new MergeToken(symbols[i], symbols[i + 1]);
-                    if (_mergesMap.TryGetValue(pair, out int rank) && rank < bestRank)
-                    {
-                        bestRank = rank;
-                        bestIndex = i;
-                    }
-                }
-
-                if (bestIndex == -1)
-                    break;
-
-                // Merge the pair
-                string merged = symbols[bestIndex] + symbols[bestIndex + 1];
-                symbols[bestIndex] = merged;
-                symbols.RemoveAt(bestIndex + 1);
-            }
-            return symbols;
         }
 
 
@@ -316,89 +143,12 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
 
 
         /// <summary>
-        /// Creates the byte to unicode mapping.
-        /// </summary>
-        private static MapCollection<byte, char> CreateUnicodeMapping()
-        {
-            var byteToUnicodeMapping = Enumerable.Range('!', '~' - '!' + 1)
-                .Concat(Enumerable.Range('¡', '¬' - '¡' + 1))
-                .Concat(Enumerable.Range('®', 'ÿ' - '®' + 1))
-                .ToDictionary(b => (byte)b, b => (char)b);
-            var index = 0;
-            int numChars = byte.MaxValue + 1;
-            foreach (var b in Enumerable.Range(0, numChars))
-            {
-                if (!byteToUnicodeMapping.ContainsKey((byte)b))
-                {
-                    byteToUnicodeMapping.Add((byte)b, (char)(numChars + index));
-                    ++index;
-                }
-            }
-            return new MapCollection<byte, char>(byteToUnicodeMapping);
-        }
-
-
-        /// <summary>
-        /// Creates the special token mapping.
-        /// </summary>
-        private MapCollection<long, string> CreateSpecialTokenMapping()
-        {
-            var tokenizerFile = Path.Combine(_configuration.Path, "tokenizer_config.json");
-            using (var tokenizerReader = File.OpenRead(tokenizerFile))
-            {
-                var specialTokenMap = new MapCollection<long, string>();
-                var config = JsonSerializer.Deserialize<TokenizerJson>(tokenizerReader);
-                foreach (var addedToken in config.AddedTokens)
-                {
-                    specialTokenMap.TryAdd(long.Parse(addedToken.Key), addedToken.Value.Content);
-                }
-                return specialTokenMap;
-            }
-        }
-
-
-        /// <summary>
-        /// Creates the vocab mapping.
-        /// </summary>
-        private MapCollection<long, string> CreateVocabMapping()
-        {
-            var vocabFile = Path.Combine(_configuration.Path, "vocab.json");
-            using (var vocabReader = File.OpenRead(vocabFile))
-            {
-                var vocab = JsonSerializer.Deserialize<Dictionary<string, long>>(vocabReader);
-                var vocabularyMap = new MapCollection<long, string>(vocab);
-                foreach (var addedToken in _specialTokensMap)
-                {
-                    vocabularyMap.TryAdd(addedToken.Key, addedToken.Value);
-                }
-                return vocabularyMap;
-            }
-        }
-
-
-        /// <summary>
-        /// Creates the merges mapping.
-        /// </summary>
-        private Dictionary<MergeToken, int> CreateMergesMapping()
-        {
-            var mergesFile = Path.Combine(_configuration.Path, "merges.txt");
-            return File.ReadLines(mergesFile)
-                .Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
-                .Select((line, index) =>
-                {
-                    var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    return (new MergeToken(parts[0], parts[1]), index);
-                }).ToDictionary(x => x.Item1, x => x.index);
-        }
-
-
-        /// <summary>
         /// Creates the coordinate mapping.
         /// </summary>
         private MapCollection<long, int> CreateCoordinateMapping()
         {
             var coordinateMap = new MapCollection<long, int>();
-            foreach (var token in _specialTokensMap)
+            foreach (var token in SpecialTokensMap)
             {
                 if (token.Value.StartsWith("<loc_"))
                     coordinateMap.Add(token.Key, ParseCoordinate(token.Value));
@@ -407,30 +157,13 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         }
 
 
-        public void Dispose()
+        public override void Dispose()
         {
-            _unicodeMap.Clear();
             _coordinateMap.Clear();
-            _vocabularyMap.Clear();
-            _specialTokensMap.Clear();
+            base.Dispose();
         }
 
-
-        private record TokenizerJson
-        {
-
-            [JsonPropertyName("added_tokens_decoder")]
-            public Dictionary<string, AddedTokenJson> AddedTokens { get; set; }
-        }
-
-
-        private record AddedTokenJson
-        {
-            [JsonPropertyName("content")]
-            public string Content { get; set; }
-        }
-
-        private record MergeToken(string PartA, string PartB);
-
+        [GeneratedRegex(@"'s|'t|'re|'ve|'m|'ll|'d|<loc_[\p{L}\p{N}_]+>| ?[\p{L}_][\p{L}\p{N}_]*|[^ \s\p{L}\p{N}]+|\s+(?!\S)|\s+", RegexOptions.Compiled)]
+        private static partial Regex FlorencePreTokenizeRegex();
     }
 }

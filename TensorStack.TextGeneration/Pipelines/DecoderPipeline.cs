@@ -11,6 +11,7 @@ using TensorStack.Common.Tensor;
 using TensorStack.TextGeneration.Common;
 using TensorStack.TextGeneration.Pipelines.Phi;
 using TensorStack.TextGeneration.Processing;
+using TensorStack.TextGeneration.Processing.Sampler;
 using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines
@@ -101,6 +102,18 @@ namespace TensorStack.TextGeneration.Pipelines
 
 
         /// <summary>
+        /// Gets the sampler.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        protected virtual Sampler GetSampler(GenerateOptions options, bool isBeamSerach)
+        {
+            return isBeamSerach
+                ? new MultinomialSampler(options)
+                : new GreedySampler(options);
+        }
+
+
+        /// <summary>
         /// Greedy search
         /// </summary>
         /// <param name="options">The options.</param>
@@ -108,7 +121,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// <returns>A Task&lt;Sequence&gt; representing the asynchronous operation.</returns>
         protected virtual async Task<Sequence> GreedySearchAsync(GenerateOptions options, CancellationToken cancellationToken = default)
         {
-            var sampler = new DefaultSampler(options.Seed);
+            var sampler = GetSampler(options, false);
             var logitsProcessors = GetLogitsProcessor(options);
             var tokenProcessors = GetTokenProcessors(options);
 
@@ -147,7 +160,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// <returns>A Task&lt;Sequence[]&gt; representing the asynchronous operation.</returns>
         protected virtual async Task<Sequence[]> BeamSearchAsync(GenerateOptions options, CancellationToken cancellationToken = default)
         {
-            var sampler = new DefaultSampler(options.Seed);
+            var sampler = GetSampler(options, true);
             var logitsProcessors = GetLogitsProcessor(options);
             var tokenProcessors = GetTokenProcessors(options);
 
