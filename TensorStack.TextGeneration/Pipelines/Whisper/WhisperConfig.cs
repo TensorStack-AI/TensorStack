@@ -4,5 +4,6 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
 {
     public record WhisperConfig : TransformerConfig
     {
+        public string MelFiltersPath { get; init; }
     }
 }

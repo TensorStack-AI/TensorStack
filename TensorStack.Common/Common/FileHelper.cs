@@ -9,7 +9,7 @@ namespace TensorStack.Common.Common
         {
             try
             {
-                if (File.Exists(filename))
+                if (!File.Exists(filename))
                     return false;
 
                 File.Delete(filename);

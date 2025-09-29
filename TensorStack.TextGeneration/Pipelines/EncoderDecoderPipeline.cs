@@ -10,7 +10,7 @@ using TensorStack.TextGeneration.Processing;
 
 namespace TensorStack.TextGeneration.Pipelines
 {
-    public abstract class EncoderDecoderPipeline : DecoderPipeline
+    public abstract class EncoderDecoderPipeline<O> : DecoderPipeline<O> where O : GenerateOptions
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EncoderDecoderPipeline"/> class.
@@ -57,7 +57,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// </summary>
         /// <param name="options">The options.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        protected override async Task TokenizePromptAsync(GenerateOptions options)
+        protected override async Task TokenizePromptAsync(O options)
         {
             await base.TokenizePromptAsync(options);
             EncoderOutput = await RunEncoderAsync();
@@ -128,7 +128,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// </summary>
         /// <param name="options">The options.</param>
         /// <returns>A Task&lt;Sequence&gt; representing the asynchronous operation.</returns>
-        protected override async Task<Sequence> InitializeAsync(GenerateOptions options)
+        protected override async Task<Sequence> InitializeAsync(O options)
         {
             var modelMetadata = await Decoder.LoadAsync();
             var dataType = modelMetadata.Outputs[0].Value.ElementDataType;

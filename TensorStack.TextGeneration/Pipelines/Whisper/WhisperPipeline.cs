@@ -1,6 +1,7 @@
 // Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -11,15 +12,16 @@ using TensorStack.Common.Tensor;
 using TensorStack.TextGeneration.Common;
 using TensorStack.TextGeneration.Pipelines.Florence;
 using TensorStack.TextGeneration.Processing;
-using TensorStack.TextGeneration.Processing.Sampler;
 using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines.Whisper
 {
-    public class WhisperPipeline : EncoderDecoderPipeline, ITextGeneration
+    public class WhisperPipeline : EncoderDecoderPipeline<WhisperOptions>,
+        IPipeline<GenerateResult, WhisperOptions>,
+        IPipeline<GenerateResult[], WhisperSearchOptions>
     {
-        private readonly WhisperPreprocessor _preProcessor;
-        private Tensor<float> _audioSample;
+        private readonly PreProcessor _preProcessor;
+        private Tensor<float> _currentAudioSample;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WhisperPipeline"/> class.
@@ -28,9 +30,10 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         public WhisperPipeline(WhisperConfig configuration)
             : base(configuration)
         {
-            _preProcessor = new WhisperPreprocessor();
+            _preProcessor = new PreProcessor(configuration.MelFiltersPath);
         }
 
+        protected WhisperTokenizer WhisperTokenizer => Tokenizer as WhisperTokenizer;
 
         /// <summary>
         /// Runs the GreedySearch inference
@@ -39,20 +42,34 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;GenerateResult&gt; representing the asynchronous operation.</returns>
-        public async Task<GenerateResult> RunAsync(GenerateOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<GenerateResult> RunAsync(WhisperOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            await TokenizePromptAsync(options);
-
-            var sequence = await GreedySearchAsync(options, cancellationToken);
-            using (sequence)
+            var result = default(GenerateResult);
+            var audioSamples = _preProcessor.ProcessInput(options.AudioData);
+            foreach (var sample in audioSamples)
             {
-                return new GenerateResult
+                await RunEncoderAsync(sample);
+                var sequence = await GreedySearchAsync(options, cancellationToken);
+                using (sequence)
                 {
-                    Score = sequence.Score,
-                    PenaltyScore = sequence.PenaltyScore,
-                    Result = Tokenizer.Decode(sequence.Tokens)
-                };
+                    if (result != null)
+                    {
+                        result.Score += sequence.Score;
+                        result.PenaltyScore = sequence.PenaltyScore;
+                        result.Result += Tokenizer.Decode(sequence.Tokens);
+                    }
+                    else
+                    {
+                        result = new GenerateResult
+                        {
+                            Score = sequence.Score,
+                            PenaltyScore = sequence.PenaltyScore,
+                            Result = Tokenizer.Decode(sequence.Tokens)
+                        };
+                    }
+                }
             }
+            return result;
         }
 
 
@@ -62,39 +79,51 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public async Task<GenerateResult[]> RunAsync(SearchOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<GenerateResult[]> RunAsync(WhisperSearchOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
-            await TokenizePromptAsync(options);
-
-            var sequences = await BeamSearchAsync(options, cancellationToken);
-            var results = new GenerateResult[sequences.Length];
-            for (int i = 0; i < sequences.Length; i++)
+            var results = new List<GenerateResult>();
+            var audioSamples = _preProcessor.ProcessInput(options.AudioData);
+            foreach (var sample in audioSamples)
             {
-                var sequence = sequences[i];
-                using (sequence)
+                await RunEncoderAsync(sample);
+                var sequences = await BeamSearchAsync(options, cancellationToken);
+                for (int i = 0; i < sequences.Length; i++)
                 {
-                    results[i] = new GenerateResult
+                    var sequence = sequences[i];
+                    using (sequence)
                     {
-                        Beam = sequence.Id,
-                        Score = sequence.Score,
-                        PenaltyScore = sequence.PenaltyScore,
-                        Result = Tokenizer.Decode(sequence.Tokens)
-                    };
+                        var existing = results.ElementAtOrDefault(i);
+                        if (existing != null)
+                        {
+                            existing.Score += sequence.Score;
+                            existing.PenaltyScore = sequence.PenaltyScore;
+                            existing.Result += Tokenizer.Decode(sequence.Tokens);
+                        }
+                        else
+                        {
+                            results.Add(new GenerateResult
+                            {
+                                Beam = sequence.Id,
+                                Score = sequence.Score,
+                                PenaltyScore = sequence.PenaltyScore,
+                                Result = Tokenizer.Decode(sequence.Tokens)
+                            });
+                        }
+                    }
                 }
             }
-            return results;
+            return results.ToArray();
         }
 
 
         /// <summary>
-        /// Tokenize the prompt
+        /// Gets the logits processors.
         /// </summary>
         /// <param name="options">The options.</param>
-        /// <returns>A Task representing the asynchronous operation.</returns>
-        protected override async Task TokenizePromptAsync(GenerateOptions options)
+        /// <returns>ILogitsProcessor[].</returns>
+        protected override ILogitsProcessor[] GetLogitsProcessor(WhisperOptions options)
         {
-            _audioSample = _preProcessor.Process(options.Prompt); // TODO: Batch [1, 80, 3000]
-            EncoderOutput = await RunEncoderAsync();
+            return [.. base.GetLogitsProcessor(options), new SupressTokenLogitsProcessor(WhisperTokenizer.SuppressTokens)];
         }
 
 
@@ -103,15 +132,30 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// </summary>
         /// <param name="options">The options.</param>
         /// <returns>A Task&lt;Sequence&gt; representing the asynchronous operation.</returns>
-        protected override async Task<Sequence> InitializeAsync(GenerateOptions options)
+        protected override async Task<Sequence> InitializeAsync(WhisperOptions options)
         {
             var modelMetadata = await Decoder.LoadAsync();
             var dataType = modelMetadata.Outputs[0].Value.ElementDataType;
             var kvCache = new KVCacheEncoderDecoder(dataType, DecoderConfig.NumHeads, DecoderConfig.NumLayers, DecoderConfig.HiddenSize);
-            var sequence = new Sequence(kvCache, 50258); // BOS
-            sequence.Tokens.Add(50259); // Language (en)
-            sequence.Tokens.Add(50359); // TaskType (Transcribe)
+            var sequence = new Sequence(kvCache, Tokenizer.BOS);    // <|startoftranscript|>
+            sequence.Tokens.Add((int)options.Language);             // <|en|>"
+            sequence.Tokens.Add((int)options.Task);                 // <|transcribe|>
+            sequence.Tokens.Add(WhisperTokenizer.NoCaptionsToken);  // <|nocaptions|>
+            sequence.Tokens.Add(WhisperTokenizer.NoTimestampToken); // <|notimestamps|>
             return sequence;
+        }
+
+
+        /// <summary>
+        /// Run encoder for the specified audio sample
+        /// </summary>
+        /// <param name="audioSample">The audio sample.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
+        private async Task RunEncoderAsync(Tensor<float> audioSample)
+        {
+            _currentAudioSample = audioSample;
+            EncoderOutput = await RunEncoderAsync();
+            _currentAudioSample = null;
         }
 
 
@@ -124,8 +168,8 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
             var modelMetadata = await Encoder.LoadAsync();
             using (var parameters = new ModelParameters(modelMetadata))
             {
-                parameters.AddInput(_audioSample);
-                parameters.AddOutput([1, 1500, 512]); //last_hidden_state
+                parameters.AddInput(_currentAudioSample);
+                parameters.AddOutput([1, 1500, Configuration.EncoderConfig.HiddenSize]);
                 using (var results = await Encoder.RunInferenceAsync(parameters))
                 {
                     return results[0].ToTensor();
@@ -141,12 +185,12 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// <returns>A Task&lt;Tensor`1&gt; representing the asynchronous operation.</returns>
         protected override async Task<Tensor<float>> RunDecoderAsync(Sequence sequence)
         {
-            var modelMetadata = await Decoder.LoadAsync();
+            var metadata = await Decoder.LoadAsync();
             var useCacheBranch = sequence.Initialize(sequence.Length);
             var inputIds = useCacheBranch
                 ? new Tensor<long>(new long[] { sequence.Tokens[^1] }, [1, 1])
                 : new Tensor<long>(sequence.Tokens.ToArray(), [1, sequence.Length]);
-            using (var parameters = new ModelParameters(modelMetadata))
+            using (var parameters = new ModelParameters(metadata))
             {
                 // Inputs
                 parameters.AddInput(inputIds);
@@ -156,20 +200,23 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
                 parameters.AddScalarInput(useCacheBranch);
 
                 // Outputs
-                foreach (var output in modelMetadata.Outputs)
+                foreach (var output in metadata.Outputs)
                     parameters.AddOutput();
 
                 // Result
                 var modelResult = Decoder.RunInference(parameters);
                 using (var logitsResult = modelResult[0])
                 {
-                    var logits = logitsResult.ToTensor();
+                    var dimension = logitsResult.GetDimensions();
+                    var logits = logitsResult.ToTensor(dimension[1..]);
+                    if (!useCacheBranch)
+                    {
+                        logits = logits.Split().LastOrDefault();
+                        foreach (var suppressToken in WhisperTokenizer.BeginSuppressTokens)
+                            logits[0, suppressToken] = float.MinValue;
+                    }
+
                     var presentKeyValues = modelResult.Skip(1).Take(Configuration.DecoderConfig.NumLayers * 4).ToArray();
-
-                    logits = useCacheBranch
-                      ? logits.Reshape([logits.Dimensions[0], logits.Dimensions[2]])
-                      : logits.Reshape([logits.Dimensions[1], logits.Dimensions[2]]).Split().LastOrDefault();
-
                     sequence.UpdateCache(presentKeyValues, useCacheBranch);
                     return logits;
                 }
@@ -178,29 +225,18 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
 
 
         /// <summary>
-        /// Gets the sampler.
-        /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="isBeamSerach">if set to <c>true</c> [is beam serach].</param>
-        /// <returns>Sampler.</returns>
-        protected override Sampler GetSampler(GenerateOptions options, bool isBeamSerach)
-        {
-            return new GreedySampler(options);
-        }
-
-
-        /// <summary>
         /// Creates the Summary Pipeline
         /// </summary>
         /// <param name="provider">The provider.</param>
         /// <param name="modelPath">The model path.</param>
-        /// <param name="tokenizerModel">The tokenizer model.</param>
+        /// <param name="modelType">The model model.</param>
+        /// <param name="melFiltersPath">The melFilters Path.</param>
         /// <param name="decoderModel">The decoder model.</param>
         /// <param name="encoderModel">The encoder model.</param>
         /// <returns>SummaryPipeline.</returns>
-        public static WhisperPipeline Create(ExecutionProvider provider, string modelPath, string decoderModel = "decoder_model_merged.onnx", string encoderModel = "encoder_model.onnx")
+        public static WhisperPipeline Create(ExecutionProvider provider, string modelPath, WhisperType modelType, string melFiltersPath = "mel_filters.npz", string decoderModel = "decoder_model_merged.onnx", string encoderModel = "encoder_model.onnx")
         {
-            return Create(provider, provider, modelPath, decoderModel, encoderModel);
+            return Create(provider, provider, modelPath, modelType, melFiltersPath, decoderModel, encoderModel);
         }
 
 
@@ -210,17 +246,52 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// <param name="encoderProvider">The encoder provider.</param>
         /// <param name="decoderProvider">The decoder provider.</param>
         /// <param name="modelPath">The model path.</param>
-        /// <param name="tokenizerModel">The tokenizer model.</param>
+        /// <param name="modelType">The model model.</param>
+        /// <param name="melFiltersPath">The melFilters Path.</param>
         /// <param name="decoderModel">The decoder model.</param>
         /// <param name="encoderModel">The encoder model.</param>
         /// <returns>SummaryPipeline.</returns>
-        public static WhisperPipeline Create(ExecutionProvider encoderProvider, ExecutionProvider decoderProvider, string modelPath, string decoderModel = "decoder_model_merged.onnx", string encoderModel = "encoder_model.onnx")
+        public static WhisperPipeline Create(ExecutionProvider encoderProvider, ExecutionProvider decoderProvider, string modelPath, WhisperType modelType, string melFiltersPath = "mel_filters.npz", string decoderModel = "decoder_model_merged.onnx", string encoderModel = "encoder_model.onnx")
         {
+            var numHeads = 8;
+            var numLayers = 6;
+            var numKVHeads = 8;
+            var hiddenSize = 512;
+            if (modelType == WhisperType.Tiny)
+            {
+                numHeads = 6;
+                numLayers = 4;
+                numKVHeads = 6;
+                hiddenSize = 384;
+            }
+            else if (modelType == WhisperType.Small)
+            {
+                numHeads = 12;
+                numLayers = 12;
+                numKVHeads = 12;
+                hiddenSize = 768;
+            }
+            else if (modelType == WhisperType.Medium)
+            {
+                numHeads = 16;
+                numLayers = 24;
+                numKVHeads = 16;
+                hiddenSize = 1024;
+            }
+            else if (modelType == WhisperType.Large)
+            {
+                numHeads = 20;
+                numLayers = 32;
+                numKVHeads = 20;
+                hiddenSize = 1280;
+            }
+
             var config = new WhisperConfig
             {
+                MelFiltersPath = Path.Combine(modelPath, melFiltersPath),
                 Tokenizer = new WhisperTokenizer(new TokenizerConfig
                 {
-                    BOS = 50257,
+                    BOS = 50258,
                     EOS = 50257,
                     Path = modelPath
                 }),
@@ -228,19 +299,19 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
                 {
                     Path = Path.Combine(modelPath, encoderModel),
                     VocabSize = 51865,
-                    NumHeads = 8,
-                    NumLayers = 6,
-                    NumKVHeads = 8,
-                    HiddenSize = 512,
+                    NumHeads = numHeads,
+                    NumLayers = numLayers,
+                    NumKVHeads = numKVHeads,
+                    HiddenSize = hiddenSize,
                 },
                 DecoderConfig = new DecoderConfig
                 {
                     Path = Path.Combine(modelPath, decoderModel),
                     VocabSize = 51865,
-                    NumHeads = 8,
-                    NumLayers = 6,
-                    NumKVHeads = 8,
-                    HiddenSize = 512,
+                    NumHeads = numHeads,
+                    NumLayers = numLayers,
+                    NumKVHeads = numKVHeads,
+                    HiddenSize = hiddenSize,
                 }
             };
 

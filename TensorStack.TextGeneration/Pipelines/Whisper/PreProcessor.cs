@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MathNet.Numerics.IntegralTransforms;
+using MathNet.Numerics.LinearAlgebra;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,174 +9,166 @@ using TensorStack.Common.Tensor;
 
 namespace TensorStack.TextGeneration.Pipelines.Whisper
 {
-    public class WhisperPreprocessor
+    public class PreProcessor
     {
-        private readonly float[] _melFilterBank;
-        private readonly int _sampleRate  = 16000;
-        private readonly int _frameSize = 400;    // 25ms @ 16kHz
-        private readonly int _hopLength  = 160;   // 10ms @ 16kHz
-        private readonly int _numMelBins  = 80;
-        private readonly int _nfft  = 512;
+        private readonly int _nfft = 400;
+        private readonly int _nFreqs = 201;
+        private readonly int _numMels = 80;
+        private readonly int _hopLength = 160;
+        private readonly int _windowLength = 400;
+        private readonly int _sampleRate = 16000;
+        private readonly Matrix<float> _melFilters;
+        private readonly float[] _window;
 
-        public WhisperPreprocessor()
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PreProcessor"/> class.
+        /// </summary>
+        /// <param name="melFilterPath">The MelFilters path</param>
+        public PreProcessor(string melFilterPath)
         {
-            _melFilterBank = CreateMelFilterBank();
+            _window = HannWindow(_windowLength);
+            _melFilters = LoadMelFilters(melFilterPath);
         }
 
 
-        public Tensor<float> Process(string wavPath)
+        /// <summary>
+        /// Processes the specified input audio.
+        /// </summary>
+        /// <param name="inputAudio">The input audio.</param>
+        /// <param name="nFrames">The n frames.</param>
+        /// <returns>Tensor&lt;System.Single&gt;[].</returns>
+        public Tensor<float>[] ProcessInput(Tensor<float> inputAudio, int nFrames = 3000)
         {
-            var samples = LoadWavPcm16Mono(wavPath);
+            var audioData = inputAudio.Span;
+            int totalFrames = 1 + (audioData.Length + _nfft - 1) / _hopLength;
 
-            // Pre-emphasis (optional, Whisper doesn’t strictly need it)
-            // for (int i = samples.Length - 1; i > 0; i--)
-            //     samples[i] -= 0.97f * samples[i - 1];
+            var stft = STFT(audioData, totalFrames);
+            var melSpec = MelSpectrogram(stft);
 
-            var stft = STFT(samples);
-            var melSpec = ApplyMel(stft);
-
-            // log10(mel + epsilon)
-            var result = new Tensor<float>([1, melSpec.GetLength(0), melSpec.GetLength(1)]);
-            for (int i = 0; i < melSpec.GetLength(0); i++)
-                for (int j = 0; j < melSpec.GetLength(1); j++)
-                    result[0, i, j] = (float)Math.Log10(Math.Max(1e-10f, melSpec[i, j]));
-
-            return result; 
-        }
-
-
-        private float[] LoadWavPcm16Mono(string path)
-        {
-            using var br = new BinaryReader(File.OpenRead(path));
-            br.ReadBytes(44); // skip WAV header
-            var data = new List<float>();
-            while (br.BaseStream.Position < br.BaseStream.Length)
-                data.Add(br.ReadInt16() / 32768f);
-            return data.ToArray();
-        }
-
-
-        private Complex[][] STFT(float[] samples)
-        {
-            int numFrames = 1 + (samples.Length - _frameSize) / _hopLength;
-            var frames = new Complex[numFrames][];
-
-            // Hann window
-            float[] window = Enumerable.Range(0, _frameSize)
-                .Select(n => 0.5f - 0.5f * (float)Math.Cos(2 * Math.PI * n / _frameSize))
-                .ToArray();
-
-            for (int i = 0; i < numFrames; i++)
+            // Convert to batches of [1, numMels, nFrames]
+            int numBatches = (int)Math.Ceiling((double)melSpec.RowCount / nFrames);
+            var batches = new Tensor<float>[numBatches];
+            for (int b = 0; b < numBatches; b++)
             {
-                var frame = new Complex[_nfft];
-                int start = i * _hopLength;
-                for (int j = 0; j < _frameSize; j++)
-                    frame[j] = samples[start + j] * window[j];
-                for (int j = _frameSize; j < _nfft; j++)
-                    frame[j] = Complex.Zero;
-
-                FFT(frame); // in-place
-                frames[i] = frame;
-            }
-
-            return frames;
-        }
-
-
-        private float[,] ApplyMel(Complex[][] stft)
-        {
-            int numFrames = stft.Length;
-            float[,] melSpec = new float[_numMelBins, numFrames];
-
-            for (int t = 0; t < numFrames; t++)
-            {
-                float[] power = new float[_nfft / 2 + 1];
-                for (int f = 0; f < power.Length; f++)
-                    power[f] = (float)(stft[t][f].Magnitude * stft[t][f].Magnitude);
-
-                for (int m = 0; m < _numMelBins; m++)
+                var batch = new Tensor<float>([1, _numMels, nFrames]);
+                for (int t = 0; t < nFrames; t++)
                 {
-                    float sum = 0;
-                    for (int f = 0; f < power.Length; f++)
-                        sum += power[f] * _melFilterBank[m * power.Length + f];
-                    melSpec[m, t] = sum;
-                }
-            }
+                    int srcRow = b * nFrames + t;
+                    if (srcRow >= melSpec.RowCount)
+                        break;
 
+                    for (int m = 0; m < _numMels; m++)
+                        batch[0, m, t] = melSpec[srcRow, m];
+                }
+                batches[b] = batch;
+            }
+            return batches;
+        }
+
+
+        /// <summary>
+        /// Runs the Mel spectrogram.
+        /// </summary>
+        /// <param name="stft">The STFT.</param>
+        /// <returns>Matrix&lt;System.Single&gt;.</returns>
+        private Matrix<float> MelSpectrogram(float[,] stft)
+        {
+            var magMatrix = Matrix<float>.Build.DenseOfArray(stft);  // [frames, nFreqs]
+            var melSpec = magMatrix * _melFilters;                         // [frames, nMels]
+
+            // Log10 + clip + normalize
+            melSpec.MapInplace(x => MathF.Log10(MathF.Max(x, 1e-10f)));
+            float maxVal = melSpec.Enumerate().Max();
+            melSpec.MapInplace(x => MathF.Max(x, maxVal - 8.0f));
+            melSpec.MapInplace(x => (x + 4.0f) / 4.0f);
             return melSpec;
         }
 
 
-        private float[] CreateMelFilterBank()
+        /// <summary>
+        /// Runs STFT
+        /// </summary>
+        /// <param name="audioData">The audio data.</param>
+        /// <param name="totalFrames">The total frames.</param>
+        /// <returns>System.Single[,].</returns>
+        private float[,] STFT(ReadOnlySpan<float> audioData, int totalFrames)
         {
-            int numFreqs = _nfft / 2 + 1;
-            float[] filterBank = new float[_numMelBins * numFreqs];
-
-            double fMin = 0;
-            double fMax = _sampleRate / 2;
-            double melMin = HzToMel(fMin);
-            double melMax = HzToMel(fMax);
-
-            double[] melPoints = Enumerable.Range(0, _numMelBins + 2)
-                .Select(i => melMin + (melMax - melMin) * i / (_numMelBins + 1))
-                .ToArray();
-
-            double[] hzPoints = melPoints.Select(MelToHz).ToArray();
-            int[] bins = hzPoints.Select(hz => (int)Math.Floor((_nfft + 1) * hz / _sampleRate)).ToArray();
-
-            for (int m = 1; m <= _numMelBins; m++)
+            var magnitudes = new float[totalFrames, _nfft / 2 + 1];
+            for (int n = 0, i = 0; i < audioData.Length; i += _hopLength, n++)
             {
-                int f0 = bins[m - 1], f1 = bins[m], f2 = bins[m + 1];
-                for (int f = f0; f < f1; f++)
-                    filterBank[(m - 1) * numFreqs + f] = (float)(f - f0) / (f1 - f0);
-                for (int f = f1; f < f2; f++)
-                    filterBank[(m - 1) * numFreqs + f] = (float)(f2 - f) / (f2 - f1);
-            }
+                var frame = new Complex[_nfft];
+                for (int j = 0; j < _nfft; j++)
+                {
+                    int idx = i + j - _nfft / 2;
+                    if (idx < 0) idx = -idx;
+                    else if (idx >= audioData.Length) idx = audioData.Length - (idx - audioData.Length) - 1;
 
-            return filterBank;
+                    frame[j] = new Complex(audioData[idx] * _window[j], 0);
+                }
+
+                Fourier.Forward(frame, FourierOptions.Matlab);
+                for (int f = 0; f < _nfft / 2 + 1; f++)
+                    magnitudes[n, f] = (float)(frame[f].Magnitude * frame[f].Magnitude);
+            }
+            return magnitudes;
         }
 
-        private static double HzToMel(double hz) => 2595 * Math.Log10(1 + hz / 700);
-        private static double MelToHz(double mel) => 700 * (Math.Pow(10, mel / 2595) - 1);
 
-
-        private void FFT(Complex[] buffer)
+        /// <summary>
+        /// Loads the mel filters.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <returns>Matrix&lt;System.Single&gt;.</returns>
+        /// <exception cref="System.IO.InvalidDataException">Not a valid npy file</exception>
+        private Matrix<float> LoadMelFilters(string melFilterPath)
         {
-            int n = buffer.Length;
-            int bits = (int)Math.Log2(n);
+            if (!File.Exists(melFilterPath))
+                throw new ArgumentException($"Whisper MelFilters required, (see: https://github.com/openai/whisper/tree/main/whisper/assets/Mel_filters.npz)");
 
-            // bit-reversal
-            for (int i = 1, j = 0; i < n; i++)
+            using (var zip = System.IO.Compression.ZipFile.OpenRead(melFilterPath))
             {
-                int bit = n >> 1;
-                for (; (j & bit) != 0; bit >>= 1) j ^= bit;
-                j ^= bit;
-                if (i < j)
+                var entry = zip.GetEntry($"mel_{_numMels}.npy"); // 80, 128
+                using (var stream = entry.Open())
+                using (var reader = new BinaryReader(stream))
                 {
-                    var temp = buffer[i];
-                    buffer[i] = buffer[j];
-                    buffer[j] = temp;
-                }
-            }
+                    // Skip NPY header
+                    var magic = reader.ReadBytes(6);
+                    if (magic[0] != 0x93)
+                        throw new InvalidDataException("Not a valid npy file");
 
-            // FFT
-            for (int len = 2; len <= n; len <<= 1)
-            {
-                double ang = -2 * Math.PI / len;
-                Complex wlen = new Complex(Math.Cos(ang), Math.Sin(ang));
-                for (int i = 0; i < n; i += len)
-                {
-                    Complex w = Complex.One;
-                    for (int j = 0; j < len / 2; j++)
-                    {
-                        Complex u = buffer[i + j];
-                        Complex v = buffer[i + j + len / 2] * w;
-                        buffer[i + j] = u + v;
-                        buffer[i + j + len / 2] = u - v;
-                        w *= wlen;
-                    }
+                    reader.ReadBytes(2); // version
+                    var headerLen = reader.ReadUInt16();
+                    reader.ReadBytes(headerLen); // skip header
+
+                    // Read floats
+                    var buffer = new byte[4];
+                    var floats = new List<float>();
+                    while (reader.BaseStream.Read(buffer, 0, 4) == 4)
+                        floats.Add(BitConverter.ToSingle(buffer, 0));
+
+                    var matrix = Matrix<float>.Build.Dense(_nFreqs, _numMels);
+                    for (int m = 0; m < _numMels; m++)
+                        for (int f = 0; f < _nFreqs; f++)
+                            matrix[f, m] = floats[m * _nFreqs + f];
+
+                    return matrix;
                 }
             }
         }
+
+
+        /// <summary>
+        /// Create Hann window.
+        /// </summary>
+        /// <param name="size">The size.</param>
+        /// <returns>System.Single[].</returns>
+        private static float[] HannWindow(int size)
+        {
+            var w = new float[size];
+            for (int i = 0; i < size; i++)
+                w[i] = 0.5f * (1 - MathF.Cos(2 * MathF.PI * i / (size - 1)));
+            return w;
+        }
+
     }
 }

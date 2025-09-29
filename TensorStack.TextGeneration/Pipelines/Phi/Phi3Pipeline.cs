@@ -15,7 +15,7 @@ using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines.Phi
 {
-    public class Phi3Pipeline : DecoderPipeline, ITextGeneration
+    public class Phi3Pipeline : DecoderPipeline<GenerateOptions>, ITextGeneration
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Phi3Pipeline"/> class.
@@ -113,12 +113,9 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
 
                 // Result
                 var modelResult = Decoder.RunInference(parameters);
-                using (var logitsResult = modelResult[0])
-                {
-                    var logits = logitsResult.ToTensor();
-                    var presentKeyValues = modelResult.ToArray()[1..];
-                    sequence.UpdateCache(presentKeyValues, false);
-                }
+                modelResult[0].Dispose(); // logits
+                var presentKeyValues = modelResult.ToArray()[1..];
+                sequence.UpdateCache(presentKeyValues, false);
             }
             return sequence;
         }

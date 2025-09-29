@@ -16,7 +16,7 @@ using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines
 {
-    public abstract class DecoderPipeline : IDisposable
+    public abstract class DecoderPipeline<O> : IDisposable where O : GenerateOptions
     {
         private readonly DecoderConfig _decoderConfig;
         private readonly ModelSession _decoder;
@@ -40,7 +40,7 @@ namespace TensorStack.TextGeneration.Pipelines
         protected ModelSession Decoder => _decoder;
         protected DecoderConfig DecoderConfig => _decoderConfig;
         protected TokenizerResult TokenizerOutput { get; set; }
-        protected abstract Task<Sequence> InitializeAsync(GenerateOptions options);
+        protected abstract Task<Sequence> InitializeAsync(O options);
         protected abstract Task<Tensor<float>> RunDecoderAsync(Sequence sequence);
 
 
@@ -66,7 +66,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// Gets the logits processors.
         /// </summary>
         /// <param name="options">The options.</param>
-        protected virtual ILogitsProcessor[] GetLogitsProcessor(GenerateOptions options)
+        protected virtual ILogitsProcessor[] GetLogitsProcessor(O options)
         {
             return
             [
@@ -80,7 +80,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// Gets the token processors.
         /// </summary>
         /// <param name="options">The options.</param>
-        protected virtual ITokenProcessor[] GetTokenProcessors(GenerateOptions options)
+        protected virtual ITokenProcessor[] GetTokenProcessors(O options)
         {
             return
             [
@@ -95,7 +95,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// </summary>
         /// <param name="options">The options.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        protected virtual async Task TokenizePromptAsync(GenerateOptions options)
+        protected virtual async Task TokenizePromptAsync(O options)
         {
             TokenizerOutput = await Tokenizer.EncodeAsync(options.Prompt);
         }
@@ -105,7 +105,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// Gets the sampler.
         /// </summary>
         /// <param name="options">The options.</param>
-        protected virtual Sampler GetSampler(GenerateOptions options, bool isBeamSerach)
+        protected virtual Sampler GetSampler(O options, bool isBeamSerach)
         {
             return isBeamSerach
                 ? new MultinomialSampler(options)
@@ -119,7 +119,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;Sequence&gt; representing the asynchronous operation.</returns>
-        protected virtual async Task<Sequence> GreedySearchAsync(GenerateOptions options, CancellationToken cancellationToken = default)
+        protected virtual async Task<Sequence> GreedySearchAsync(O options, CancellationToken cancellationToken = default)
         {
             var sampler = GetSampler(options, false);
             var logitsProcessors = GetLogitsProcessor(options);
@@ -158,8 +158,8 @@ namespace TensorStack.TextGeneration.Pipelines
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;Sequence[]&gt; representing the asynchronous operation.</returns>
-        protected virtual async Task<Sequence[]> BeamSearchAsync(GenerateOptions options, CancellationToken cancellationToken = default)
-        {
+        protected virtual async Task<Sequence[]> BeamSearchAsync(O options, CancellationToken cancellationToken = default)
+        {   
             var sampler = GetSampler(options, true);
             var logitsProcessors = GetLogitsProcessor(options);
             var tokenProcessors = GetTokenProcessors(options);
@@ -227,7 +227,7 @@ namespace TensorStack.TextGeneration.Pipelines
                 // Process Beams
                 foreach (var beam in activeBeams)
                 {
-                    //  Console.WriteLine(Tokenizer.Decode(beam.Tokens));
+                    Console.WriteLine(Tokenizer.Decode(beam.Tokens));
                     if (beam.IsComplete)
                         continue;
 
@@ -256,7 +256,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// </summary>
         /// <param name="candidates">The sequences.</param>
         /// <param name="options">The options.</param>
-        protected virtual IEnumerable<Sequence> GetSequenceCandidates(SequenceCollection candidates, GenerateOptions options)
+        protected virtual IEnumerable<Sequence> GetSequenceCandidates(SequenceCollection candidates, O options)
         {
             // TODO: Diversity Penalty
             _sequenceComparer.SetLength(options.DiversityLength);
@@ -281,7 +281,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// </summary>
         /// <param name="sequences">The sequences.</param>
         /// <param name="options">The options.</param>
-        protected virtual bool IsEarlyStopping(SequenceCollection sequences, GenerateOptions options)
+        protected virtual bool IsEarlyStopping(SequenceCollection sequences, O options)
         {
             if (options.EarlyStopping != EarlyStopping.None)
             {
@@ -323,7 +323,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// </summary>
         /// <param name="sequences">The sequences.</param>
         /// <param name="options">The options.</param>
-        protected virtual Sequence[] NormalizeAndSort(SequenceCollection sequences, GenerateOptions options)
+        protected virtual Sequence[] NormalizeAndSort(SequenceCollection sequences, O options)
         {
             var resultSequences = sequences
                 .Where(x => x.IsComplete)

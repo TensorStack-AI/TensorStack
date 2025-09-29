@@ -17,7 +17,7 @@ using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines.Florence
 {
-    public class FlorencePipeline : EncoderDecoderPipeline,
+    public class FlorencePipeline : EncoderDecoderPipeline<FlorenceOptions>,
          IPipeline<GenerateResult, FlorenceOptions>,
          IPipelineStream<GenerateResult, FlorenceSearchOptions>
     {

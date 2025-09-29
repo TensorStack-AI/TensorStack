@@ -128,12 +128,37 @@ namespace TensorStack.Common
         /// <summary>
         /// Copy OrtValue data to float Tensor.
         /// </summary>
+        /// <param name="ortValue">The ort value.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> ToTensor(this OrtValue ortValue, int[] dimensions)
+        {
+            return CreateTensor<float>(ortValue, dimensions);
+        }
+
+
+        /// <summary>
+        /// Copy OrtValue data to float Tensor.
+        /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="ortValue">The ort value.</param>
         /// <returns>Tensor&lt;T&gt;.</returns>
         public static Tensor<T> ToTensor<T>(this OrtValue ortValue) where T : unmanaged, INumber<T>
         {
             return CreateTensor<T>(ortValue);
+        }
+
+
+        /// <summary>
+        /// Copy OrtValue data to float Tensor.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="ortValue">The ort value.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns>Tensor&lt;T&gt;.</returns>
+        public static Tensor<T> ToTensor<T>(this OrtValue ortValue, int[] dimensions) where T : unmanaged, INumber<T>
+        {
+            return CreateTensor<T>(ortValue, dimensions);
         }
 
 
@@ -161,6 +186,17 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Gets the dimensions.
+        /// </summary>
+        /// <param name="ortValue">The ort value.</param>
+        /// <returns>ReadOnlySpan&lt;System.Int32&gt;.</returns>
+        public static int[] GetDimensions(this OrtValue ortValue)
+        {
+            return ortValue.GetTensorTypeAndShape().Shape.ToInt();
+        }
+
+
+        /// <summary>
         /// Creates the Tensor from OrtValue.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -169,6 +205,19 @@ namespace TensorStack.Common
         {
             var metadata = ortValue.GetTensorTypeAndShape();
             var dimensions = metadata.Shape.ToInt();
+            return CreateTensor<T>(ortValue, dimensions);
+        }
+
+
+        /// <summary>
+        /// Creates the Tensor from OrtValue.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="ortValue">The ort value.</param>
+        /// <param name="dimensions">The dimensions.</param>
+        /// <returns>Tensor&lt;T&gt;.</returns>
+        private static Tensor<T> CreateTensor<T>(OrtValue ortValue, int[] dimensions) where T : unmanaged, INumber<T>
+        {
             var buffer = CreateArray<T>(ortValue);
             return new Tensor<T>(buffer, dimensions);
         }
