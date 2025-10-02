@@ -2,7 +2,6 @@
 // Licensed under the Apache 2.0 License.
 using System.Drawing;
 using TensorStack.Common;
-using TensorStack.Common.Image;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Image
@@ -10,7 +9,7 @@ namespace TensorStack.Image
     /// <summary>
     /// ImageInput implementation with System.Drawing.Bitmap.
     /// </summary>
-    public class ImageInput : ImageInput<Bitmap>
+    public class ImageInput : ImageTensor
     {
         private Bitmap _image;
 
@@ -58,14 +57,14 @@ namespace TensorStack.Image
         /// <summary>
         /// Gets the image.
         /// </summary>
-        public override Bitmap Image => _image;
+        public Bitmap Image => _image;
 
 
         /// <summary>
         /// Saves the image.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        public override void Save(string filename)
+        public void Save(string filename)
         {
             _image.Save(filename);
         }

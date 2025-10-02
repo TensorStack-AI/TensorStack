@@ -2,7 +2,6 @@
 // Licensed under the Apache 2.0 License.
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using TensorStack.Common.Image;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Image
@@ -10,7 +9,7 @@ namespace TensorStack.Image
     /// <summary>
     /// ImageInput implementation with ImageSharp Image<Rgba32>.
     /// </summary>
-    public class ImageInput : ImageInput<Image<Rgba32>>
+    public class ImageInput : ImageTensor
     {
         private Image<Rgba32> _image;
 
@@ -58,14 +57,14 @@ namespace TensorStack.Image
         /// <summary>
         /// Gets the image.
         /// </summary>
-        public override Image<Rgba32> Image => _image;
+        public Image<Rgba32> Image => _image;
 
 
         /// <summary>
         /// Saves the specified image.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        public override void Save(string filename)
+        public void Save(string filename)
         {
             _image.SaveAsPng(filename);
         }

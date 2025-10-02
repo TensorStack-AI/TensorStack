@@ -16,7 +16,6 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         private readonly int _numMels = 80;
         private readonly int _hopLength = 160;
         private readonly int _windowLength = 400;
-        private readonly int _sampleRate = 16000;
         private readonly Matrix<float> _melFilters;
         private readonly float[] _window;
 
@@ -37,9 +36,9 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// <param name="inputAudio">The input audio.</param>
         /// <param name="nFrames">The n frames.</param>
         /// <returns>Tensor&lt;System.Single&gt;[].</returns>
-        public Tensor<float>[] ProcessInput(Tensor<float> inputAudio, int nFrames = 3000)
+        public Tensor<float>[] ProcessInput(AudioTensor audioInput, int nFrames = 3000)
         {
-            var audioData = inputAudio.Span;
+            var audioData = audioInput.Span;
             int totalFrames = 1 + (audioData.Length + _nfft - 1) / _hopLength;
 
             var stft = STFT(audioData, totalFrames);
@@ -74,7 +73,7 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         private Matrix<float> MelSpectrogram(float[,] stft)
         {
             var magMatrix = Matrix<float>.Build.DenseOfArray(stft);  // [frames, nFreqs]
-            var melSpec = magMatrix * _melFilters;                         // [frames, nMels]
+            var melSpec = magMatrix * _melFilters;                   // [frames, nMels]
 
             // Log10 + clip + normalize
             melSpec.MapInplace(x => MathF.Log10(MathF.Max(x, 1e-10f)));

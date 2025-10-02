@@ -45,7 +45,7 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         public async Task<GenerateResult> RunAsync(WhisperOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var result = default(GenerateResult);
-            var audioSamples = _preProcessor.ProcessInput(options.AudioData);
+            var audioSamples = _preProcessor.ProcessInput(options.AudioInput);
             foreach (var sample in audioSamples)
             {
                 await RunEncoderAsync(sample);
@@ -82,7 +82,7 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         public async Task<GenerateResult[]> RunAsync(WhisperSearchOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var results = new List<GenerateResult>();
-            var audioSamples = _preProcessor.ProcessInput(options.AudioData);
+            var audioSamples = _preProcessor.ProcessInput(options.AudioInput);
             foreach (var sample in audioSamples)
             {
                 await RunEncoderAsync(sample);
@@ -138,10 +138,10 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
             var dataType = modelMetadata.Outputs[0].Value.ElementDataType;
             var kvCache = new KVCacheEncoderDecoder(dataType, DecoderConfig.NumHeads, DecoderConfig.NumLayers, DecoderConfig.HiddenSize);
             var sequence = new Sequence(kvCache, Tokenizer.BOS);    // <|startoftranscript|>
-            sequence.Tokens.Add((int)options.Language);             // <|en|>"
+            sequence.Tokens.Add((int)options.Language);             // <|en|>
             sequence.Tokens.Add((int)options.Task);                 // <|transcribe|>
-            sequence.Tokens.Add(WhisperTokenizer.NoCaptionsToken);  // <|nocaptions|>
-            sequence.Tokens.Add(WhisperTokenizer.NoTimestampToken); // <|notimestamps|>
+            sequence.Tokens.Add(WhisperTokenizer.NoCaptionsToken);  // <|nocaptions|>   TODO: Options boolean
+            sequence.Tokens.Add(WhisperTokenizer.NoTimestampToken); // <|notimestamps|> TODO: Timestamp processing
             return sequence;
         }
 

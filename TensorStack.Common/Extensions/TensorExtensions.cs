@@ -464,6 +464,18 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// AudioTensor view of the Tensor.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="sampleRate">The sampleRate.</param>
+        /// <returns>AudioTensor.</returns>
+        public static AudioTensor AsAudioTensor(this Tensor<float> tensor, int sampleRate)
+        {
+            return new AudioTensor(tensor, sampleRate);
+        }
+
+
+        /// <summary>
         /// Repeats the specified Tensor across axis 0.
         /// </summary>
         /// <typeparam name="T"></typeparam>

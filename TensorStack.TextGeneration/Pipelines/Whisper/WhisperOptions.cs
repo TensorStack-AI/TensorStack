@@ -10,7 +10,7 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
     {
         public TaskType Task { get; set; }
         public LanguageType Language { get; set; }
-        public Tensor<float> AudioData { get; set; }
+        public AudioTensor AudioInput{ get; set; }
     }
 
 

@@ -2,7 +2,6 @@
 // Licensed under the Apache 2.0 License.
 using System.Windows.Media.Imaging;
 using TensorStack.Common;
-using TensorStack.Common.Image;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Image
@@ -10,7 +9,7 @@ namespace TensorStack.Image
     /// <summary>
     /// ImageInput implementation with System.Windows.Media.Imaging.WriteableBitmap.
     /// </summary>
-    public class ImageInput : ImageInput<WriteableBitmap>
+    public class ImageInput : ImageTensor
     {
         private WriteableBitmap _image;
 
@@ -68,14 +67,14 @@ namespace TensorStack.Image
         /// <summary>
         /// Gets the image.
         /// </summary>
-        public override WriteableBitmap Image => _image;
+        public WriteableBitmap Image => _image;
 
 
         /// <summary>
         /// Saves the image.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        public override void Save(string filename)
+        public void Save(string filename)
         {
             _image.Save(filename);
         }

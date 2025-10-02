@@ -2,7 +2,6 @@
 // Licensed under the Apache 2.0 License.
 namespace TensorStack.TextGeneration.Pipelines.Whisper
 {
-
     public enum WhisperType
     {
         Tiny = 0,
@@ -11,5 +10,4 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         Base = 3,
         Large = 5
     }
-
 }
