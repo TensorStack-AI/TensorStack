@@ -12,6 +12,8 @@ namespace TensorStack.TextGeneration.Processing
         private readonly int _numHeads;
         private readonly int _numLayers;
         private readonly int _hiddenSize;
+        private readonly int _headDimension;
+
         private OrtValue[] _values;
 
         /// <summary>
@@ -24,6 +26,7 @@ namespace TensorStack.TextGeneration.Processing
             _numHeads = numHeads;
             _numLayers = numLayers;
             _hiddenSize = hiddenSize;
+            _headDimension = _hiddenSize / _numHeads;
         }
 
 
@@ -58,8 +61,8 @@ namespace TensorStack.TextGeneration.Processing
         {
             _values = new OrtValue[_numLayers * 4];
             var allocator = OrtAllocator.DefaultInstance;
-            var decoderDims = new[] { 1L, _numHeads, 1, (_hiddenSize / _numHeads) };
-            var encoderDims = new[] { 1L, _numHeads, initialSize, (_hiddenSize / _numHeads) };
+            var decoderDims = new[] { 1L, _numHeads, 1, _headDimension };
+            var encoderDims = new[] { 1L, _numHeads, initialSize, _headDimension };
             for (var i = 0; i < _values.Length; ++i)
             {
                 if (i % 4 == 0)

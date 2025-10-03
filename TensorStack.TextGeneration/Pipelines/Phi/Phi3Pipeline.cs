@@ -64,14 +64,14 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
 
             var sequences = await BeamSearchAsync(options, cancellationToken);
             var results = new GenerateResult[sequences.Length];
-            for (int i = 0; i < sequences.Length; i++)
+            for (int beam = 0; beam < sequences.Length; beam++)
             {
-                var sequence = sequences[i];
+                var sequence = sequences[beam];
                 using (sequence)
                 {
-                    results[i] = new GenerateResult
+                    results[beam] = new GenerateResult
                     {
-                        Beam = sequence.Id,
+                        Beam = beam,
                         Score = sequence.Score,
                         PenaltyScore = sequence.PenaltyScore,
                         Result = Tokenizer.Decode(sequence.Tokens)
@@ -79,6 +79,28 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
                 }
             }
             return results;
+        }
+
+
+        /// <summary>
+        /// Gets the token processors.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <returns>ITokenProcessor[].</returns>
+        protected override ITokenProcessor[] GetTokenProcessors(GenerateOptions options)
+        {
+            return
+            [
+                new EOSTokenProcessor
+                (
+                    options.MinLength, // min length
+                    Tokenizer.EOS,
+                    32000, // <|endoftext|>
+                    32001, // <|assistant|> 
+                    32007  // <|end|>
+                ),
+                new MaxLengthTokenProcessor(options.MaxLength)
+            ];
         }
 
 
@@ -91,32 +113,15 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
         {
             var modelMetadata = await Decoder.LoadAsync();
             var dataType = modelMetadata.Outputs[0].Value.ElementDataType;
-            var kvCache = new KVCacheDecoder(dataType, DecoderConfig.NumHeads, DecoderConfig.NumLayers, DecoderConfig.HiddenSize, DecoderConfig.NumKVHeads);
+            var kvCache = new KVCacheDecoder(dataType, DecoderConfig.NumHeads, DecoderConfig.NumLayers, DecoderConfig.HiddenSize, DecoderConfig.NumKVHeads, options.MaxLength);
             var sequence = new Sequence(kvCache, Tokenizer.BOS);
             sequence.Initialize(TokenizerOutput.Length);
 
-            var positionIds = GetPositionIds(modelMetadata, 0, TokenizerOutput.Length);
-            var attentionMask = new Tensor<long>([1, TokenizerOutput.Length], 1);
-            using (var parameters = new ModelParameters(modelMetadata))
-            {
-                // Inputs
-                parameters.AddInput(TokenizerOutput.InputIds);
-                if (positionIds != null)
-                    parameters.AddInput(positionIds);
-                parameters.AddInput(attentionMask);
-                foreach (var pastKeyValue in sequence.Cache)
-                    parameters.AddInput(pastKeyValue);
-
-                // Outputs
-                foreach (var output in modelMetadata.Outputs)
-                    parameters.AddOutput();
-
-                // Result
-                var modelResult = Decoder.RunInference(parameters);
-                modelResult[0].Dispose(); // logits
-                var presentKeyValues = modelResult.ToArray()[1..];
-                sequence.UpdateCache(presentKeyValues, false);
-            }
+            var position = TokenizerOutput.Length;
+            var inputIds = TokenizerOutput.InputIds;
+            var positionIds = GetPositionIds(modelMetadata, 0, position);
+            var attentionMask = new Tensor<long>([1, position], 1);
+            RunDecoderInternalAsync(modelMetadata, sequence, inputIds, positionIds, attentionMask, false);
             return sequence;
         }
 
@@ -128,11 +133,26 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
         /// <returns>A Task&lt;Tensor`1&gt; representing the asynchronous operation.</returns>
         protected override async Task<Tensor<float>> RunDecoderAsync(Sequence sequence)
         {
-            var currentPosition = TokenizerOutput.Length + sequence.Tokens.Count;
             var modelMetadata = await Decoder.LoadAsync();
+            var position = TokenizerOutput.Length + sequence.Tokens.Count;
             var inputIds = new Tensor<long>([1, 1], sequence.Tokens[^1]);
-            var positionIds = GetPositionIds(modelMetadata, currentPosition);
-            var attentionMask = new Tensor<long>([1, currentPosition], 1);
+            var positionIds = GetPositionIds(modelMetadata, position);
+            var attentionMask = new Tensor<long>([1, position], 1);
+            return RunDecoderInternalAsync(modelMetadata, sequence, inputIds, positionIds, attentionMask, true);
+        }
+
+
+        /// <summary>
+        /// Runs the decoder
+        /// </summary>
+        /// <param name="modelMetadata">The model metadata.</param>
+        /// <param name="sequence">The sequence.</param>
+        /// <param name="inputIds">The input ids.</param>
+        /// <param name="positionIds">The position ids.</param>
+        /// <param name="attentionMask">The attention mask.</param>
+        /// <param name="useBranchCache">if set to <c>true</c> [use branch cache].</param>
+        private Tensor<float> RunDecoderInternalAsync(ModelMetadata modelMetadata, Sequence sequence, Tensor<long> inputIds, Tensor<long> positionIds, Tensor<long> attentionMask, bool useBranchCache)
+        {
             using (var parameters = new ModelParameters(modelMetadata))
             {
                 // Inputs
@@ -151,35 +171,14 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
                 var modelResult = Decoder.RunInference(parameters);
                 using (var logitsResult = modelResult[0])
                 {
-                    var logits = logitsResult.ToTensor();
+                    var dimension = logitsResult.GetDimensions();
+                    var logits = logitsResult.ToTensor(dimension[1..]);
                     var presentKeyValues = modelResult.ToArray()[1..];
 
-                    sequence.UpdateCache(presentKeyValues, false);
-                    return logits.Reshape([logits.Dimensions[0], logits.Dimensions[2]]);
+                    sequence.UpdateCache(presentKeyValues, useBranchCache);
+                    return logits;
                 }
             }
-        }
-
-
-        /// <summary>
-        /// Gets the token processors.
-        /// </summary>
-        /// <param name="options">The options.</param>
-        /// <returns>ITokenProcessor[].</returns>
-        protected override ITokenProcessor[] GetTokenProcessors(GenerateOptions options)
-        {
-            return
-            [
-                new EOSTokenProcessor
-                (
-                    options.MinLength, // min length
-                    Tokenizer.EOS,
-                    32000, // <|endoftext|>
-                    32001 // <|assistant|> 
-                   // 32007  // <|end|>
-                ),
-                new MaxLengthTokenProcessor(options.MaxLength)
-            ];
         }
 
 

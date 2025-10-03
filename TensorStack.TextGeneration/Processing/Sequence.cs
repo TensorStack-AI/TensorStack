@@ -15,10 +15,10 @@ namespace TensorStack.TextGeneration.Processing
         /// </summary>
         /// <param name="cache">The cache.</param>
         /// <param name="bos">The bos.</param>
-        public Sequence(IKVCache cache, long bos)
+        public Sequence(IKVCache cache, params List<long> startSequence)
         {
-            Tokens = [bos];
             _cache = cache;
+            Tokens = startSequence;
         }
 
         /// <summary>
@@ -33,11 +33,6 @@ namespace TensorStack.TextGeneration.Processing
             Tokens = tokens;
             _cache = cache;
         }
-
-        /// <summary>
-        /// Gets or sets the identifier.
-        /// </summary>
-        public int Id { get; set; }
 
         /// <summary>
         /// Gets the tokens.

@@ -13,6 +13,7 @@ namespace TensorStack.TextGeneration.Processing
         private readonly int _numLayers;
         private readonly int _hiddenSize;
         private readonly int _numKVHeads;
+        private readonly int _maxLength;
         private OrtValue[] _values;
 
 
@@ -23,13 +24,14 @@ namespace TensorStack.TextGeneration.Processing
         /// <param name="numHeads">The number heads.</param>
         /// <param name="numLayers">The number layers.</param>
         /// <param name="hiddenSize">Size of the hidden.</param>
-        public KVCacheDecoder(OrtType dataType, int numHeads, int numLayers, int hiddenSize, int numKVHeads)
+        public KVCacheDecoder(OrtType dataType, int numHeads, int numLayers, int hiddenSize, int numKVHeads, int maxLength)
         {
             _dataType = dataType;
             _numHeads = numHeads;
             _numLayers = numLayers;
             _hiddenSize = hiddenSize;
             _numKVHeads = numKVHeads;
+            _maxLength = maxLength;
         }
 
 
@@ -41,8 +43,8 @@ namespace TensorStack.TextGeneration.Processing
         /// <param name="numLayers">The number layers.</param>
         /// <param name="hiddenSize">Size of the hidden.</param>
         /// <param name="values">The cache values.</param>
-        private KVCacheDecoder(OrtType dataType, int numHeads, int numLayers, int hiddenSize, int numKVHeads, OrtValue[] values)
-            : this(dataType, numHeads, numLayers, hiddenSize, numKVHeads)
+        private KVCacheDecoder(OrtType dataType, int numHeads, int numLayers, int hiddenSize, int numKVHeads, int maxLength, OrtValue[] values)
+            : this(dataType, numHeads, numLayers, hiddenSize, numKVHeads, maxLength)
         {
             _values = values;
         }
@@ -109,7 +111,7 @@ namespace TensorStack.TextGeneration.Processing
             for (int i = 0; i < _values.Length; i++)
                 cacheValues[i] = _values[i].Clone();
 
-            return new KVCacheDecoder(_dataType, _numHeads, _numLayers, _hiddenSize, _numKVHeads, cacheValues);
+            return new KVCacheDecoder(_dataType, _numHeads, _numLayers, _hiddenSize, _numKVHeads, _maxLength, cacheValues);
         }
 
 

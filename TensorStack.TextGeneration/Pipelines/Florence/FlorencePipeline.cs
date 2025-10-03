@@ -19,7 +19,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
 {
     public class FlorencePipeline : EncoderDecoderPipeline<FlorenceOptions>,
          IPipeline<GenerateResult, FlorenceOptions>,
-         IPipelineStream<GenerateResult, FlorenceSearchOptions>
+         IPipeline<GenerateResult[], FlorenceSearchOptions>
     {
         private readonly FlorenceConfig _configuration;
         private readonly PreProcessor _preProcessor;
@@ -107,7 +107,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         }
 
 
-        public virtual async IAsyncEnumerable<GenerateResult> RunAsync(FlorenceSearchOptions options, IProgress<RunProgress> progressCallback = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public virtual async Task<GenerateResult[]> RunAsync(FlorenceSearchOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var textPrompt = _preProcessor.ProcessPrompt(options);
             var imagePrompt = _preProcessor.ProcessImage(options);
@@ -118,14 +118,16 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
             EncoderOutput = await RunEncoderAsync();
 
             var sequences = await BeamSearchAsync(options, cancellationToken);
-            foreach (var sequence in sequences)
+            var results = new GenerateResult[sequences.Length];
+            for (int beam = 0; beam < sequences.Length; beam++)
             {
+                var sequence = sequences[beam];
                 using (sequence)
                 {
                     var processedBeamOutput = _postProcessor.Process(options, sequence.Tokens);
-                    yield return new GenerateResult
+                    results[beam] = new GenerateResult
                     {
-                        Beam = sequence.Id,
+                        Beam = beam,
                         Score = sequence.Score,
                         PenaltyScore = sequence.PenaltyScore,
                         Result = processedBeamOutput.Result,
@@ -133,6 +135,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
                     };
                 }
             }
+            return results;
         }
 
 

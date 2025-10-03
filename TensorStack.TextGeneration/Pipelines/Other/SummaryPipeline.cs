@@ -57,14 +57,14 @@ namespace TensorStack.TextGeneration.Pipelines.Other
 
             var sequences = await BeamSearchAsync(options, cancellationToken);
             var results = new GenerateResult[sequences.Length];
-            for (int i = 0; i < sequences.Length; i++)
+            for (int beam = 0; beam < sequences.Length; beam++)
             {
-                var sequence = sequences[i];
+                var sequence = sequences[beam];
                 using (sequence)
                 {
-                    results[i] = new GenerateResult
+                    results[beam] = new GenerateResult
                     {
-                        Beam = sequence.Id,
+                        Beam = beam,
                         Score = sequence.Score,
                         PenaltyScore = sequence.PenaltyScore,
                         Result = Tokenizer.Decode(sequence.Tokens)

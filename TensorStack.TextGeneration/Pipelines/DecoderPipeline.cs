@@ -198,10 +198,6 @@ namespace TensorStack.TextGeneration.Pipelines
                         cancellationToken.ThrowIfCancellationRequested();
 
                         var beamCandidate = beam.Clone();
-                        beamCandidate.Id = beam.Id;
-                        if (initialPass)
-                            beamCandidate.Id = beamCandidates.Count;
-
                         beamCandidate.Tokens.Add(sample.TokenId);
                         beamCandidate.Score += sample.Score;
                         beamCandidate.PenaltyScore = GetLengthPenalty(beamCandidate, options.LengthPenalty);
@@ -329,13 +325,7 @@ namespace TensorStack.TextGeneration.Pipelines
                 .Where(x => x.IsComplete)
                 .OrderByDescending(s => s.PenaltyScore)
                 .ToArray();
-
-            var beam = 0;
-            foreach (var sequence in resultSequences)
-            {
-                sequence.Id = beam++;
-            }
-
+ 
             sequences.Remove(resultSequences);
             sequences.Clear();
             return resultSequences;
