@@ -12,69 +12,23 @@ using TensorStack.Common.Video;
 
 namespace TensorStack.Video
 {
-    public class VideoInputStream
+    public class VideoInputStream : VideoInputStreamBase
     {
-        private readonly VideoInfo _videoInfo;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="VideoInputStream"/> class.
-        /// </summary>
-        /// <param name="videoInfo">The video information.</param>
-        /// <param name="videoCodec">The video codec.</param>
-        public VideoInputStream(VideoInfo videoInfo)
-        {
-            _videoInfo = videoInfo;
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="VideoInputStream"/> class.
         /// </summary>
         /// <param name="filename">The filename.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <exception cref="System.Exception">Failed to open video file.</exception>
-        public VideoInputStream(string filename) 
+        public VideoInputStream(string filename)
             : this(VideoManager.LoadVideoInfo(filename)) { }
 
         /// <summary>
-        /// Gets the filename.
+        /// Initializes a new instance of the <see cref="VideoInputStream"/> class.
         /// </summary>
-        /// <value>The filename.</value>
-        public string Filename => _videoInfo.FileName;
-
-        /// <summary>
-        /// Gets the video width.
-        /// </summary>
-        public int Width => _videoInfo.Width;
-
-        /// <summary>
-        /// Gets the video height.
-        /// </summary>
-        public int Height => _videoInfo.Height;
-
-        /// <summary>
-        /// Gets the video frame rate.
-        /// </summary>
-        public float FrameRate => _videoInfo.FrameRate;
-
-        /// <summary>
-        /// Gets the video frame count.
-        /// </summary>
-        public int FrameCount => _videoInfo.FrameCount;
-
-        /// <summary>
-        /// Gets the video codec.
-        /// </summary>
-        public string VideoCodec => _videoInfo.VideoCodec;
-
-        /// <summary>
-        /// Gets the duration.
-        /// </summary>
-        public TimeSpan Duration => _videoInfo.Duration;
-
-        /// <summary>
-        /// Gets the thumbnail.
-        /// </summary>
-        public ImageTensor Thumbnail => _videoInfo.Thumbnail;
+        /// <param name="videoInfo">The video information.</param>
+        private VideoInputStream(VideoInfo videoInfo)
+            : base(videoInfo) { }
 
 
         /// <summary>
@@ -87,7 +41,7 @@ namespace TensorStack.Video
         /// <returns>IAsyncEnumerable&lt;ImageFrame&gt;.</returns>
         public IAsyncEnumerable<VideoFrame> GetAsync(int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Stretch, CancellationToken cancellationToken = default)
         {
-            return VideoManager.ReadStreamAsync(_videoInfo.FileName, frameRateOverride, widthOverride, heightOverride, resizeMode, cancellationToken);
+            return VideoManager.ReadStreamAsync(SourceFile, frameRateOverride, widthOverride, heightOverride, resizeMode, cancellationToken);
         }
 
 
@@ -103,7 +57,7 @@ namespace TensorStack.Video
         /// <returns>Task.</returns>
         public Task SaveAsync(IAsyncEnumerable<VideoFrame> stream, string filename, string videoCodec = "mp4v", int? widthOverride = null, int? heightOverride = null, float? frameRateOverride = null, CancellationToken cancellationToken = default)
         {
-            return VideoManager.WriteVideoStreamAsync(_videoInfo.FileName, stream, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
+            return VideoManager.WriteVideoStreamAsync(SourceFile, stream, videoCodec, widthOverride, heightOverride, frameRateOverride, cancellationToken);
         }
 
 
@@ -134,10 +88,10 @@ namespace TensorStack.Video
         /// <exception cref="System.Exception">Destination video already exists</exception>
         public async Task<VideoInputStream> MoveAsync(string newFilename, bool overwrite = true)
         {
-            if (!File.Exists(Filename))
+            if (!File.Exists(SourceFile))
                 throw new Exception("Source video not found");
 
-            File.Move(Filename, newFilename, overwrite);
+            File.Move(SourceFile, newFilename, overwrite);
             return await CreateAsync(newFilename);
         }
 
@@ -152,10 +106,10 @@ namespace TensorStack.Video
         /// <exception cref="System.Exception">Destination video already exists</exception>
         public async Task<VideoInputStream> CopyAsync(string newFilename, bool overwrite = true)
         {
-            if (!File.Exists(Filename))
+            if (!File.Exists(SourceFile))
                 throw new Exception("Source video not found");
 
-            File.Copy(Filename, newFilename, overwrite);
+            File.Copy(SourceFile, newFilename, overwrite);
             return await CreateAsync(newFilename);
         }
 

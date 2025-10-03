@@ -10,9 +10,9 @@ namespace TensorStack.Video
     /// <summary>
     /// Class to handle processing of a video stream.
     /// </summary>
-    public class VideoInput : VideoTensor
+    public class VideoInput : VideoInputBase
     {
-        private string _filename;
+        private readonly string _sourceFile;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VideoInput"/> class.
@@ -23,23 +23,45 @@ namespace TensorStack.Video
         /// <param name="frameRate">The frame rate.</param>
         /// <param name="videoCodec">The video codec.</param>
         public VideoInput(string filename, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop)
-            : this(VideoManager.LoadVideoTensor(filename, widthOverride, heightOverride, frameRateOverride, resizeMode))
-        {
-            _filename = filename;
-        }
+            : this(filename, VideoManager.LoadVideoTensor(filename, widthOverride, heightOverride, frameRateOverride, resizeMode)) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VideoInput"/> class.
         /// </summary>
+        /// <param name="filename">The filename.</param>
         /// <param name="videoTensor">The video tensor.</param>
-        public VideoInput(VideoTensor videoTensor) : base(videoTensor, videoTensor.FrameRate) { }
+        public VideoInput(string filename, VideoTensor videoTensor)
+            : base(videoTensor)
+        {
+            _sourceFile = filename;
+        }
+
 
         /// <summary>
-        /// Gets the filename.
+        /// Gets the source video filename.
         /// </summary>
-        /// <value>The filename.</value>
-        public string Filename => _filename;
+        public override string SourceFile => _sourceFile;
 
+
+        /// <summary>
+        /// Save the Video to file
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        public override void Save(string filename)
+        {
+            throw new System.NotImplementedException();
+        }
+
+
+        /// <summary>
+        /// Save the Video to file
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        /// <param name="cancellationToken">The cancellation token</param>
+        public override Task SaveAsync(string filename, CancellationToken cancellationToken = default)
+        {
+            return SaveAsync(filename, frameRateOverride: default, cancellationToken: cancellationToken);
+        }
 
         /// <summary>
         /// Save the VideoTensor to file
@@ -60,7 +82,7 @@ namespace TensorStack.Video
         /// <returns>VideoStream.</returns>
         public VideoInputStream CreateStream()
         {
-            return new VideoInputStream(_filename);
+            return new VideoInputStream(_sourceFile);
         }
 
 
@@ -70,17 +92,7 @@ namespace TensorStack.Video
         /// <returns>Task&lt;VideoInputStream&gt;.</returns>
         public Task<VideoInputStream> CreateStreamAsync()
         {
-            return VideoInputStream.CreateAsync(_filename);
-        }
-
-
-        /// <summary>
-        /// Sets the filename.
-        /// </summary>
-        /// <param name="filename">The filename.</param>
-        public void SetFilename(string filename)
-        {
-            _filename = filename;
+            return VideoInputStream.CreateAsync(_sourceFile);
         }
 
 
@@ -95,7 +107,8 @@ namespace TensorStack.Video
         /// <returns>A Task&lt;VideoInput&gt; representing the asynchronous operation.</returns>
         public static async Task<VideoInput> CreateAsync(string filename, int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Crop, CancellationToken cancellationToken = default)
         {
-            return new VideoInput(await VideoManager.LoadVideoTensorAsync(filename, widthOverride, heightOverride, frameRateOverride, resizeMode, cancellationToken));
+            return new VideoInput(filename, await VideoManager.LoadVideoTensorAsync(filename, widthOverride, heightOverride, frameRateOverride, resizeMode, cancellationToken));
         }
+
     }
 }

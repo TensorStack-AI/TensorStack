@@ -17,12 +17,6 @@
     <PackageReference Include="TensorStack.Common" Version="$(Version)" />
   </ItemGroup>
 
-  <!--Common Packages-->
-  <ItemGroup>
-    <PackageReference Include="System.Linq.Async" Version="6.0.3" />
-    <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
-  </ItemGroup>
-
 
   <!--Nuget Settings-->
   <PropertyGroup>
