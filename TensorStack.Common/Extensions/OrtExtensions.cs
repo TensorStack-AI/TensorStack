@@ -18,9 +18,9 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="metadata">The input metadata.</param>
         /// <param name="tensor">The tensor value.</param>
-        public static OrtValue CreateTensorOrtValue<T>(this NamedMetadata metadata, TensorSpan<T> tensor) where T : unmanaged, INumber<T>
+        public static OrtValue CreateTensorOrtValue<T>(this NamedMetadata metadata, OrtMemoryInfo memoryInfo, TensorSpan<T> tensor) where T : unmanaged, INumber<T>
         {
-            return CreateOrtValue(metadata, tensor);
+            return CreateOrtValue(metadata, tensor, memoryInfo);
         }
 
 
@@ -40,9 +40,9 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="metadata">The input metadata.</param>
         /// <param name="tensor">The tensor value.</param>
-        public static OrtValue CreateTensorOrtValue(this NamedMetadata metadata, TensorSpan<bool> tensor)
+        public static OrtValue CreateTensorOrtValue(this NamedMetadata metadata, OrtMemoryInfo memoryInfo, TensorSpan<bool> tensor)
         {
-            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, new Memory<bool>(tensor.Span.ToArray()), tensor.Dimensions.ToLong());
+            return OrtValue.CreateTensorValueFromMemory(memoryInfo, new Memory<bool>(tensor.Span.ToArray()), tensor.Dimensions.ToLong());
         }
 
 
@@ -51,9 +51,9 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="metadata">The input metadata.</param>
         /// <param name="tensor">The tensor value.</param>
-        public static OrtValue CreateTensorOrtValue(this NamedMetadata metadata, TensorSpan<byte> tensor)
+        public static OrtValue CreateTensorOrtValue(this NamedMetadata metadata, OrtMemoryInfo memoryInfo, TensorSpan<byte> tensor)
         {
-            return OrtValue.CreateTensorValueFromMemory(OrtMemoryInfo.DefaultInstance, new Memory<byte>(tensor.Span.ToArray()), tensor.Dimensions.ToLong());
+            return OrtValue.CreateTensorValueFromMemory(memoryInfo, new Memory<byte>(tensor.Span.ToArray()), tensor.Dimensions.ToLong());
         }
 
 
@@ -63,9 +63,9 @@ namespace TensorStack.Common
         /// <typeparam name="T">The type of input value</typeparam>
         /// <param name="metadata">The input metadata.</param>
         /// <param name="value">The value.</param>
-        public static OrtValue CreateScalarOrtValue<T>(this NamedMetadata metadata, T value) where T : unmanaged, INumber<T>
+        public static OrtValue CreateScalarOrtValue<T>(this NamedMetadata metadata, OrtMemoryInfo memoryInfo, T value) where T : unmanaged, INumber<T>
         {
-            return metadata.CreateTensorOrtValue(new TensorSpan<T>([value], [1]));
+            return metadata.CreateTensorOrtValue(memoryInfo, new TensorSpan<T>([value], [1]));
         }
 
 
@@ -74,7 +74,7 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="metadata">The input metadata.</param>
         /// <param name="value">The value.</param>
-        public static OrtValue CreateScalarOrtValue(this NamedMetadata metadata, string value)
+        public static OrtValue CreateScalarOrtValue(this NamedMetadata metadata, OrtMemoryInfo memoryInfo, string value)
         {
             return metadata.CreateTensorOrtValue(new TensorSpan<string>([value], [1]));
         }
@@ -85,9 +85,9 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="metadata">The input metadata.</param>
         /// <param name="value">The value.</param>
-        public static OrtValue CreateScalarOrtValue(this NamedMetadata metadata, bool value)
+        public static OrtValue CreateScalarOrtValue(this NamedMetadata metadata, OrtMemoryInfo memoryInfo, bool value)
         {
-            return metadata.CreateTensorOrtValue(new TensorSpan<bool>([value], [1]));
+            return metadata.CreateTensorOrtValue(memoryInfo, new TensorSpan<bool>([value], [1]));
         }
 
 
@@ -96,9 +96,9 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="metadata">The input metadata.</param>
         /// <param name="value">The value.</param>
-        public static OrtValue CreateScalarOrtValue(this NamedMetadata metadata, byte value)
+        public static OrtValue CreateScalarOrtValue(this NamedMetadata metadata, OrtMemoryInfo memoryInfo, byte value)
         {
-            return metadata.CreateTensorOrtValue(new TensorSpan<byte>([value], [1]));
+            return metadata.CreateTensorOrtValue(memoryInfo, new TensorSpan<byte>([value], [1]));
         }
 
 
@@ -108,9 +108,9 @@ namespace TensorStack.Common
         /// <param name="metadata">The metadata.</param>
         /// <param name="dimensions">The dimensions.</param>
         /// <returns></returns>
-        public static OrtValue CreateOutputBuffer(this NamedMetadata metadata, ReadOnlySpan<int> dimensions)
+        public static OrtValue CreateOutputBuffer(this NamedMetadata metadata, OrtAllocator allocator, ReadOnlySpan<int> dimensions)
         {
-            return OrtValue.CreateAllocatedTensorValue(OrtAllocator.DefaultInstance, metadata.Value.ElementDataType, dimensions.ToLong());
+            return OrtValue.CreateAllocatedTensorValue(allocator, metadata.Value.ElementDataType, dimensions.ToLong());
         }
 
 
@@ -229,9 +229,9 @@ namespace TensorStack.Common
         /// <typeparam name="T">The type of input value</typeparam>
         /// <param name="metadata">The input metadata.</param>
         /// <param name="tensor">The tensor input.</param>
-        private static OrtValue CreateOrtValue<T>(NamedMetadata metadata, TensorSpan<T> tensor) where T : unmanaged, INumber<T>
+        private static OrtValue CreateOrtValue<T>(NamedMetadata metadata, TensorSpan<T> tensor, OrtMemoryInfo memoryInfo) where T : unmanaged, INumber<T>
         {
-            return CreateOrtValue(metadata.Value.ElementDataType, tensor);
+            return CreateOrtValue(metadata.Value.ElementDataType, tensor, memoryInfo);
         }
 
 
@@ -242,25 +242,24 @@ namespace TensorStack.Common
         /// <param name="ortType">Type of the ort.</param>
         /// <param name="tensor">The tensor.</param>
         /// <returns>OrtValue.</returns>
-        public static OrtValue CreateOrtValue<T>(OrtType ortType, TensorSpan<T> tensor) where T : unmanaged, INumber<T>
+        private static OrtValue CreateOrtValue<T>(OrtType ortType, TensorSpan<T> tensor, OrtMemoryInfo memoryInfo) where T : unmanaged, INumber<T>
         {
             var buffer = tensor.Span;
             var dimensions = tensor.Dimensions.ToLong();
-            var memoryInstance = OrtMemoryInfo.DefaultInstance;
             return ortType switch
             {
-                OrtType.Float => OrtValue.CreateTensorValueFromMemory<float>(memoryInstance, buffer.ConvertBuffer<T, float>(), dimensions),
-                OrtType.UInt8 => OrtValue.CreateTensorValueFromMemory<byte>(memoryInstance, buffer.ConvertBuffer<T, byte>(), dimensions),
-                OrtType.Int8 => OrtValue.CreateTensorValueFromMemory<sbyte>(memoryInstance, buffer.ConvertBuffer<T, sbyte>(), dimensions),
-                OrtType.UInt16 => OrtValue.CreateTensorValueFromMemory<ushort>(memoryInstance, buffer.ConvertBuffer<T, ushort>(), dimensions),
-                OrtType.Int16 => OrtValue.CreateTensorValueFromMemory<short>(memoryInstance, buffer.ConvertBuffer<T, short>(), dimensions),
-                OrtType.Int32 => OrtValue.CreateTensorValueFromMemory<int>(memoryInstance, buffer.ConvertBuffer<T, int>(), dimensions),
-                OrtType.Int64 => OrtValue.CreateTensorValueFromMemory<long>(memoryInstance, buffer.ConvertBuffer<T, long>(), dimensions),
-                OrtType.Double => OrtValue.CreateTensorValueFromMemory<double>(memoryInstance, buffer.ConvertBuffer<T, double>(), dimensions),
-                OrtType.UInt32 => OrtValue.CreateTensorValueFromMemory<uint>(memoryInstance, buffer.ConvertBuffer<T, uint>(), dimensions),
-                OrtType.UInt64 => OrtValue.CreateTensorValueFromMemory<ulong>(memoryInstance, buffer.ConvertBuffer<T, ulong>(), dimensions),
-                OrtType.Float16 => OrtValue.CreateTensorValueFromMemory<Float16>(memoryInstance, buffer.ConvertBufferFloat16(), dimensions),
-                OrtType.BFloat16 => OrtValue.CreateTensorValueFromMemory<BFloat16>(memoryInstance, buffer.ConvertBufferBFloat16(), dimensions),
+                OrtType.Float => OrtValue.CreateTensorValueFromMemory<float>(memoryInfo, buffer.ConvertBuffer<T, float>(), dimensions),
+                OrtType.UInt8 => OrtValue.CreateTensorValueFromMemory<byte>(memoryInfo, buffer.ConvertBuffer<T, byte>(), dimensions),
+                OrtType.Int8 => OrtValue.CreateTensorValueFromMemory<sbyte>(memoryInfo, buffer.ConvertBuffer<T, sbyte>(), dimensions),
+                OrtType.UInt16 => OrtValue.CreateTensorValueFromMemory<ushort>(memoryInfo, buffer.ConvertBuffer<T, ushort>(), dimensions),
+                OrtType.Int16 => OrtValue.CreateTensorValueFromMemory<short>(memoryInfo, buffer.ConvertBuffer<T, short>(), dimensions),
+                OrtType.Int32 => OrtValue.CreateTensorValueFromMemory<int>(memoryInfo, buffer.ConvertBuffer<T, int>(), dimensions),
+                OrtType.Int64 => OrtValue.CreateTensorValueFromMemory<long>(memoryInfo, buffer.ConvertBuffer<T, long>(), dimensions),
+                OrtType.Double => OrtValue.CreateTensorValueFromMemory<double>(memoryInfo, buffer.ConvertBuffer<T, double>(), dimensions),
+                OrtType.UInt32 => OrtValue.CreateTensorValueFromMemory<uint>(memoryInfo, buffer.ConvertBuffer<T, uint>(), dimensions),
+                OrtType.UInt64 => OrtValue.CreateTensorValueFromMemory<ulong>(memoryInfo, buffer.ConvertBuffer<T, ulong>(), dimensions),
+                OrtType.Float16 => OrtValue.CreateTensorValueFromMemory<Float16>(memoryInfo, buffer.ConvertBufferFloat16(), dimensions),
+                OrtType.BFloat16 => OrtValue.CreateTensorValueFromMemory<BFloat16>(memoryInfo, buffer.ConvertBufferBFloat16(), dimensions),
                 _ => throw new NotImplementedException("Conversion is not currently implemented.")
             };
         }
@@ -271,13 +270,13 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="original">The original.</param>
         /// <returns>OrtValue.</returns>
-        public static OrtValue Clone(this OrtValue original)
+        public static OrtValue Clone(this OrtValue original, OrtAllocator allocator)
         {
             var info = original.GetTensorTypeAndShape();
             return info.ElementDataType switch
             {
-                OrtType.Float => original.Clone<float>(info),
-                OrtType.Float16 => original.Clone<Float16>(info),
+                OrtType.Float => original.Clone<float>(info, allocator),
+                OrtType.Float16 => original.Clone<Float16>(info, allocator),
                 _ => throw new NotSupportedException($"Unsupported element type: {info.ElementDataType}")
             };
         }
@@ -290,9 +289,9 @@ namespace TensorStack.Common
         /// <param name="original">The original.</param>
         /// <param name="info">The information.</param>
         /// <returns>OrtValue.</returns>
-        public static OrtValue Clone<T>(this OrtValue original, OrtTensorTypeAndShapeInfo info) where T : unmanaged
+        public static OrtValue Clone<T>(this OrtValue original, OrtTensorTypeAndShapeInfo info, OrtAllocator allocator) where T : unmanaged
         {
-            var newValue = OrtValue.CreateAllocatedTensorValue(OrtAllocator.DefaultInstance, info.ElementDataType, info.Shape);
+            var newValue = OrtValue.CreateAllocatedTensorValue(allocator, info.ElementDataType, info.Shape);
             var source = original.GetTensorDataAsSpan<T>();
             var destination = newValue.GetTensorMutableDataAsSpan<T>();
             source.CopyTo(destination);

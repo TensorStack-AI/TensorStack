@@ -135,8 +135,7 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         protected override async Task<Sequence> InitializeAsync(WhisperOptions options)
         {
             var modelMetadata = await Decoder.LoadAsync();
-            var dataType = modelMetadata.Outputs[0].Value.ElementDataType;
-            var kvCache = new KVCacheEncoderDecoder(dataType, DecoderConfig.NumHeads, DecoderConfig.NumLayers, DecoderConfig.HiddenSize);
+            var kvCache = new KVCacheEncoderDecoder(modelMetadata, DecoderConfig.NumHeads, DecoderConfig.NumLayers, DecoderConfig.HiddenSize);
             var sequence = new Sequence(kvCache, Tokenizer.BOS);    // <|startoftranscript|>
             sequence.Tokens.Add((int)options.Language);             // <|en|>
             sequence.Tokens.Add((int)options.Task);                 // <|transcribe|>

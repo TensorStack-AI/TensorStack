@@ -20,6 +20,7 @@ namespace TensorStack.Common
         private readonly ModelMetadata _metadata;
         private readonly ParameterCollection _inputs;
         private readonly ParameterCollection _outputs;
+        private readonly OrtAllocator _allocator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelParameters"/> class.
@@ -27,6 +28,7 @@ namespace TensorStack.Common
         public ModelParameters(ModelMetadata metadata, CancellationToken cancellationToken = default)
         {
             _metadata = metadata;
+            _allocator = metadata.Allocator;
             _runOptions = new RunOptions();
             _inputs = new ParameterCollection();
             _outputs = new ParameterCollection();
@@ -110,7 +112,7 @@ namespace TensorStack.Common
         public void AddInput<T>(TensorSpan<T> value) where T : unmanaged, INumber<T>
         {
             var metadata = GetNextInputMetadata();
-            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(_allocator.Info, value));
         }
 
 
@@ -122,7 +124,7 @@ namespace TensorStack.Common
         public void AddInput<T>(int index, TensorSpan<T> value) where T : unmanaged, INumber<T>
         {
             var metadata = _metadata.Inputs[index];
-            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(_allocator.Info, value));
         }
 
 
@@ -158,7 +160,7 @@ namespace TensorStack.Common
         public void AddInput(TensorSpan<bool> value)
         {
             var metadata = GetNextInputMetadata();
-            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(_allocator.Info, value));
         }
 
 
@@ -170,7 +172,7 @@ namespace TensorStack.Common
         public void AddInput(int index, TensorSpan<bool> value)
         {
             var metadata = _metadata.Inputs[index];
-            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(_allocator.Info, value));
         }
 
 
@@ -182,7 +184,7 @@ namespace TensorStack.Common
         public void AddInput(TensorSpan<byte> value)
         {
             var metadata = GetNextInputMetadata();
-            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(_allocator.Info, value));
         }
 
 
@@ -194,7 +196,7 @@ namespace TensorStack.Common
         public void AddInput(int index, TensorSpan<byte> value)
         {
             var metadata = _metadata.Inputs[index];
-            _inputs.Add(metadata, metadata.CreateTensorOrtValue(value));
+            _inputs.Add(metadata, metadata.CreateTensorOrtValue(_allocator.Info, value));
         }
 
 
@@ -270,28 +272,28 @@ namespace TensorStack.Common
         public void AddScalarInput<T>(T value) where T : unmanaged, INumber<T>
         {
             var metaData = GetNextInputMetadata();
-            _inputs.Add(metaData, metaData.CreateScalarOrtValue(value));
+            _inputs.Add(metaData, metaData.CreateScalarOrtValue(_allocator.Info, value));
         }
 
 
         public void AddScalarInput(string value)
         {
             var metaData = GetNextInputMetadata();
-            _inputs.Add(metaData, metaData.CreateScalarOrtValue(value));
+            _inputs.Add(metaData, metaData.CreateScalarOrtValue(_allocator.Info, value));
         }
 
 
         public void AddScalarInput(bool value)
         {
             var metaData = GetNextInputMetadata();
-            _inputs.Add(metaData, metaData.CreateScalarOrtValue(value));
+            _inputs.Add(metaData, metaData.CreateScalarOrtValue(_allocator.Info, value));
         }
 
 
         public void AddScalarInput(byte value)
         {
             var metaData = GetNextInputMetadata();
-            _inputs.Add(metaData, metaData.CreateScalarOrtValue(value));
+            _inputs.Add(metaData, metaData.CreateScalarOrtValue(_allocator.Info, value));
         }
 
 
@@ -336,7 +338,7 @@ namespace TensorStack.Common
         public void AddOutput(ReadOnlySpan<int> bufferDimension)
         {
             var metadata = GetNextOutputMetadata();
-            _outputs.Add(metadata, metadata.CreateOutputBuffer(bufferDimension));
+            _outputs.Add(metadata, metadata.CreateOutputBuffer(_allocator, bufferDimension));
         }
 
 
@@ -348,7 +350,7 @@ namespace TensorStack.Common
         public void AddOutput(int index, ReadOnlySpan<int> bufferDimension)
         {
             var metadata = _metadata.Outputs[index];
-            _outputs.Add(metadata, metadata.CreateOutputBuffer(bufferDimension));
+            _outputs.Add(metadata, metadata.CreateOutputBuffer(_allocator, bufferDimension));
         }
 
 

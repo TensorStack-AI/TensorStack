@@ -2,18 +2,19 @@
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
 using TensorStack.Common;
-using OrtType = Microsoft.ML.OnnxRuntime.Tensors.TensorElementType;
+using Metadata = TensorStack.Common.ModelMetadata;
 
 namespace TensorStack.TextGeneration.Processing
 {
     public sealed class KVCacheDecoder : IKVCache
     {
-        private readonly OrtType _dataType;
+        private readonly Metadata _metadata;
         private readonly int _numHeads;
         private readonly int _numLayers;
         private readonly int _hiddenSize;
         private readonly int _numKVHeads;
         private readonly int _maxLength;
+        private readonly int _headDimension;
         private OrtValue[] _values;
 
 
@@ -24,14 +25,15 @@ namespace TensorStack.TextGeneration.Processing
         /// <param name="numHeads">The number heads.</param>
         /// <param name="numLayers">The number layers.</param>
         /// <param name="hiddenSize">Size of the hidden.</param>
-        public KVCacheDecoder(OrtType dataType, int numHeads, int numLayers, int hiddenSize, int numKVHeads, int maxLength)
+        public KVCacheDecoder(Metadata metadata, int numHeads, int numLayers, int hiddenSize, int numKVHeads, int maxLength)
         {
-            _dataType = dataType;
+            _metadata = metadata;
             _numHeads = numHeads;
             _numLayers = numLayers;
             _hiddenSize = hiddenSize;
             _numKVHeads = numKVHeads;
             _maxLength = maxLength;
+            _headDimension = _hiddenSize / _numHeads;
         }
 
 
@@ -43,8 +45,8 @@ namespace TensorStack.TextGeneration.Processing
         /// <param name="numLayers">The number layers.</param>
         /// <param name="hiddenSize">Size of the hidden.</param>
         /// <param name="values">The cache values.</param>
-        private KVCacheDecoder(OrtType dataType, int numHeads, int numLayers, int hiddenSize, int numKVHeads, int maxLength, OrtValue[] values)
-            : this(dataType, numHeads, numLayers, hiddenSize, numKVHeads, maxLength)
+        private KVCacheDecoder(Metadata modelMetadata, int numHeads, int numLayers, int hiddenSize, int numKVHeads, int maxLength, OrtValue[] values)
+            : this(modelMetadata, numHeads, numLayers, hiddenSize, numKVHeads, maxLength)
         {
             _values = values;
         }
@@ -68,14 +70,10 @@ namespace TensorStack.TextGeneration.Processing
         public void Initialize(int initialSize)
         {
             _values = new OrtValue[_numLayers * 2];
-            var dimensions = new[] { 1L, _numKVHeads, 1, (_hiddenSize / _numHeads) };
+            var dimensions = new[] { 1L, _numKVHeads, initialSize, _headDimension };
             for (var i = 0; i < _values.Length; ++i)
             {
-                if (i % 2 == 0)
-                {
-                    _values[i] = OrtValue.CreateAllocatedTensorValue(OrtAllocator.DefaultInstance, _dataType, dimensions);
-                    _values[i + 1] = OrtValue.CreateAllocatedTensorValue(OrtAllocator.DefaultInstance, _dataType, dimensions);
-                }
+                _values[i] = OrtValue.CreateAllocatedTensorValue(_metadata.Allocator, _metadata.OutputElementType, dimensions);
             }
         }
 
@@ -89,14 +87,9 @@ namespace TensorStack.TextGeneration.Processing
         {
             for (int i = 0; i < currentValues.Length; i++)
             {
-                if (i % 2 == 0)
-                {
-                    _values[i].Dispose();
-                    _values[i + 1].Dispose();
-
-                    _values[i] = currentValues[i];        // Decoder Key
-                    _values[i + 1] = currentValues[i + 1];// Decoder Val
-                }
+                // TODO: Allocate entire Maxlength and update the buffer
+                _values[i].Dispose();
+                _values[i] = currentValues[i];
             }
         }
 
@@ -109,9 +102,9 @@ namespace TensorStack.TextGeneration.Processing
         {
             var cacheValues = new OrtValue[_values.Length];
             for (int i = 0; i < _values.Length; i++)
-                cacheValues[i] = _values[i].Clone();
+                cacheValues[i] = _values[i].Clone(_metadata.Allocator); // TODO: Slice
 
-            return new KVCacheDecoder(_dataType, _numHeads, _numLayers, _hiddenSize, _numKVHeads, _maxLength, cacheValues);
+            return new KVCacheDecoder(_metadata, _numHeads, _numLayers, _hiddenSize, _numKVHeads, _maxLength, cacheValues);
         }
 
 

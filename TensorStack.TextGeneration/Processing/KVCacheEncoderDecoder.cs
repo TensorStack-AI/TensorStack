@@ -2,27 +2,27 @@
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
 using TensorStack.Common;
-using OrtType = Microsoft.ML.OnnxRuntime.Tensors.TensorElementType;
+using Metadata = TensorStack.Common.ModelMetadata;
 
 namespace TensorStack.TextGeneration.Processing
 {
     public sealed class KVCacheEncoderDecoder : IKVCache
     {
-        private readonly OrtType _dataType;
+        private readonly Metadata _metadata;
         private readonly int _numHeads;
         private readonly int _numLayers;
         private readonly int _hiddenSize;
         private readonly int _headDimension;
-
         private OrtValue[] _values;
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="KVCacheEncoderDecoder"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        public KVCacheEncoderDecoder(OrtType dataType, int numHeads, int numLayers, int hiddenSize)
+        public KVCacheEncoderDecoder(Metadata metadata, int numHeads, int numLayers, int hiddenSize)
         {
-            _dataType = dataType;
+            _metadata = metadata;
             _numHeads = numHeads;
             _numLayers = numLayers;
             _hiddenSize = hiddenSize;
@@ -35,8 +35,8 @@ namespace TensorStack.TextGeneration.Processing
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="cacheValues">The past values.</param>
-        private KVCacheEncoderDecoder(OrtType dataType, int numHeads, int numLayers, int hiddenSize, OrtValue[] values)
-            : this(dataType, numHeads, numLayers, hiddenSize)
+        private KVCacheEncoderDecoder(Metadata metadata, int numHeads, int numLayers, int hiddenSize, OrtValue[] values)
+            : this(metadata, numHeads, numLayers, hiddenSize)
         {
             _values = values;
         }
@@ -60,17 +60,18 @@ namespace TensorStack.TextGeneration.Processing
         public void Initialize(int initialSize)
         {
             _values = new OrtValue[_numLayers * 4];
-            var allocator = OrtAllocator.DefaultInstance;
-            var decoderDims = new[] { 1L, _numHeads, 1, _headDimension };
+            var allocator = _metadata.Allocator;
+            var elementType = _metadata.OutputElementType;
+            var decoderDims = new[] { 1L, _numHeads, initialSize, _headDimension };
             var encoderDims = new[] { 1L, _numHeads, initialSize, _headDimension };
             for (var i = 0; i < _values.Length; ++i)
             {
                 if (i % 4 == 0)
                 {
-                    _values[i] = OrtValue.CreateAllocatedTensorValue(allocator, _dataType, decoderDims);    // Decoder Key
-                    _values[i + 1] = OrtValue.CreateAllocatedTensorValue(allocator, _dataType, decoderDims);// Decoder Val
-                    _values[i + 2] = OrtValue.CreateAllocatedTensorValue(allocator, _dataType, encoderDims);// Encoder Key
-                    _values[i + 3] = OrtValue.CreateAllocatedTensorValue(allocator, _dataType, encoderDims);// Encoder Val
+                    _values[i] = OrtValue.CreateAllocatedTensorValue(allocator, elementType, decoderDims);    // Decoder Key
+                    _values[i + 1] = OrtValue.CreateAllocatedTensorValue(allocator, elementType, decoderDims);// Decoder Val
+                    _values[i + 2] = OrtValue.CreateAllocatedTensorValue(allocator, elementType, encoderDims);// Encoder Key
+                    _values[i + 3] = OrtValue.CreateAllocatedTensorValue(allocator, elementType, encoderDims);// Encoder Val
                 }
             }
         }
@@ -87,14 +88,15 @@ namespace TensorStack.TextGeneration.Processing
             {
                 if (i % 4 == 0)
                 {
-
                     // TODO: Allocate entire Maxlength and update the buffer
 
+                    // Decoder Key
                     _values[i].Dispose();
-                    _values[i + 1].Dispose();
+                    _values[i] = currentValues[i];
 
-                    _values[i] = currentValues[i];        // Decoder Key
-                    _values[i + 1] = currentValues[i + 1];// Decoder Val
+                    // Decoder Val
+                    _values[i + 1].Dispose();
+                    _values[i + 1] = currentValues[i + 1];
 
                     if (!useBranchCache)
                     {
@@ -114,9 +116,9 @@ namespace TensorStack.TextGeneration.Processing
         {
             var cacheValues = new OrtValue[_values.Length];
             for (int i = 0; i < _values.Length; i++)
-                cacheValues[i] = _values[i].Clone();
+                cacheValues[i] = _values[i].Clone(_metadata.Allocator);  // TODO: Slice
 
-            return new KVCacheEncoderDecoder(_dataType, _numHeads, _numLayers, _hiddenSize, cacheValues);
+            return new KVCacheEncoderDecoder(_metadata, _numHeads, _numLayers, _hiddenSize, cacheValues);
         }
 
 

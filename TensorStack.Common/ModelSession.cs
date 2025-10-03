@@ -17,12 +17,11 @@ namespace TensorStack.Common
     public class ModelSession<T> : IDisposable where T : ModelConfig
     {
         private readonly T _configuration;
-        private readonly Func<SessionOptions> _sessionOptionsFactory;
         private ModelMetadata _metadata;
         private InferenceSession _session;
         private SessionOptions _options;
+        private OrtAllocator _allocator;
         private ModelOptimization _optimizations;
-
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelSession"/> class.
@@ -57,6 +56,11 @@ namespace TensorStack.Common
         /// Gets the InferenceSession.
         /// </summary>
         public InferenceSession Session => _session;
+
+        /// <summary>
+        /// Gets the allocator.
+        /// </summary>
+        public OrtAllocator Allocator => _allocator;
 
 
         /// <summary>
@@ -146,40 +150,6 @@ namespace TensorStack.Common
         }
 
 
-        ///// <summary>
-        ///// Gets the default SessionOptions.
-        ///// </summary>
-        ///// <param name="useOrtExtensions">if set to <c>true</c> [use ort extensions].</param>
-        ///// <returns>SessionOptions.</returns>
-        ///// <exception cref="NotImplementedException"></exception>
-        //protected virtual SessionOptions CreateDefaultSessionOptions()
-        //{
-        //    var sessionOptions = new SessionOptions();
-        //    sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL;
-        //    switch (_configuration.Provider)
-        //    {
-        //        case Provider.CPU:
-        //            sessionOptions.AppendExecutionProvider_CPU();
-        //            break;
-        //        case Provider.DirectML:
-        //            sessionOptions.AppendExecutionProvider_DML(_configuration.DeviceId);
-        //            sessionOptions.AppendExecutionProvider_CPU();
-        //            break;
-        //        case Provider.CUDA:
-        //            sessionOptions.AppendExecutionProvider_CUDA(_configuration.DeviceId);
-        //            sessionOptions.AppendExecutionProvider_CPU();
-        //            break;
-        //        case Provider.CoreML:
-        //            sessionOptions.AppendExecutionProvider_CoreML(CoreMLFlags.COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE);
-        //            sessionOptions.AppendExecutionProvider_CPU();
-        //            break;
-        //        default:
-        //            throw new NotImplementedException();
-        //    }
-        //    return sessionOptions;
-        //}
-
-
         /// <summary>
         /// Creates the InferenceSession.
         /// </summary>
@@ -196,10 +166,10 @@ namespace TensorStack.Common
                 ApplyOptimizations(optimizations);
 
             _session = await Task.Run(() => new InferenceSession(_configuration.Path, _options), cancellationToken);
-            _metadata = new ModelMetadata(_session);
+            _allocator = new OrtAllocator(_session, _configuration.ExecutionProvider.MemoryInfo);
+            _metadata = new ModelMetadata(_session, _allocator);
             return _metadata;
         }
-       
 
 
         /// <summary>
@@ -267,6 +237,7 @@ namespace TensorStack.Common
 
             if (disposing)
             {
+                _allocator?.Dispose();
                 _options?.Dispose();
                 _session?.Dispose();
                 _session = null;

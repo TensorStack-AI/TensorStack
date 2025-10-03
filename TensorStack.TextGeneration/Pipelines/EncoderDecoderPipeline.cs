@@ -131,8 +131,7 @@ namespace TensorStack.TextGeneration.Pipelines
         protected override async Task<Sequence> InitializeAsync(O options)
         {
             var modelMetadata = await Decoder.LoadAsync();
-            var dataType = modelMetadata.Outputs[0].Value.ElementDataType;
-            var kvCache = new KVCacheEncoderDecoder(dataType, DecoderConfig.NumHeads, DecoderConfig.NumLayers, DecoderConfig.HiddenSize);
+            var kvCache = new KVCacheEncoderDecoder(modelMetadata, DecoderConfig.NumHeads, DecoderConfig.NumLayers, DecoderConfig.HiddenSize);
             return new Sequence(kvCache, Tokenizer.BOS);
         }
 
