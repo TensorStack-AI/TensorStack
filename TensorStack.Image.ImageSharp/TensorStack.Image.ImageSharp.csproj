@@ -8,12 +8,12 @@
 
   <!--Projects-->
   <ItemGroup Condition=" '$(Configuration)' == 'Debug'">
-    <ProjectReference Include="..\TensorStack.Common\TensorStack.Common.csproj" />
+    <ProjectReference Include="..\TensorStack.Image\TensorStack.Image.csproj" />
   </ItemGroup>
 
   <!--Packages-->
   <ItemGroup Condition=" '$(Configuration)' == 'Release'">
-    <PackageReference Include="TensorStack.Common" Version="$(Version)" />
+    <PackageReference Include="TensorStack.Image" Version="$(Version)" />
   </ItemGroup>
 
   <!--Common Packages-->

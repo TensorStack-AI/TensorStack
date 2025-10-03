@@ -2,6 +2,8 @@
 // Licensed under the Apache 2.0 License.
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using System.Threading;
+using System.Threading.Tasks;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Image
@@ -9,8 +11,9 @@ namespace TensorStack.Image
     /// <summary>
     /// ImageInput implementation with ImageSharp Image<Rgba32>.
     /// </summary>
-    public class ImageInput : ImageTensor
+    public class ImageInput : ImageInputBase
     {
+        private readonly string _sourceFile;
         private Image<Rgba32> _image;
 
         /// <summary>
@@ -38,7 +41,10 @@ namespace TensorStack.Image
         /// </summary>
         /// <param name="filename">The filename.</param>
         public ImageInput(string filename)
-            : this(Image<Rgba32>.Load<Rgba32>(filename)) { }
+            : this(Image<Rgba32>.Load<Rgba32>(filename))
+        {
+            _sourceFile = filename;
+        }
 
 
         /// <summary>
@@ -59,14 +65,29 @@ namespace TensorStack.Image
         /// </summary>
         public Image<Rgba32> Image => _image;
 
+        /// <summary>
+        /// Gets the source Image filename.
+        /// </summary>
+        public override string SourceFile => _sourceFile;
+
 
         /// <summary>
         /// Saves the specified image.
         /// </summary>
-        /// <param name="filename">The filename.</param>
-        public void Save(string filename)
+        public override void Save(string filename)
         {
             _image.SaveAsPng(filename);
+        }
+
+
+        /// <summary>
+        /// Save the Image to file
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        /// <param name="cancellationToken">The cancellation token</param>
+        public override async Task SaveAsync(string filename, CancellationToken cancellationToken = default)
+        {
+            await _image.SaveAsPngAsync(filename);
         }
 
 

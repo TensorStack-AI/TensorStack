@@ -1,5 +1,7 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using TensorStack.Common;
 using TensorStack.Common.Tensor;
@@ -9,8 +11,9 @@ namespace TensorStack.Image
     /// <summary>
     /// ImageInput implementation with System.Windows.Media.Imaging.WriteableBitmap.
     /// </summary>
-    public class ImageInput : ImageTensor
+    public class ImageInput : ImageInputBase
     {
+        private readonly string _sourceFile;
         private WriteableBitmap _image;
 
         /// <summary>
@@ -47,7 +50,10 @@ namespace TensorStack.Image
         /// </summary>
         /// <param name="filename">The filename.</param>
         public ImageInput(string filename)
-            : this(ImageService.Load(filename)) { }
+            : this(ImageService.Load(filename))
+        {
+            _sourceFile = filename;
+        }
 
 
         /// <summary>
@@ -69,14 +75,30 @@ namespace TensorStack.Image
         /// </summary>
         public WriteableBitmap Image => _image;
 
+        /// <summary>
+        /// Gets the source Image filename.
+        /// </summary>
+        public override string SourceFile => _sourceFile;
+
 
         /// <summary>
         /// Saves the image.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        public void Save(string filename)
+        public override void Save(string filename)
         {
             _image.Save(filename);
+        }
+
+
+        /// <summary>
+        /// Save the Image to file
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        /// <param name="cancellationToken">The cancellation token</param>
+        public override Task SaveAsync(string filename, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => Save(filename), cancellationToken);
         }
 
 
