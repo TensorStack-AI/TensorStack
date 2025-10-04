@@ -9,13 +9,16 @@ using System.Threading.Tasks;
 using TensorStack.Common;
 using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
+using TensorStack.TextGeneration.Cache;
 using TensorStack.TextGeneration.Common;
 using TensorStack.TextGeneration.Processing;
 using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines.Phi
 {
-    public class Phi3Pipeline : DecoderPipeline<GenerateOptions>, ITextGeneration
+    public class Phi3Pipeline : DecoderPipeline<GenerateOptions>,
+        IPipeline<GenerateResult, GenerateOptions, GenerateProgress>,
+        IPipeline<GenerateResult[], SearchOptions, GenerateProgress>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Phi3Pipeline"/> class.

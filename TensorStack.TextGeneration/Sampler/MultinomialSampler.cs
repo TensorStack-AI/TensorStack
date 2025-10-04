@@ -4,9 +4,9 @@ using TensorStack.Common.Tensor;
 using TensorStack.TextGeneration;
 using TensorStack.TextGeneration.Common;
 
-namespace TensorStack.TextGeneration.Processing.Sampler
+namespace TensorStack.TextGeneration.Sampler
 {
-    public class MultinomialSampler : Sampler
+    public class MultinomialSampler : SamplerBase
     {
         private readonly Random _random;
 

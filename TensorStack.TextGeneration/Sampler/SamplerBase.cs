@@ -3,27 +3,43 @@ using System;
 using System.Collections.Generic;
 using TensorStack.Common;
 using TensorStack.Common.Tensor;
+using TensorStack.TextGeneration;
 using TensorStack.TextGeneration.Common;
 
-namespace TensorStack.TextGeneration.Processing.Sampler
+namespace TensorStack.TextGeneration.Sampler
 {
-    public abstract class Sampler
+    public abstract class SamplerBase
     {
-        public Sampler(GenerateOptions options)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SamplerBase"/> class.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        protected SamplerBase(GenerateOptions options)
         {
             Options = options;
         }
 
+        /// <summary>
+        /// Gets the options.
+        /// </summary>
         protected GenerateOptions Options { get; }
 
+        /// <summary>
+        /// Samples the specified logits.
+        /// </summary>
+        /// <param name="logits">The logits.</param>
+        /// <param name="topK">The top k.</param>
+        /// <param name="topP">The top p.</param>
+        /// <param name="temperature">The temperature.</param>
         public abstract LogitResult[] Sample(Tensor<float> logits, int topK = 1, float topP = 1f, float temperature = 1f);
+
 
         /// <summary>
         /// Gets the probabilities.
         /// </summary>
         /// <param name="topkLogits">The topk logits.</param>
         /// <returns>Span&lt;LogitResult&gt;.</returns>
-        protected Span<LogitResult> GetProbabilities(TopkResult topkLogits)
+        protected static Span<LogitResult> GetProbabilities(TopkResult topkLogits)
         {
             var probabilities = topkLogits.V.SoftMax();
             var logitProbabilities = new LogitResult[probabilities.Dimensions[1]].AsSpan();
@@ -40,7 +56,7 @@ namespace TensorStack.TextGeneration.Processing.Sampler
         /// <param name="logits">The logits.</param>
         /// <param name="topk">The topk.</param>
         /// <returns>TopkResult.</returns>
-        protected TopkResult SelectTopK(Tensor<float> logits, int topk)
+        protected static TopkResult SelectTopK(Tensor<float> logits, int topk)
         {
             var indices = new Tensor<long>([1, topk]);
             var topKLogits = new Tensor<float>([1, topk]);
@@ -69,7 +85,7 @@ namespace TensorStack.TextGeneration.Processing.Sampler
         /// <param name="candidates">The candidates.</param>
         /// <param name="topP">The top p.</param>
         /// <returns>Span&lt;LogitResult&gt;.</returns>
-        protected Span<LogitResult> SelectTopP(Span<LogitResult> candidates, float topP)
+        protected static Span<LogitResult> SelectTopP(Span<LogitResult> candidates, float topP)
         {
             if (topP < 1f)
             {

@@ -3,7 +3,7 @@
 using Microsoft.ML.OnnxRuntime;
 using System;
 
-namespace TensorStack.TextGeneration.Processing
+namespace TensorStack.TextGeneration.Cache
 {
     public interface IKVCache : IDisposable
     {

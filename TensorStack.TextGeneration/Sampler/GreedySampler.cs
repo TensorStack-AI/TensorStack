@@ -2,9 +2,9 @@
 using TensorStack.Common.Tensor;
 using TensorStack.TextGeneration.Common;
 
-namespace TensorStack.TextGeneration.Processing.Sampler
+namespace TensorStack.TextGeneration.Sampler
 {
-    public class GreedySampler : Sampler
+    public class GreedySampler : SamplerBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GreedySampler"/> class.

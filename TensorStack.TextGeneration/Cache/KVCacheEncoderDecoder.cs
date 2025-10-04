@@ -4,7 +4,7 @@ using Microsoft.ML.OnnxRuntime;
 using TensorStack.Common;
 using Metadata = TensorStack.Common.ModelMetadata;
 
-namespace TensorStack.TextGeneration.Processing
+namespace TensorStack.TextGeneration.Cache
 {
     public sealed class KVCacheEncoderDecoder : IKVCache
     {

@@ -3,7 +3,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace TensorStack.TextGeneration.Processing
+namespace TensorStack.TextGeneration
 {
     public class SequenceCollection : IEnumerable<Sequence>
     {

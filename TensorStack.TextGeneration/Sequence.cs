@@ -3,8 +3,9 @@
 using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
+using TensorStack.TextGeneration.Cache;
 
-namespace TensorStack.TextGeneration.Processing
+namespace TensorStack.TextGeneration
 {
     public sealed class Sequence : IDisposable
     {

@@ -11,7 +11,7 @@ using TensorStack.Common.Tensor;
 using TensorStack.TextGeneration.Common;
 using TensorStack.TextGeneration.Pipelines.Phi;
 using TensorStack.TextGeneration.Processing;
-using TensorStack.TextGeneration.Processing.Sampler;
+using TensorStack.TextGeneration.Sampler;
 using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines
@@ -105,7 +105,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// Gets the sampler.
         /// </summary>
         /// <param name="options">The options.</param>
-        protected virtual Sampler GetSampler(O options, bool isBeamSerach)
+        protected virtual SamplerBase GetSampler(O options, bool isBeamSerach)
         {
             return isBeamSerach
                 ? new MultinomialSampler(options)

@@ -11,7 +11,9 @@ using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.TextGeneration.Pipelines.Other
 {
-    public class SummaryPipeline : EncoderDecoderPipeline<GenerateOptions>, ITextGeneration
+    public class SummaryPipeline : EncoderDecoderPipeline<GenerateOptions>, 
+        IPipeline<GenerateResult, GenerateOptions, GenerateProgress>,
+        IPipeline<GenerateResult[], SearchOptions, GenerateProgress>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SummaryPipeline"/> class.

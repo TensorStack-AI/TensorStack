@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace TensorStack.TextGeneration.Processing
+namespace TensorStack.TextGeneration
 {
     public sealed class SequenceComparer : IEqualityComparer<Sequence>
     {

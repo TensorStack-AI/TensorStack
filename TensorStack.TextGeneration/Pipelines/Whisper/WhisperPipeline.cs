@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using TensorStack.Common;
 using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
+using TensorStack.TextGeneration.Cache;
 using TensorStack.TextGeneration.Common;
 using TensorStack.TextGeneration.Pipelines.Florence;
 using TensorStack.TextGeneration.Processing;
