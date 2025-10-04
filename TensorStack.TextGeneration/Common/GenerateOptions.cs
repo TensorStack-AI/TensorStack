@@ -18,6 +18,6 @@ namespace TensorStack.TextGeneration.Common
         public float Temperature { get; set; } = 1.0f;
         public float LengthPenalty { get; set; } = 1.0f;
         public EarlyStopping EarlyStopping { get; set; }
-        public int DiversityLength { get; set; } = 5;
+        public int DiversityLength { get; set; } = 20;
     }
 }

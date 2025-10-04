@@ -1,13 +1,11 @@
 // Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace TensorStack.TextGeneration.Processing
 {
-    public class SequenceComparer : IEqualityComparer<Sequence>
+    public sealed class SequenceComparer : IEqualityComparer<Sequence>
     {
         private readonly HashSet<long> _specialTokens;
         private int _compareLength;
@@ -19,8 +17,8 @@ namespace TensorStack.TextGeneration.Processing
         /// <param name="compareLength">Length of the compare.</param>
         public SequenceComparer(IReadOnlyDictionary<long, string> specialTokens, int compareLength = int.MaxValue)
         {
-            SetLength(compareLength);
             _specialTokens = [.. specialTokens.Keys];
+            _compareLength = Math.Max(1, compareLength);
         }
 
 
@@ -35,9 +33,26 @@ namespace TensorStack.TextGeneration.Processing
             if (x == null || y == null)
                 return false;
 
-            var normX = NormalizeTokens(x.Tokens);
-            var normY = NormalizeTokens(y.Tokens);
-            return normX.SequenceEqual(normY);
+            int cx = 0, cy = 0;
+            var xt = x.Tokens;
+            var yt = y.Tokens;
+            int xi = 0, yi = 0;
+            while (xi < xt.Count && yi < yt.Count && cx < _compareLength && cy < _compareLength)
+            {
+                while (xi < xt.Count && _specialTokens.Contains(xt[xi])) xi++;
+                while (yi < yt.Count && _specialTokens.Contains(yt[yi])) yi++;
+
+                if (xi >= xt.Count || yi >= yt.Count)
+                    break;
+
+                if (xt[xi] != yt[yi])
+                    return false;
+
+                xi++; yi++;
+                cx++; cy++;
+            }
+
+            return cx == cy;
         }
 
 
@@ -50,9 +65,18 @@ namespace TensorStack.TextGeneration.Processing
         {
             unchecked
             {
-                int hash = 17;
-                foreach (var val in NormalizeTokens(obj.Tokens))
-                    hash = hash * 23 + val.GetHashCode();
+                var hash = 17;
+                var count = 0;
+                var tokens = obj.Tokens;
+                for (int i = 0; i < tokens.Count && count < _compareLength; i++)
+                {
+                    var t = tokens[i];
+                    if (_specialTokens.Contains(t))
+                        continue;
+
+                    hash = hash * 23 + t.GetHashCode();
+                    count++;
+                }
                 return hash;
             }
         }
@@ -67,18 +91,5 @@ namespace TensorStack.TextGeneration.Processing
             _compareLength = Math.Max(1, length);
         }
 
-
-        /// <summary>
-        /// Normalizes the tokens.
-        /// </summary>
-        /// <param name="tokens">The tokens.</param>
-        /// <returns>IEnumerable&lt;System.Int64&gt;.</returns>
-        private IEnumerable<long> NormalizeTokens(IReadOnlyList<long> tokens)
-        {
-            foreach (var t in tokens.Except(_specialTokens).Take(_compareLength))
-            {
-                yield return t;
-            }
-        }
     }
 }
