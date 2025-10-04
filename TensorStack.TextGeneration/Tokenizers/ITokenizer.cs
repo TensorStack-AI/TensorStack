@@ -31,6 +31,18 @@ namespace TensorStack.TextGeneration.Tokenizers
         Task<TokenizerResult> EncodeAsync(ReadOnlySpan<char> input);
 
         /// <summary>
+        /// Decodes the specified token.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        string Decode(int token, bool considerSpecialTokens = false);
+
+        /// <summary>
+        /// Decodes the specified token.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        string Decode(long token, bool considerSpecialTokens = false);
+
+        /// <summary>
         /// Decodes the specified tokens to string.
         /// </summary>
         /// <param name="tokens">The tokens.</param>

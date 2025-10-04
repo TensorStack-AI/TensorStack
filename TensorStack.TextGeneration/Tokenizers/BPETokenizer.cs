@@ -101,6 +101,26 @@ namespace TensorStack.TextGeneration.Tokenizers
 
 
         /// <summary>
+        /// Decodes the specified token.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        public string Decode(int token, bool considerSpecialTokens = false)
+        {
+            return Decode(token);
+        }
+
+
+        /// <summary>
+        /// Decodes the specified token.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        public string Decode(long token, bool considerSpecialTokens = false)
+        {
+            return VocabularyMap[token];
+        }
+
+
+        /// <summary>
         /// TokenId to Token.
         /// </summary>
         /// <param name="id">The identifier.</param>

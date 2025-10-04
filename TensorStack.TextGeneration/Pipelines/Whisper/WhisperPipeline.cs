@@ -17,8 +17,8 @@ using TensorStack.TextGeneration.Tokenizers;
 namespace TensorStack.TextGeneration.Pipelines.Whisper
 {
     public class WhisperPipeline : EncoderDecoderPipeline<WhisperOptions>,
-        IPipeline<GenerateResult, WhisperOptions>,
-        IPipeline<GenerateResult[], WhisperSearchOptions>
+        IPipeline<GenerateResult, WhisperOptions, GenerateProgress>,
+        IPipeline<GenerateResult[], WhisperSearchOptions, GenerateProgress>
     {
         private readonly PreProcessor _preProcessor;
         private Tensor<float> _currentAudioSample;
@@ -42,14 +42,14 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;GenerateResult&gt; representing the asynchronous operation.</returns>
-        public async Task<GenerateResult> RunAsync(WhisperOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<GenerateResult> RunAsync(WhisperOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var result = default(GenerateResult);
             var audioSamples = _preProcessor.ProcessInput(options.AudioInput);
             foreach (var sample in audioSamples)
             {
                 await RunEncoderAsync(sample);
-                var sequence = await GreedySearchAsync(options, cancellationToken);
+                var sequence = await GreedySearchAsync(options, progressCallback, cancellationToken);
                 using (sequence)
                 {
                     if (result != null)
@@ -79,14 +79,14 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public async Task<GenerateResult[]> RunAsync(WhisperSearchOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<GenerateResult[]> RunAsync(WhisperSearchOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var results = new List<GenerateResult>();
             var audioSamples = _preProcessor.ProcessInput(options.AudioInput);
             foreach (var sample in audioSamples)
             {
                 await RunEncoderAsync(sample);
-                var sequences = await BeamSearchAsync(options, cancellationToken);
+                var sequences = await BeamSearchAsync(options, progressCallback, cancellationToken);
                 for (int beam = 0; beam < sequences.Length; beam++)
                 {
                     var sequence = sequences[beam];

@@ -18,8 +18,8 @@ using TensorStack.TextGeneration.Tokenizers;
 namespace TensorStack.TextGeneration.Pipelines.Florence
 {
     public class FlorencePipeline : EncoderDecoderPipeline<FlorenceOptions>,
-         IPipeline<GenerateResult, FlorenceOptions>,
-         IPipeline<GenerateResult[], FlorenceSearchOptions>
+         IPipeline<GenerateResult, FlorenceOptions, GenerateProgress>,
+         IPipeline<GenerateResult[], FlorenceSearchOptions, GenerateProgress>
     {
         private readonly FlorenceConfig _configuration;
         private readonly PreProcessor _preProcessor;
@@ -83,7 +83,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;GenerateResult&gt; representing the asynchronous operation.</returns>
-        public virtual async Task<GenerateResult> RunAsync(FlorenceOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public virtual async Task<GenerateResult> RunAsync(FlorenceOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var textPrompt = _preProcessor.ProcessPrompt(options);
             var imagePrompt = _preProcessor.ProcessImage(options);
@@ -93,7 +93,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
             _visionOutput = await RunVisionEncoderAsync(embedsOutput, imagePrompt);
             EncoderOutput = await RunEncoderAsync();
 
-            var sequence = await GreedySearchAsync(options, cancellationToken);
+            var sequence = await GreedySearchAsync(options, progressCallback, cancellationToken);
             using (sequence)
             {
                 var processedBeamOutput = _postProcessor.Process(options, sequence.Tokens);
@@ -107,7 +107,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
         }
 
 
-        public virtual async Task<GenerateResult[]> RunAsync(FlorenceSearchOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public virtual async Task<GenerateResult[]> RunAsync(FlorenceSearchOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var textPrompt = _preProcessor.ProcessPrompt(options);
             var imagePrompt = _preProcessor.ProcessImage(options);
@@ -117,7 +117,7 @@ namespace TensorStack.TextGeneration.Pipelines.Florence
             _visionOutput = await RunVisionEncoderAsync(embedsOutput, imagePrompt);
             EncoderOutput = await RunEncoderAsync();
 
-            var sequences = await BeamSearchAsync(options, cancellationToken);
+            var sequences = await BeamSearchAsync(options, progressCallback, cancellationToken);
             var results = new GenerateResult[sequences.Length];
             for (int beam = 0; beam < sequences.Length; beam++)
             {

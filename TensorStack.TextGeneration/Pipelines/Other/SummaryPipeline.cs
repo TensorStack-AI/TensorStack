@@ -28,11 +28,11 @@ namespace TensorStack.TextGeneration.Pipelines.Other
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;GenerateResult&gt; representing the asynchronous operation.</returns>
-        public async Task<GenerateResult> RunAsync(GenerateOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<GenerateResult> RunAsync(GenerateOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             await TokenizePromptAsync(options);
 
-            var sequence = await GreedySearchAsync(options, cancellationToken);
+            var sequence = await GreedySearchAsync(options, progressCallback, cancellationToken);
             using (sequence)
             {
                 return new GenerateResult
@@ -51,11 +51,11 @@ namespace TensorStack.TextGeneration.Pipelines.Other
         /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public async Task<GenerateResult[]> RunAsync(SearchOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<GenerateResult[]> RunAsync(SearchOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             await TokenizePromptAsync(options);
 
-            var sequences = await BeamSearchAsync(options, cancellationToken);
+            var sequences = await BeamSearchAsync(options, progressCallback, cancellationToken);
             var results = new GenerateResult[sequences.Length];
             for (int beam = 0; beam < sequences.Length; beam++)
             {

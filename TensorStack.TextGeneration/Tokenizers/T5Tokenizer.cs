@@ -103,6 +103,38 @@ namespace TensorStack.TextGeneration.Tokenizers
 
 
         /// <summary>
+        /// Decodes the specified token.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <param name="considerSpecialTokens">if set to <c>true</c> [consider special tokens].</param>
+        public string Decode(int token, bool considerSpecialTokens = false)
+        {
+            return Decode(token);
+        }
+
+
+        /// <summary>
+        /// Decodes the specified token.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <param name="considerSpecialTokens">if set to <c>true</c> [consider special tokens].</param>
+        public string Decode(long token, bool considerSpecialTokens = false)
+        {
+            var vocabResult = _tokenizer.Vocabulary.FirstOrDefault(x => x.Value == token);
+            if (vocabResult.Key is not null)
+                return vocabResult.Key.Replace('▁', ' ');
+
+            if (considerSpecialTokens)
+            {
+                var specialToken = _tokenizer.SpecialTokens.FirstOrDefault(x => x.Value == token);
+                if (specialToken.Key is not null)
+                    return specialToken.Key.Replace('▁', ' ');
+            }
+            return string.Empty;
+        }
+
+
+        /// <summary>
         /// Creates the tokenizer.
         /// </summary>
         /// <returns>SentencePieceTokenizer.</returns>

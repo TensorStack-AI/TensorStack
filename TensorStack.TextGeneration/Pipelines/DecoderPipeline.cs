@@ -119,7 +119,7 @@ namespace TensorStack.TextGeneration.Pipelines
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;Sequence&gt; representing the asynchronous operation.</returns>
-        protected virtual async Task<Sequence> GreedySearchAsync(O options, CancellationToken cancellationToken = default)
+        protected virtual async Task<Sequence> GreedySearchAsync(O options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var sampler = GetSampler(options, false);
             var logitsProcessors = GetLogitsProcessor(options);
@@ -142,6 +142,9 @@ namespace TensorStack.TextGeneration.Pipelines
                 sequence.Tokens.Add(sample.TokenId);
                 sequence.Score += sample.Score;
 
+                // Notify
+                NotifyProgress(progressCallback, sequence);
+
                 // Check Completion
                 if (tokenProcessors.Any(x => x.Process(sequence)))
                     break;
@@ -158,13 +161,14 @@ namespace TensorStack.TextGeneration.Pipelines
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;Sequence[]&gt; representing the asynchronous operation.</returns>
-        protected virtual async Task<Sequence[]> BeamSearchAsync(O options, CancellationToken cancellationToken = default)
-        {   
+        protected virtual async Task<Sequence[]> BeamSearchAsync(O options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        {
             var sampler = GetSampler(options, true);
             var logitsProcessors = GetLogitsProcessor(options);
             var tokenProcessors = GetTokenProcessors(options);
 
             var initialPass = true;
+            var progressTokens = new List<long>();
             var sequence = await InitializeAsync(options);
             var activeBeams = new SequenceCollection(sequence, options.Beams);
             while (!cancellationToken.IsCancellationRequested)
@@ -221,9 +225,9 @@ namespace TensorStack.TextGeneration.Pipelines
 
 
                 // Process Beams
+                var bestBeam = activeBeams[0];
                 foreach (var beam in activeBeams)
                 {
-                    Console.WriteLine(Tokenizer.Decode(beam.Tokens));
                     if (beam.IsComplete)
                         continue;
 
@@ -232,6 +236,9 @@ namespace TensorStack.TextGeneration.Pipelines
                         beam.IsComplete = true;
                     }
                 }
+
+                // Notify
+                NotifyProgress(progressCallback, bestBeam, progressTokens);
 
                 // Check Completion
                 if (activeBeams.All(x => x.IsComplete))
@@ -325,7 +332,7 @@ namespace TensorStack.TextGeneration.Pipelines
                 .Where(x => x.IsComplete)
                 .OrderByDescending(s => s.PenaltyScore)
                 .ToArray();
- 
+
             sequences.Remove(resultSequences);
             sequences.Clear();
             return resultSequences;
@@ -352,6 +359,52 @@ namespace TensorStack.TextGeneration.Pipelines
                 .Select(Convert.ToInt64)
                 .ToArray();
             return new Tensor<long>(positionIds, [1, positionIds.Length]);
+        }
+
+
+        /// <summary>
+        /// Notify token progress.
+        /// </summary>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="sequence">The sequence.</param>
+        /// <param name="previousTokens">The previous tokens.</param>
+        protected void NotifyProgress(IProgress<GenerateProgress> progressCallback, Sequence sequence, List<long> previousTokens = null)
+        {
+            if (progressCallback == null)
+                return;
+
+            string result;
+            var hasBeamChanged = false;
+            var newToken = sequence.Tokens[^1];
+            if (previousTokens == null)
+            {
+                result = Tokenizer.Decode(newToken);
+            }
+            else
+            {
+                var newTokens = sequence.Tokens[..^1];
+                if (sequence.Length == previousTokens.Count)
+                    return;
+
+                hasBeamChanged = !previousTokens.SequenceEqual(newTokens);
+                if (hasBeamChanged)
+                {
+                    previousTokens.Clear();
+                    previousTokens.AddRange(sequence.Tokens);
+                    result = Tokenizer.Decode(previousTokens);
+                }
+                else
+                {
+                    previousTokens.Add(newToken);
+                    result = Tokenizer.Decode(newToken);
+                }
+            }
+
+            progressCallback.Report(new GenerateProgress
+            {
+                Result = result,
+                IsReset = hasBeamChanged
+            });
         }
 
 
