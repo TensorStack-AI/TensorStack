@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
+    <Description></Description>
   </PropertyGroup>
-
 
   <!--Projects-->
   <ItemGroup Condition=" '$(Configuration)' == 'Debug'">
@@ -14,13 +14,6 @@
   <!--Packages-->
   <ItemGroup Condition=" '$(Configuration)' == 'Release'">
     <PackageReference Include="TensorStack.Common" Version="$(Version)" />
-  </ItemGroup>
-
-  <!--Common Packages-->
-  <ItemGroup>
-    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0-preview.1.25125.4" />
-    <PackageReference Include="System.Linq.Async" Version="6.0.3" />
   </ItemGroup>
 
 
@@ -33,15 +26,13 @@
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <None Remove="README.md" />
-    <None Remove="*/*/README.md" />
     <None Remove="Icon.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <None Remove="Add.png" />
     <None Update="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
-    </None>
-    <None Update="*/*/README.md">
     </None>
     <None Include="..\Assets\Icon.png">
       <Pack>True</Pack>
