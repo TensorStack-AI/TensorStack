@@ -1,31 +1,43 @@
 ﻿using Microsoft.ML.OnnxRuntime;
+using System.Collections.Generic;
 using TensorStack.Common;
 
 namespace TensorStack.Providers
 {
     public static class Provider
     {
-        public const string CPUProviderName = "CPU Provider";
-        public const string DMLProviderName = "DirectML Provider";
+        private const string DMLProviderName = "DMLExecutionProvider";
+        private static IReadOnlyList<Device> _devices;
 
         /// <summary>
-        /// Gets the CPU provider.
+        /// Initializes the Provider with the specified environment options.
         /// </summary>
-        /// <param name="optimizationLevel">The optimization level.</param>
-        /// <returns>ExecutionProvider.</returns>
-        public static ExecutionProvider GetProvider(GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        /// <param name="environmentOptions">The environment options.</param>
+        public static void Initialize(EnvironmentCreationOptions environmentOptions)
         {
-            return new ExecutionProvider(CPUProviderName, OrtMemoryInfo.DefaultInstance, configuration =>
-            {
-                var sessionOptions = new SessionOptions
-                {
-                    EnableCpuMemArena = true,
-                    EnableMemoryPattern = true,
-                    GraphOptimizationLevel = optimizationLevel
-                };
-                sessionOptions.AppendExecutionProvider_CPU();
-                return sessionOptions;
-            });
+            Devices.Initialize(environmentOptions);
+            GetDevices();
+        }
+
+
+        /// <summary>
+        /// Gets the DirectML devices.
+        /// </summary>
+        public static IReadOnlyList<Device> GetDevices()
+        {
+            _devices ??= Devices.GetDevices(DMLProviderName);
+            return _devices;
+        }
+
+
+        /// <summary>
+        /// Gets the DirectML provider.
+        /// </summary>
+        /// <param name="device">The device.</param>
+        /// <param name="optimizationLevel">The optimization level.</param>
+        public static ExecutionProvider GetProvider(Device device, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        {
+            return GetProvider(device.DeviceId, optimizationLevel);
         }
 
 

@@ -26,5 +26,25 @@ namespace TensorStack.Common
         {
             return _sessionOptionsFactory(modelConfig);
         }
+
+        /// <summary>
+        /// Gets default CPU provider.
+        /// </summary>
+        /// <param name="optimizationLevel">The optimization level.</param>
+        /// <returns>ExecutionProvider.</returns>
+        public static ExecutionProvider GetDefault(GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        {
+            return new ExecutionProvider("CPU Provider", OrtMemoryInfo.DefaultInstance, configuration =>
+            {
+                var sessionOptions = new SessionOptions
+                {
+                    EnableCpuMemArena = true,
+                    EnableMemoryPattern = true,
+                    GraphOptimizationLevel = optimizationLevel
+                };
+                sessionOptions.AppendExecutionProvider_CPU();
+                return sessionOptions;
+            });
+        }
     }
 }
