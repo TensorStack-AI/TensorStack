@@ -1,7 +1,7 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-using System;
 using Microsoft.ML.OnnxRuntime;
+using System;
 
 namespace TensorStack.Common
 {
@@ -9,7 +9,6 @@ namespace TensorStack.Common
     {
         private readonly string _name;
         private readonly OrtMemoryInfo _memoryInfo;
-     
         private readonly Func<ModelConfig, SessionOptions> _sessionOptionsFactory;
 
         public ExecutionProvider(string name, OrtMemoryInfo memoryInfo, Func<ModelConfig, SessionOptions> sessionOptionsFactory)
@@ -25,26 +24,6 @@ namespace TensorStack.Common
         public SessionOptions CreateSession(ModelConfig modelConfig)
         {
             return _sessionOptionsFactory(modelConfig);
-        }
-
-        /// <summary>
-        /// Gets default CPU provider.
-        /// </summary>
-        /// <param name="optimizationLevel">The optimization level.</param>
-        /// <returns>ExecutionProvider.</returns>
-        public static ExecutionProvider GetDefault(GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
-        {
-            return new ExecutionProvider("CPU Provider", OrtMemoryInfo.DefaultInstance, configuration =>
-            {
-                var sessionOptions = new SessionOptions
-                {
-                    EnableCpuMemArena = true,
-                    EnableMemoryPattern = true,
-                    GraphOptimizationLevel = optimizationLevel
-                };
-                sessionOptions.AppendExecutionProvider_CPU();
-                return sessionOptions;
-            });
         }
     }
 }
