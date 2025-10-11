@@ -116,7 +116,10 @@ namespace TensorStack.TextGeneration.Tokenizers
         /// <param name="token">The token.</param>
         public string Decode(long token, bool considerSpecialTokens = false)
         {
-            return VocabularyMap[token];
+            if (!considerSpecialTokens && SpecialTokensMap.ContainsKey(token))
+                return string.Empty;
+
+            return TokensToString([VocabularyMap[token]]);
         }
 
 

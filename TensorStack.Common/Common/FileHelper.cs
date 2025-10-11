@@ -40,6 +40,7 @@ namespace TensorStack.Common.Common
 
         public static string RandomFileName(string directory, string extension)
         {
+            Directory.CreateDirectory(directory);
             return Path.Combine(directory, RandomFileName(extension));
         }
     }

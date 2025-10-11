@@ -6,6 +6,8 @@ namespace TensorStack.Common
 {
     public record ModelConfig
     {
+        private ExecutionProvider _executionProvider;
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public string Path { get; set; }
 
@@ -13,11 +15,15 @@ namespace TensorStack.Common
         public bool IsOptimizationSupported { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public ExecutionProvider ExecutionProvider { get; private set; }
+        public ExecutionProvider ExecutionProvider
+        {
+            get { return _executionProvider; }
+            init { _executionProvider = value; }
+        }
 
         public virtual void SetProvider(ExecutionProvider executionProvider)
         {
-            ExecutionProvider = executionProvider;
+            _executionProvider = executionProvider;
         }
     }
 }

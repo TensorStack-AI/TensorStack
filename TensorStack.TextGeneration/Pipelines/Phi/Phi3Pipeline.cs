@@ -123,7 +123,7 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
             var inputIds = TokenizerOutput.InputIds;
             var positionIds = GetPositionIds(modelMetadata, 0, position);
             var attentionMask = new Tensor<long>([1, position], 1);
-            RunDecoderInternalAsync(modelMetadata, sequence, inputIds, positionIds, attentionMask, false);
+            RunDecoderInternal(modelMetadata, sequence, inputIds, positionIds, attentionMask, false);
             return sequence;
         }
 
@@ -140,7 +140,7 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
             var inputIds = new Tensor<long>([1, 1], sequence.Tokens[^1]);
             var positionIds = GetPositionIds(modelMetadata, position);
             var attentionMask = new Tensor<long>([1, position], 1);
-            return RunDecoderInternalAsync(modelMetadata, sequence, inputIds, positionIds, attentionMask, true);
+            return RunDecoderInternal(modelMetadata, sequence, inputIds, positionIds, attentionMask, true);
         }
 
 
@@ -153,7 +153,7 @@ namespace TensorStack.TextGeneration.Pipelines.Phi
         /// <param name="positionIds">The position ids.</param>
         /// <param name="attentionMask">The attention mask.</param>
         /// <param name="useBranchCache">if set to <c>true</c> [use branch cache].</param>
-        private Tensor<float> RunDecoderInternalAsync(ModelMetadata modelMetadata, Sequence sequence, Tensor<long> inputIds, Tensor<long> positionIds, Tensor<long> attentionMask, bool useBranchCache)
+        private Tensor<float> RunDecoderInternal(ModelMetadata modelMetadata, Sequence sequence, Tensor<long> inputIds, Tensor<long> positionIds, Tensor<long> attentionMask, bool useBranchCache)
         {
             using (var parameters = new ModelParameters(modelMetadata))
             {
