@@ -2,6 +2,8 @@
 // Licensed under the Apache 2.0 License.
 using TensorStack.Common;
 using TensorStack.Common.Pipeline;
+using TensorStack.Common.Tensor;
+using TensorStack.Common.Video;
 
 namespace TensorStack.Upscaler.Common
 {
@@ -24,5 +26,44 @@ namespace TensorStack.Upscaler.Common
         /// The tile overlap in pixels to avoid visible seams.
         /// </summary>
         public int TileOverlap { get; init; }
+    }
+
+
+
+    /// <summary>
+    /// Image UpscaleOptions.
+    /// </summary>
+    public sealed record UpscaleImageOptions : UpscaleOptions
+    {
+        /// <summary>
+        /// Gets the image input.
+        /// </summary>
+        public ImageTensor Image { get; init; }
+    }
+
+
+
+    /// <summary>
+    /// Video UpscaleOptions.
+    /// </summary>
+    public sealed record UpscaleVideoOptions : UpscaleOptions
+    {
+        /// <summary>
+        /// Gets the video input.
+        /// </summary>
+        public VideoTensor Video { get; init; }
+    }
+
+
+
+    /// <summary>
+    /// Stream UpscaleOptions.
+    /// </summary>
+    public sealed record UpscaleStreamOptions : UpscaleOptions
+    {
+        /// <summary>
+        /// Gets the stream input.
+        /// </summary>
+        public VideoStream Stream { get; init; }
     }
 }

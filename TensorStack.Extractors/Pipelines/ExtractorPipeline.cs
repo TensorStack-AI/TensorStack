@@ -65,16 +65,16 @@ namespace TensorStack.Extractors.Pipelines
         {
             var timestamp = RunProgress.GetTimestamp();
             if (_extractorModel.Normalization == Normalization.ZeroToOne)
-                options.Input.NormalizeZeroToOne();
+                options.Image.NormalizeZeroToOne();
 
-            var resultTensor = await ExtractInternalAsync(options.Input, options, cancellationToken);
+            var resultTensor = await ExtractInternalAsync(options.Image, options, cancellationToken);
             NormalizeResult(resultTensor, options.IsInverted);
 
             if (_extractorModel.Normalization == Normalization.ZeroToOne)
-                options.Input.NormalizeOneToOne();
+                options.Image.NormalizeOneToOne();
 
             if (options.MergeInput)
-                resultTensor = MergeResult(options.Input, resultTensor);
+                resultTensor = MergeResult(options.Image, resultTensor);
 
             progressCallback?.Report(new RunProgress(timestamp));
             return resultTensor;
@@ -93,10 +93,10 @@ namespace TensorStack.Extractors.Pipelines
         {
             var timestamp = RunProgress.GetTimestamp();
             if (_extractorModel.Normalization == Normalization.ZeroToOne)
-                options.Input.NormalizeZeroToOne();
+                options.Video.NormalizeZeroToOne();
 
             var results = new List<ImageTensor>();
-            foreach (var frame in options.Input.GetFrames())
+            foreach (var frame in options.Video.GetFrames())
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 var resultTensor = await ExtractInternalAsync(frame, options, cancellationToken);
@@ -107,10 +107,10 @@ namespace TensorStack.Extractors.Pipelines
                     resultTensor = MergeResult(frame, resultTensor);
 
                 results.Add(resultTensor);
-                progressCallback?.Report(new RunProgress(results.Count, options.Input.Frames, frameTime));
+                progressCallback?.Report(new RunProgress(results.Count, options.Video.Frames, frameTime));
             }
 
-            var resultVideoTensor = new VideoTensor(results.Join(), options.Input.FrameRate);
+            var resultVideoTensor = new VideoTensor(results.Join(), options.Video.FrameRate);
             progressCallback?.Report(new RunProgress(timestamp));
             return resultVideoTensor;
         }
@@ -129,7 +129,7 @@ namespace TensorStack.Extractors.Pipelines
         {
             var frameCount = 0;
             var timestamp = RunProgress.GetTimestamp();
-            await foreach (var videoFrame in options.Input)
+            await foreach (var videoFrame in options.Stream)
             {
                 var frameTime = Stopwatch.GetTimestamp();
                 if (_extractorModel.Normalization == Normalization.ZeroToOne)

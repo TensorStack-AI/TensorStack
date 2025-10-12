@@ -41,4 +41,12 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Interpolation.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -237,10 +237,12 @@ namespace TensorStack.Common
 
             if (disposing)
             {
-                _allocator?.Dispose();
-                _options?.Dispose();
                 _session?.Dispose();
+                _options?.Dispose();
+                _allocator?.Dispose();
                 _session = null;
+                _options = null;
+                _allocator = null;
             }
 
             disposed = true;

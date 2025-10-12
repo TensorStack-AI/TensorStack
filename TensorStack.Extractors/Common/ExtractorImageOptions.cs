@@ -6,6 +6,6 @@ namespace TensorStack.Extractors.Common
 {
     public record ExtractorImageOptions : ExtractorOptions
     {
-        public ImageTensor Input { get; init; }
+        public ImageTensor Image { get; init; }
     }
 }
