@@ -102,11 +102,11 @@ namespace TensorStack.Video.Pipelines
         public async IAsyncEnumerable<VideoFrame> RunAsync(InterpolationStreamOptions options, IProgress<RunProgress> progressCallback = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var frameIndex = 0;
-            var totalFrames = options.Stream.FrameCount * options.Multiplier;
-            var newFrameRate = options.Stream.FrameRate * options.Multiplier;
+            var totalFrames = options.FrameCount * options.Multiplier;
+            var newFrameRate = options.FrameRate * options.Multiplier;
 
             var previousFrame = default(ImageTensor);
-            var extraFramePositions = GetFlowEstimationKeyFrames(options.Stream.FrameCount, options.Multiplier);
+            var extraFramePositions = GetFlowEstimationKeyFrames(options.FrameCount, options.Multiplier);
             await foreach (var frame in options.Stream)
             {
                 var currentFrame = frame.Frame.CloneAs();

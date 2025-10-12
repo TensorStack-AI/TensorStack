@@ -1,5 +1,6 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
+using System.Collections.Generic;
 using TensorStack.Common;
 using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
@@ -64,6 +65,6 @@ namespace TensorStack.Upscaler.Common
         /// <summary>
         /// Gets the stream input.
         /// </summary>
-        public VideoStream Stream { get; init; }
+        public IAsyncEnumerable<VideoFrame> Stream { get; init; }
     }
 }

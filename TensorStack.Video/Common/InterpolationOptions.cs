@@ -1,4 +1,5 @@
-﻿using TensorStack.Common.Pipeline;
+﻿using System.Collections.Generic;
+using TensorStack.Common.Pipeline;
 using TensorStack.Common.Tensor;
 using TensorStack.Common.Video;
 
@@ -29,6 +30,8 @@ namespace TensorStack.Video.Common
     /// </summary>
     public sealed record InterpolationStreamOptions : InterpolationOptions
     {
-        public VideoStream Stream { get; init; }
+        public int FrameCount { get; init; }
+        public float FrameRate { get; init; }
+        public IAsyncEnumerable<VideoFrame> Stream { get; init; }
     }
 }

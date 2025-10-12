@@ -153,6 +153,7 @@ You can use the TensorStack.Audio package to restore audio from the source video
 ```
 ---
 
+
 ## Tiling Support
 Tiling allows images and video frames to be processed in smaller sections (tiles) instead of all at once. This helps reduce memory usage and can improve performance when working with very large images or high-resolution videos.
 
@@ -183,3 +184,56 @@ Here is a list of some known and tested models compatible with `TensorStack.Upsc
 - [Xenova/swin2SR-classical-sr-x4-64](https://huggingface.co/Xenova/swin2SR-classical-sr-x4-64)  
 - [Neus/GFPGANv1.4](https://huggingface.co/Neus/GFPGANv1.4)  
 - [TensorStack/Upscale-amuse](https://huggingface.co/TensorStack/Upscale-amuse)  
+
+---
+
+## Combining Pipelines
+TensorStack supports chaining multiple pipelines together using `IAsyncEnumerable` streams.  
+This allows complex video processing workflows—such as upscaling and frame interpolation—to be executed efficiently in a **single pass** without storing intermediate results in memory.
+
+In the following example, the video is upscaled by **4×** and its frame rate is increased by **3×**:
+```csharp
+[nuget: TensorStack.Upscaler]
+[nuget: TensorStack.Providers.DML]
+[nuget: TensorStack.Video.Windows]
+
+// Create Provider
+var provider = Provider.GetProvider();
+
+// Upscaler Config
+var upscaleConfig = new UpscalerConfig
+{
+    ScaleFactor = 4,
+    ExecutionProvider = provider,
+    Normalization = Normalization.ZeroToOne,
+    Path = @"M:\Models\RealESR-General-4x\model.onnx"
+}
+
+// Create Pipelines
+using (var upscalePipeline = UpscalePipeline.Create(upscaleConfig))
+using (var interpolationPipeline = InterpolationPipeline.Create(provider))
+{
+    // Read Stream  [512 x 512 @ 8fps]
+    var videoInput = new VideoInputStream("Input.mp4"); 
+    var videoStream = videoInput.GetAsync();
+
+    // Upscale Stream
+    videoStream = upscalePipeline.RunAsync(new UpscaleStreamOptions
+    {
+        Stream = videoStream
+    });
+
+    // Interpolate Stream
+    videoStream = interpolationPipeline.RunAsync(new InterpolationStreamOptions
+    {
+        Multiplier = 3,
+        Stream = videoStream,
+        FrameRate = videoInput.FrameRate,
+        FrameCount = videoInput.FrameCount
+    });
+
+    // Save Steam  [2048 x 2048 @ 24fps]
+    await videoStream.SaveAync("Output.mp4");
+}
+
+```

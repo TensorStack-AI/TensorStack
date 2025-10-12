@@ -39,10 +39,9 @@ namespace TensorStack.Video
         /// <param name="frameRateOverride">The frame rate.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>IAsyncEnumerable&lt;ImageFrame&gt;.</returns>
-        public VideoStream GetAsync(int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Stretch, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<VideoFrame> GetAsync(int? widthOverride = default, int? heightOverride = default, float? frameRateOverride = default, ResizeMode resizeMode = ResizeMode.Stretch, CancellationToken cancellationToken = default)
         {
-            var stream = VideoManager.ReadStreamAsync(SourceFile, frameRateOverride, widthOverride, heightOverride, resizeMode, cancellationToken);
-            return new VideoStream(stream, FrameCount, frameRateOverride ?? FrameRate, widthOverride ?? Width, heightOverride ?? Height);
+            return VideoManager.ReadStreamAsync(SourceFile, frameRateOverride, widthOverride, heightOverride, resizeMode, cancellationToken);
         }
 
 
