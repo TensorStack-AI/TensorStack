@@ -21,15 +21,15 @@
     <Title>$(AssemblyName)</Title>
     <PackageId>$(AssemblyName)</PackageId>
     <Product>$(AssemblyName)</Product>
-    <Description></Description>
     <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Windows audio processing with FFmpeg integration.</Description>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <None Remove="README.md" />
     <None Remove="Icon.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <None Remove="Add.png" />
     <None Update="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

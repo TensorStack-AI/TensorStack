@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
-    <Description></Description>
   </PropertyGroup>
 
   <!--Projects-->
@@ -11,26 +10,25 @@
     <ProjectReference Include="..\TensorStack.Common\TensorStack.Common.csproj" />
   </ItemGroup>
 
-  <!--Packages-->
+    <!--Packages-->
   <ItemGroup Condition=" '$(Configuration)' == 'Release'">
     <PackageReference Include="TensorStack.Common" Version="$(Version)" />
   </ItemGroup>
-
 
   <!--Nuget Settings-->
   <PropertyGroup>
     <Title>$(AssemblyName)</Title>
     <PackageId>$(AssemblyName)</PackageId>
     <Product>$(AssemblyName)</Product>
-    <Description></Description>
     <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Audio processing and tensor conversion for .NET</Description>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <None Remove="README.md" />
     <None Remove="Icon.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <None Remove="Add.png" />
     <None Update="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

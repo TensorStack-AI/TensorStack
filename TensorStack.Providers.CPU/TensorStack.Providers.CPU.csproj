@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
-    <Description></Description>
   </PropertyGroup>
 
   <!--Projects-->
@@ -16,24 +15,20 @@
     <PackageReference Include="TensorStack.Common" Version="$(Version)" />
   </ItemGroup>
 
-  <!--Other Packages-->
-  <ItemGroup>
-  </ItemGroup>
-
-
   <!--Nuget Settings-->
   <PropertyGroup>
     <Title>$(AssemblyName)</Title>
     <PackageId>$(AssemblyName)</PackageId>
     <Product>$(AssemblyName)</Product>
     <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>CPU backend for ONNX tensor computation.</Description>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <None Remove="README.md" />
     <None Remove="Icon.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <None Remove="Add.png" />
     <None Update="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

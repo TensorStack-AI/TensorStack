@@ -6,13 +6,11 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
-
   <!--Projects-->
   <ItemGroup Condition=" '$(Configuration)' == 'Debug'">
     <ProjectReference Include="..\TensorStack.Common\TensorStack.Common.csproj" />
     <ProjectReference Include="..\TensorStack.Video\TensorStack.Video.csproj" />
   </ItemGroup>
-
 
   <!--Packages-->
   <ItemGroup Condition=" '$(Configuration)' == 'Release'">
@@ -26,20 +24,20 @@
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
   </ItemGroup>
 
-
   <!--Nuget Settings-->
   <PropertyGroup>
     <Title>$(AssemblyName)</Title>
     <PackageId>$(AssemblyName)</PackageId>
     <Product>$(AssemblyName)</Product>
     <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Windows video processing with FFmpeg, OpenCvSharp4, and ONNX Runtime.</Description>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <None Remove="README.md" />
     <None Remove="Icon.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <None Remove="Add.png" />
     <None Update="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

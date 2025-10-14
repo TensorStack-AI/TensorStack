@@ -77,26 +77,6 @@ namespace TensorStack.Video
 
 
         /// <summary>
-        /// Creates the stream.
-        /// </summary>
-        /// <returns>VideoStream.</returns>
-        public VideoInputStream CreateStream()
-        {
-            return new VideoInputStream(_sourceFile);
-        }
-
-
-        /// <summary>
-        /// Creates the stream asynchronously.
-        /// </summary>
-        /// <returns>Task&lt;VideoInputStream&gt;.</returns>
-        public Task<VideoInputStream> CreateStreamAsync()
-        {
-            return VideoInputStream.CreateAsync(_sourceFile);
-        }
-
-
-        /// <summary>
         /// Create a VideoInput asynchronously
         /// </summary>
         /// <param name="filename">The filename.</param>

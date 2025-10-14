@@ -3,7 +3,6 @@
 using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace TensorStack.Common
 {

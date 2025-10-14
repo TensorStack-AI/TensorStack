@@ -2,6 +2,10 @@
 // Licensed under the Apache 2.0 License.
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using TensorStack.Common.Video;
 
 namespace TensorStack.Common.Tensor
 {
@@ -89,6 +93,23 @@ namespace TensorStack.Common.Tensor
             {
                 yield return new ImageTensor(imageTensor);
             }
+        }
+
+
+        /// <summary>
+        /// Get an stream of VideoFrame
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token..</param>
+        /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
+        public async IAsyncEnumerable<VideoFrame> GetStreamAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var index = 0;
+            foreach (var frame in GetFrames())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return new VideoFrame(index, frame, FrameRate);
+            }
+            await Task.Yield();
         }
 
 

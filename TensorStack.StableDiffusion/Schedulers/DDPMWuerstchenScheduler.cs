@@ -5,7 +5,6 @@ using System.Linq;
 using TensorStack.Common;
 using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
-using TensorStack.StableDiffusion.Enums;
 using TensorStack.StableDiffusion.Helpers;
 
 namespace TensorStack.StableDiffusion.Schedulers
