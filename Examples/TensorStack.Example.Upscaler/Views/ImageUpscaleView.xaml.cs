@@ -26,7 +26,7 @@ namespace TensorStack.Example.Views
         private int _tileSize = 512;
         private int _tileOverlap = 16;
 
-        public ImageUpscaleView(Settings settings, NavigationService navigationService,IUpscaleService upscaleService)
+        public ImageUpscaleView(Settings settings, NavigationService navigationService, IUpscaleService upscaleService)
             : base(settings, navigationService)
         {
             UpscaleService = upscaleService;
@@ -34,9 +34,9 @@ namespace TensorStack.Example.Views
             UnloadCommand = new AsyncRelayCommand(UnloadAsync, CanUnload);
             ExecuteCommand = new AsyncRelayCommand(ExecuteAsync, CanExecute);
             CancelCommand = new AsyncRelayCommand(CancelAsync, CanCancel);
-
-            Progress = new ProgressInfo();
             SelectedModel = settings.UpscaleModels.First(x => x.IsDefault);
+            SelectedDevice = settings.DefaultDevice;
+            Progress = new ProgressInfo();
             InitializeComponent();
         }
 

@@ -27,23 +27,31 @@
                 <Border  Margin="4">
                     <DockPanel x:Name="LeftPanelContainer" Margin="4">
 
+                        <StackPanel DockPanel.Dock="Top" IsEnabled="{Binding UpscaleService.IsLoading, Converter={StaticResource InverseBoolConverter}}">
 
-                        <!--Model Selector-->
-                        <Grid  DockPanel.Dock="Top" IsEnabled="{Binding UpscaleService.IsLoading, Converter={StaticResource InverseBoolConverter}}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="3*" />
-                                <ColumnDefinition Width="1*" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" IsEnabled="{Binding UpscaleService.IsLoaded, Converter={StaticResource InverseBoolConverter}}">
-                                <TextBlock Text="Models" Style="{StaticResource FieldTextBlockStyle}" />
-                                <ComboBox SelectedItem="{Binding SelectedModel, Mode=TwoWay}"  ItemsSource="{Binding Settings.UpscaleModels}" DisplayMemberPath="Name" />
+                            <!--Device Selector-->
+                            <StackPanel IsEnabled="{Binding UpscaleService.IsLoaded, Converter={StaticResource InverseBoolConverter}}">
+                                <TextBlock Text="Device" Style="{StaticResource FieldTextBlockStyle}" />
+                                <ComboBox ItemsSource="{Binding Settings.Devices}" SelectedItem="{Binding SelectedDevice}" DisplayMemberPath="Name"/>
                             </StackPanel>
-                            <Grid Grid.Column="1" Height="22" Margin="0,18,0,0" >
-                                <Button x:Name="ButtonLoad" Content="Load" Command="{Binding LoadCommand}" />
-                                <Button x:Name="ButtonUnload" Content="Unload" Command="{Binding UnloadCommand}" Visibility="{Binding UpscaleService.IsLoaded, Converter={StaticResource BooleanToHiddenConverter}}" />
-                            </Grid>
-                        </Grid>
 
+                            <!--Model Selector-->
+                            <Grid >
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="1*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" IsEnabled="{Binding UpscaleService.IsLoaded, Converter={StaticResource InverseBoolConverter}}">
+                                    <TextBlock Text="Models" Style="{StaticResource FieldTextBlockStyle}" />
+                                    <ComboBox SelectedItem="{Binding SelectedModel, Mode=TwoWay}"  ItemsSource="{Binding Settings.UpscaleModels}" DisplayMemberPath="Name" />
+                                </StackPanel>
+                                <Grid Grid.Column="1" Height="22" Margin="0,18,0,0" >
+                                    <Button x:Name="ButtonLoad" Content="Load" Command="{Binding LoadCommand}" />
+                                    <Button x:Name="ButtonUnload" Content="Unload" Command="{Binding UnloadCommand}" Visibility="{Binding UpscaleService.IsLoaded, Converter={StaticResource BooleanToHiddenConverter}}" />
+                                </Grid>
+                            </Grid>
+
+                        </StackPanel>
 
                         <!--Execute/Cancel-->
                         <UniformGrid DockPanel.Dock="Bottom" Columns="2" Height="30">

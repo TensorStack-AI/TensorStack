@@ -36,10 +36,9 @@ namespace TensorStack.Example.Views
             UnloadCommand = new AsyncRelayCommand(UnloadAsync, CanUnload);
             ExecuteCommand = new AsyncRelayCommand(ExecuteAsync, CanExecute);
             CancelCommand = new AsyncRelayCommand(CancelAsync, CanCancel);
-
-            Progress = new ProgressInfo();
             SelectedModel = settings.UpscaleModels.First(x => x.IsDefault);
-
+            SelectedDevice = settings.DefaultDevice;
+            Progress = new ProgressInfo();
             _progressCallback = new Progress<RunProgress>(OnProgress);
             InitializeComponent();
         }

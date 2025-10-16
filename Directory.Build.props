@@ -11,5 +11,6 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PackageOutputPath>..\..\Nuget</PackageOutputPath>
+    <Configurations>Debug;Release;</Configurations>
   </PropertyGroup>
 </Project>
