@@ -1,0 +1,24 @@
+{
+  "DirectoryTemp": "Temp",
+  "UpscaleModels": [
+    {
+      "Id": 1,
+      "Name": "RealESR-General-4x",
+      "IsDefault": true,
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\RealESR-General-4x.onnx"
+    },
+    {
+      "Id": 2,
+      "Name": "BSRGAN-2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\BSRGAN-2x.onnx"
+    }
+  ]
+}

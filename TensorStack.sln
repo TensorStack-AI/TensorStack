@@ -19,9 +19,32 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Upscaler", "Ten
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Extractors", "TensorStack.Extractors\TensorStack.Extractors.csproj", "{2D4CFD8B-DCA3-4231-838E-EA0B4CAC8D73}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{F602C332-00D7-41C8-92C3-D22AFA722A41}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.WPF", "TensorStack.WPF\TensorStack.WPF.csproj", "{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Common", "TensorStack.Common\TensorStack.Common.csproj", "{5B6FD5FC-8D38-4453-A17A-7038FC717328}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.TextGeneration", "TensorStack.TextGeneration\TensorStack.TextGeneration.csproj", "{F15D8B39-0CD0-446E-80A5-145214860368}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Audio.Windows", "TensorStack.Audio.Windows\TensorStack.Audio.Windows.csproj", "{A6B58356-864A-4401-BC5B-50A3A5DA96A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Audio", "TensorStack.Audio\TensorStack.Audio.csproj", "{0081AF67-F530-4C47-ACDE-8F56B74F0E99}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Image", "TensorStack.Image\TensorStack.Image.csproj", "{81C8112E-5210-472F-93B5-E6D555C1486D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.DML", "TensorStack.Providers.DML\TensorStack.Providers.DML.csproj", "{B2768F02-6BF6-48B4-8332-076F659A26D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.CUDA", "TensorStack.Providers.CUDA\TensorStack.Providers.CUDA.csproj", "{1D836ABF-9249-4ABB-ADC5-3E657DF8386C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.CPU", "TensorStack.Providers.CPU\TensorStack.Providers.CPU.csproj", "{EC5602DD-9237-460C-8681-64A619293D59}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Example.Upscaler", "Examples\TensorStack.Example.Upscaler\TensorStack.Example.Upscaler.csproj", "{B87F1EA1-C920-43A9-850C-816F979639F0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,6 +84,10 @@ Global
 		{2D4CFD8B-DCA3-4231-838E-EA0B4CAC8D73}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2D4CFD8B-DCA3-4231-838E-EA0B4CAC8D73}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D4CFD8B-DCA3-4231-838E-EA0B4CAC8D73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5B6FD5FC-8D38-4453-A17A-7038FC717328}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5B6FD5FC-8D38-4453-A17A-7038FC717328}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B6FD5FC-8D38-4453-A17A-7038FC717328}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -69,9 +96,40 @@ Global
 		{F15D8B39-0CD0-446E-80A5-145214860368}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F15D8B39-0CD0-446E-80A5-145214860368}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F15D8B39-0CD0-446E-80A5-145214860368}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6B58356-864A-4401-BC5B-50A3A5DA96A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6B58356-864A-4401-BC5B-50A3A5DA96A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6B58356-864A-4401-BC5B-50A3A5DA96A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6B58356-864A-4401-BC5B-50A3A5DA96A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0081AF67-F530-4C47-ACDE-8F56B74F0E99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0081AF67-F530-4C47-ACDE-8F56B74F0E99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0081AF67-F530-4C47-ACDE-8F56B74F0E99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0081AF67-F530-4C47-ACDE-8F56B74F0E99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81C8112E-5210-472F-93B5-E6D555C1486D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81C8112E-5210-472F-93B5-E6D555C1486D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81C8112E-5210-472F-93B5-E6D555C1486D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81C8112E-5210-472F-93B5-E6D555C1486D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2768F02-6BF6-48B4-8332-076F659A26D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2768F02-6BF6-48B4-8332-076F659A26D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2768F02-6BF6-48B4-8332-076F659A26D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2768F02-6BF6-48B4-8332-076F659A26D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1D836ABF-9249-4ABB-ADC5-3E657DF8386C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D836ABF-9249-4ABB-ADC5-3E657DF8386C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D836ABF-9249-4ABB-ADC5-3E657DF8386C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D836ABF-9249-4ABB-ADC5-3E657DF8386C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC5602DD-9237-460C-8681-64A619293D59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC5602DD-9237-460C-8681-64A619293D59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC5602DD-9237-460C-8681-64A619293D59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC5602DD-9237-460C-8681-64A619293D59}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B87F1EA1-C920-43A9-850C-816F979639F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B87F1EA1-C920-43A9-850C-816F979639F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B87F1EA1-C920-43A9-850C-816F979639F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B87F1EA1-C920-43A9-850C-816F979639F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B87F1EA1-C920-43A9-850C-816F979639F0} = {F602C332-00D7-41C8-92C3-D22AFA722A41}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5044065A-9313-45F6-B931-A7B7DBD9E91B}

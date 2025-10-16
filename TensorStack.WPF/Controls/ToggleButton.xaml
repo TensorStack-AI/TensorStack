@@ -1,0 +1,32 @@
+﻿<Controls:BaseControl x:Class="TensorStack.WPF.Controls.ToggleButton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:TensorStack.WPF.Controls"
+             xmlns:Controls="clr-namespace:TensorStack.WPF.Controls"
+             xmlns:colorPicker="clr-namespace:ColorPicker;assembly=ColorPicker"
+             mc:Ignorable="d" 
+             d:DesignHeight="30" d:DesignWidth="60">
+    <Grid DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:ToggleButton}}}">
+        <ToggleButton IsChecked="{Binding IsChecked, Mode=TwoWay}" Style="{StaticResource ToggleButtonEmpty}">
+            <Grid>
+                <Controls:FontAwesome
+                    Icon="{Binding IconTrue}"
+                    Size="{Binding SizeTrue}" 
+                    Color="{Binding ColorTrue}"
+                    IconStyle="{Binding IconStyleTrue}"
+                    IsSpinner="{Binding IsSpinnerTrue}"
+                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToHiddenConverter}}"/>
+
+                <Controls:FontAwesome 
+                    Icon="{Binding IconFalse}" 
+                    Size="{Binding SizeFalse}"
+                    Color="{Binding ColorFalse}"
+                    IconStyle="{Binding IconStyleFalse}"
+                    IsSpinner="{Binding IsSpinnerFalse}"
+                    Visibility="{Binding IsChecked, Converter={StaticResource InverseBooleanToHiddenConverter}}"/>
+            </Grid>
+        </ToggleButton>
+    </Grid>
+</Controls:BaseControl>

@@ -1,0 +1,94 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <!--Projects-->
+  <ItemGroup Condition=" '$(Configuration)' == 'Debug'">
+    <ProjectReference Include="..\TensorStack.Common\TensorStack.Common.csproj" />
+    <ProjectReference Include="..\TensorStack.Image.BitmapImage\TensorStack.Image.BitmapImage.csproj" />
+    <ProjectReference Include="..\TensorStack.Video.Windows\TensorStack.Video.Windows.csproj" />
+  </ItemGroup>
+
+  <!--Packages-->
+  <ItemGroup Condition=" '$(Configuration)' == 'Release'">
+    <PackageReference Include="TensorStack.Common" Version="$(Version)" />
+    <PackageReference Include="TensorStack.Image.BitmapImage" Version="$(Version)" />
+    <PackageReference Include="TensorStack.Video.Windows" Version="$(Version)" />
+  </ItemGroup>
+
+  <!--Common Packages-->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+  </ItemGroup>
+
+  <!--Fonts-->
+  <ItemGroup>
+    <Resource Include="Fonts\Brands-Regular-400.otf" />
+    <Resource Include="Fonts\Duotone-Solid-900.otf" />
+    <Resource Include="Fonts\Light-300.otf" />
+    <Resource Include="Fonts\Regular-400.otf" />
+    <Resource Include="Fonts\Sharp-Light-300.otf" />
+    <Resource Include="Fonts\Sharp-Regular-400.otf" />
+    <Resource Include="Fonts\Sharp-Solid-900.otf" />
+    <Resource Include="Fonts\Sharp-Thin-100.otf" />
+    <Resource Include="Fonts\Solid-900.otf" />
+    <Resource Include="Fonts\Thin-100.otf" />
+  </ItemGroup>
+
+  <!--Images-->
+  <ItemGroup>
+    <Resource Include="Images\Icon.ico" />
+    <Resource Include="Images\Icon.png" />
+    <Resource Include="Images\Icon-Large.png" />
+    <Resource Include="Images\Tensorstack-720-Gray.png" />
+    <Resource Include="Images\Tensorstack-720.png" />
+    <Resource Include="Images\tensorstack-long.png" />
+    <Resource Include="Images\Tensorstack-Text.png" />
+    <Resource Include="Images\Tensorstack.png" />
+  </ItemGroup>
+
+  <!--Binaries-->
+  <ItemGroup>
+    <Reference Include="ColorPicker">
+      <HintPath>ColorPicker.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!--Nuget Settings-->
+  <PropertyGroup>
+    <Title>$(AssemblyName)</Title>
+    <PackageId>$(AssemblyName)</PackageId>
+    <Product>$(AssemblyName)</Product>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <None Remove="README.md" />
+    <None Remove="Icon.png" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\Assets\Icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ColorPicker.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+</Project>

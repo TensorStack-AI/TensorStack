@@ -121,15 +121,25 @@ namespace TensorStack.Video.Pipelines
                         var newFrame = await RunInterpolationAsync(currentFrame, previousFrame, timestep, cancellationToken);
                         yield return new VideoFrame(frameIndex, newFrame, newFrameRate);
                         frameIndex++;
+                        ReportProgress(progressCallback, frameIndex, totalFrames);
                     }
                 }
 
                 previousFrame = currentFrame.CloneAs();
                 yield return new VideoFrame(frameIndex, currentFrame, newFrameRate);
                 frameIndex++;
+
+                ReportProgress(progressCallback, frameIndex, totalFrames);
             }
         }
 
+        private void ReportProgress(IProgress<RunProgress> progressCallback, int value, int maximum, string message = default)
+        {
+            if (progressCallback == null)
+                return;
+
+            progressCallback?.Report(new RunProgress(value, maximum, message: message));
+        }
 
         /// <summary>
         /// Run interpolation.

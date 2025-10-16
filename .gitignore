@@ -345,12 +345,9 @@ test/TensorFlowNET.Examples/mnist
 
 # docs
 site/
-
-/OnnxStack.WebUI/wwwroot/images/Results/*
 docker-test-output/*
 
-Examples/*
-TensorStack.WPF/*
-TensorStackFull.sln
+Examples/TensorStack.Console*
 TensorStack.Diffusers/*
 TensorStudio/*
+/TensorStackFull.sln

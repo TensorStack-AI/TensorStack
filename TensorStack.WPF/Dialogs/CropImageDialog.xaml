@@ -1,0 +1,90 @@
+﻿<controls:DialogControl x:Class="TensorStack.WPF.Dialogs.CropImageDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TensorStack.WPF.Dialogs"
+        xmlns:controls="clr-namespace:TensorStack.WPF.Controls"
+        Title="Crop Image" 
+        MinHeight="620"
+        MinWidth="440"
+        x:Name="UI"
+        Icon="{StaticResource ImageIcon}"
+        Style="{StaticResource {x:Type controls:DialogControl}}">
+    <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
+
+        <StackPanel  DockPanel.Dock="Bottom" >
+            <DockPanel VerticalAlignment="Bottom">
+                <StackPanel DockPanel.Dock="Right" VerticalAlignment="Bottom">
+                    <Button Content="Crop" Command="{Binding CropCommand}" Visibility="{Binding IsCropped, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Width="100" Height="25" ></Button>
+                    <Button Content="Reset" Command="{Binding ResetCommand}" Visibility="{Binding IsCropped, Converter={StaticResource BooleanToVisibilityConverter}}" Width="100" Height="25"></Button>
+                </StackPanel>
+                <StackPanel >
+                    <TextBlock Text="Image File"/>
+                    <controls:FilePickerTextBox FileName="{Binding ImageFile, Mode=TwoWay}" IsEnabled="{Binding HasInitialImage, Converter={StaticResource InverseBoolConverter}}" IsRequired="True" Filter="Image Files|*.bmp;*.jpg;*.jpeg;*.png;*.gif;*.tif;*.tiff|All Files|*.*" />
+                    <StackPanel.Style>
+                        <Style TargetType="{x:Type StackPanel}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasInitialImage, FallbackValue=Visible}" Value="True">
+                                    <Setter Property="Visibility" Value="Hidden" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                </StackPanel>
+            </DockPanel>
+            <UniformGrid Columns="4" Margin="0,25,0,0">
+                <TextBlock/>
+                <TextBlock/>
+                <Button IsDefault="True" Command="{Binding SaveCommand}" MinWidth="100" Height="30">Done</Button>
+                <Button IsCancel="True" Command="{Binding CloseCommand}" MinWidth="100" Height="30">_Cancel</Button>
+            </UniformGrid>
+        </StackPanel>
+        <Border BorderThickness="2" BorderBrush="{StaticResource ContainerBorder}" >
+            <Grid  Width="{Binding ImageWidth}" Height="{Binding ImageHeight}">
+                <Image Source="{StaticResource ImageTensorstackCubeG}" Visibility="{Binding SourceImage, Converter={StaticResource InverseNullVisibilityConverter}}" Opacity=".1" Margin="30" />
+                <Canvas Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"  MouseWheel="CropFrame_MouseWheel">
+                    <Image Source="{Binding SourceImage}" Width="{Binding ImageWidth}" Height="{Binding ImageHeight}" />
+                    <Canvas x:Name="CropFrame" Width="{Binding ZoomWidth}" Height="{Binding ZoomHeight}" Visibility="{Binding IsCropped, Converter={StaticResource InverseBooleanToVisibilityConverter}}"  MouseLeftButtonUp="CropFrame_MouseLeftButtonUp" MouseLeftButtonDown="CropFrame_MouseLeftButtonDown" MouseMove="CropFrame_MouseMove"  >
+                        <Grid>
+                            <Rectangle Width="{Binding Width, ElementName=CropFrame}" Height="{Binding Height, ElementName=CropFrame}"  Stroke="{StaticResource CropFrameBrush}" StrokeThickness="2" Fill="Transparent"/>
+                            <Grid Background="Transparent">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <controls:FontAwesome Icon="&#xf047;" IconStyle="Light" Size="40" Color="{StaticResource CropFrameBrush}"/>
+                                    <TextBlock Text="Drag to move" Foreground="{StaticResource CropFrameBrush}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Mouse wheel to zoom" Foreground="{StaticResource CropFrameBrush}" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                <Grid.Style>
+                                    <Style TargetType="{x:Type Grid}">
+                                        <Setter Property="Opacity" Value="0"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Trigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To=".7" Duration="0:0:0.3"  />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </Trigger.EnterActions>
+                                                <Trigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.3" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </Trigger.ExitActions>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                            </Grid>
+                        </Grid>
+                    </Canvas>
+                </Canvas>
+            </Grid>
+
+          
+        </Border>
+    </DockPanel>
+</controls:DialogControl>

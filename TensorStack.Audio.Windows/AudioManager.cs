@@ -25,11 +25,14 @@ namespace TensorStack.Audio.Windows
         /// <param name="ffmpegPath">The ffmpeg path.</param>
         /// <param name="ffprobePath">The ffprobe path.</param>
         /// <param name="directoryTemp">The directory temporary.</param>
-        public static void Initialize(string ffmpegPath, string ffprobePath, string directoryTemp)
+        public static void Initialize(string ffmpegPath = default, string ffprobePath = default, string directoryTemp = default)
         {
-            FFMpegPath = ffmpegPath;
-            FFProbePath = ffprobePath;
-            DirectoryTemp = directoryTemp;
+            if (!string.IsNullOrEmpty(ffmpegPath))
+                FFMpegPath = ffmpegPath;
+            if (!string.IsNullOrEmpty(ffprobePath))
+                FFProbePath = ffprobePath;
+            if (!string.IsNullOrEmpty(directoryTemp))
+                DirectoryTemp = directoryTemp;
         }
 
 
