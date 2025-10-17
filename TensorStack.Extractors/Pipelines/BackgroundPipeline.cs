@@ -150,8 +150,10 @@ namespace TensorStack.Extractors.Pipelines
                 resultTensor.NormalizeOneToOne();
             else if (_model.OutputNormalization == Normalization.ZeroToOne)
                 resultTensor.NormalizeZeroToOne();
-            else if (_model.OutputNormalization == Normalization.MinMax)
+            else if (_model.OutputNormalization == Normalization.MinMaxZeroToOne)
                 resultTensor.Memory.Span.NormalizeMinMaxToZeroToOne();
+            else if (_model.OutputNormalization == Normalization.MinMaxOneToOne)
+                resultTensor.Memory.Span.NormalizeMinMaxToOneToOne();
         }
 
 

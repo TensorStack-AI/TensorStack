@@ -16,6 +16,16 @@
     <PackageReference Include="TensorStack.Common" Version="$(Version)" />
   </ItemGroup>
 
+  <!--Binaries-->
+  <ItemGroup>
+    <Content Include="Interpolation.onnx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToPublishDirectory>true</CopyToPublishDirectory>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
   <!--Nuget Settings-->
   <PropertyGroup>
     <Title>$(AssemblyName)</Title>
@@ -38,14 +48,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Interpolation.onnx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <Pack>true</Pack>
-    </Content>
   </ItemGroup>
 
 </Project>

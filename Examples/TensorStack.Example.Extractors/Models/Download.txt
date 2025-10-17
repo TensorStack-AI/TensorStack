@@ -1,0 +1,5 @@
+https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/BiRefNet.onnx?download=true
+https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/RMBGv1.4.onnx?download=true
+https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/Canny.onnx?download=true
+https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/SoftEdge.onnx?download=true
+https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/Depth.onnx?download=true

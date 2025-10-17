@@ -42,11 +42,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-    <Content Update="DirectML.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <Pack>true</Pack>
-    </Content>
   </ItemGroup>
 
 </Project>

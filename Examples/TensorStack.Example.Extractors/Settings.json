@@ -1,0 +1,61 @@
+{
+  "DirectoryTemp": "Temp",
+  "ExtractorModels": [
+    {
+      "Id": 1,
+      "Name": "Canny",
+      "Channels": 3,
+      "SampleSize": 0,
+      "OutputChannels": 1,
+      "Normalization": "OneToOne",
+      "OutputNormalization": "OneToOne",
+      "Path": "Models\\Canny.onnx"
+    },
+    {
+      "Id": 2,
+      "Name": "SoftEdge",
+      "IsDefault": true,
+      "Channels": 3,
+      "SampleSize": 0,
+      "OutputChannels": 1,
+      "Normalization": "OneToOne",
+      "OutputNormalization": "ZeroToOne",
+      "Path": "Models\\SoftEdge.onnx"
+    },
+    {
+      "Id": 3,
+      "Name": "Depth",
+      "IsDefault": true,
+      "Channels": 3,
+      "SampleSize": 0,
+      "OutputChannels": 1,
+      "Normalization": "ZeroToOne",
+      "OutputNormalization": "MinMaxOneToOne",
+      "IsDynamicOutput": true,
+      "Path": "Models\\Depth.onnx"
+    }
+  ],
+  "BackgroundModels": [
+    {
+      "Id": 1,
+      "Name": "BiRefNet",
+      "Channels": 3,
+      "SampleSize": 1024,
+      "OutputChannels": 1,
+      "Normalization": "ZeroToOne",
+      "OutputNormalization": "OneToOne",
+      "Path": "Models\\BiRefNet.onnx"
+    },
+    {
+      "Id": 2,
+      "Name": "RMBG 1.4",
+      "IsDefault": true,
+      "Channels": 3,
+      "SampleSize": 1024,
+      "OutputChannels": 1,
+      "Normalization": "ZeroToOne",
+      "OutputNormalization": "OneToOne",
+      "Path": "Models\\RMBGv1.4.onnx"
+    }
+  ]
+}

@@ -39,6 +39,12 @@ namespace TensorStack.Extractors.Models
         /// </summary>
         public int OutputChannels => Configuration.OutputChannels;
 
+        /// <summary>
+        /// Gets a value indicating whether the model output shape is dynamic/calculated
+        /// </summary>
+        /// <value><c>true</c> if this instance is dynamic output; otherwise, <c>false</c>.</value>
+        public bool IsDynamicOutput => Configuration.IsDynamicOutput;
+
 
         /// <summary>
         /// Create a ExtractorModel with the specified ExtractorConfig

@@ -30,5 +30,11 @@ namespace TensorStack.Extractors.Common
         /// The channels the model supports 1 = Greyscale, RGB = 3, RGBA = 4.
         /// </summary>
         public int OutputChannels { get; init; } = 1;
+
+        /// <summary>
+        /// Gets a value indicating whether the model output shape is dynamic/calculated
+        /// </summary>
+        /// <value><c>true</c> if this instance is dynamic output; otherwise, <c>false</c>.</value>
+        public bool IsDynamicOutput { get; set; }
     }
 }

@@ -16,6 +16,22 @@
     <PackageReference Include="TensorStack.Audio" Version="$(Version)" />
   </ItemGroup>
 
+  <!--Binaries-->
+  <ItemGroup>
+    <Content Include="ffmpeg.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToPublishDirectory>true</CopyToPublishDirectory>
+      <Pack>true</Pack>
+    </Content>
+    <Content Include="ffprobe.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToPublishDirectory>true</CopyToPublishDirectory>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
   <!--Nuget Settings-->
   <PropertyGroup>
     <Title>$(AssemblyName)</Title>
@@ -38,16 +54,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-    <Content Include="ffmpeg.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <Pack>true</Pack>
-    </Content>
-    <Content Include="ffprobe.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <Pack>true</Pack>
-    </Content>
   </ItemGroup>
 
 </Project>

@@ -1,14 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using TensorStack.WPF;
 using TensorStack.Example.Services;
+using TensorStack.WPF;
 
-namespace TensorStack.Example.Upscaler
+namespace TensorStack.Example
 {
     /// <summary>
     /// Interaction logic for App.xaml

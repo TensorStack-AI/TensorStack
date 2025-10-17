@@ -1,16 +1,16 @@
-﻿<CommonControls:WindowMainBase x:Class="TensorStack.Example.Upscaler.MainWindow"
+﻿<CommonControls:WindowMainBase x:Class="TensorStack.Example.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:TensorStack.Example.Upscaler"
+        xmlns:local="clr-namespace:TensorStack.Example"
         xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls;assembly=TensorStack.WPF"
         xmlns:Views="clr-namespace:TensorStack.Example.Views"
         Style="{StaticResource WindowHeadless}"
         Icon="{StaticResource ImageIcon}"
         mc:Ignorable="d"
         x:Name="UI"
-        Title="MainWindow" Height="680" Width="1100">
+        Title="TensorStack Upscale Demo" Height="680" Width="1100">
     <DockPanel DataContext="{Binding ElementName=UI}">
 
         <!--Main Menu-->

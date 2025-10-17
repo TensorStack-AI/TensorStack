@@ -40,7 +40,8 @@ namespace TensorStack.Common
         None = 0,
         ZeroToOne = 1,
         OneToOne = 2,
-        MinMax = 3
+        MinMaxZeroToOne = 3,
+        MinMaxOneToOne = 4
     }
 
 

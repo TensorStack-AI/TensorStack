@@ -350,3 +350,7 @@ Examples/TensorStack.Console*
 TensorStack.Diffusers/*
 TensorStudio/*
 /TensorStackFull.sln
+
+Examples/TensorStack.Example.Upscaler/Models/*.onnx
+Examples/TensorStack.Example.Extractors/Models/*.onnx
+

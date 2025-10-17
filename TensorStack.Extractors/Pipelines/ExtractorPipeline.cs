@@ -196,7 +196,11 @@ namespace TensorStack.Extractors.Pipelines
             {
                 modelParameters.AddInput(inputTensor.GetChannels(_extractorModel.Channels));
                 modelParameters.AddOutput(outputBuffer);
-                using (var results = await _extractorModel.RunInferenceAsync(modelParameters))
+
+                var results = _extractorModel.IsDynamicOutput
+                    ? _extractorModel.RunInference(modelParameters)
+                    : await _extractorModel.RunInferenceAsync(modelParameters);
+                using (results)
                 {
                     var outputTensor = results[0].ToTensor();
                     if (outputBuffer.Length != 4)
@@ -251,8 +255,10 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="tensor">The tensor.</param>
         private void NormalizeResult(ImageTensor tensor, bool isInverted)
         {
-            if (_extractorModel.OutputNormalization == Normalization.MinMax)
+            if (_extractorModel.OutputNormalization == Normalization.MinMaxZeroToOne)
                 tensor.Memory.Span.NormalizeMinMaxToZeroToOne();
+            else if(_extractorModel.OutputNormalization == Normalization.MinMaxOneToOne)
+                tensor.Memory.Span.NormalizeMinMaxToOneToOne();
             else if (_extractorModel.Normalization == Normalization.OneToOne)
                 tensor.NormalizeOneToOne();
 

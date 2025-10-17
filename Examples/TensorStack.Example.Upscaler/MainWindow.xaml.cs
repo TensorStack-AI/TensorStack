@@ -4,7 +4,7 @@ using TensorStack.WPF;
 using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
 
-namespace TensorStack.Example.Upscaler
+namespace TensorStack.Example
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
