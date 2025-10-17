@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TensorStack.Common;
@@ -7,7 +8,6 @@ using TensorStack.Example.Services;
 using TensorStack.Extractors.Common;
 using TensorStack.Image;
 using TensorStack.WPF;
-using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
 
 namespace TensorStack.Example.Views
@@ -36,7 +36,6 @@ namespace TensorStack.Example.Views
             RemoveForegroundCommand = new AsyncRelayCommand(RemoveForegroundAsync, CanExecute);
             SelectedModel = Settings.BackgroundModels.First(x => x.IsDefault);
             SelectedDevice = settings.DefaultDevice;
-            Progress = new ProgressInfo();
             InitializeComponent();
         }
 
@@ -49,7 +48,6 @@ namespace TensorStack.Example.Views
         public AsyncRelayCommand MaskForegroundCommand { get; set; }
         public AsyncRelayCommand RemoveBackgroundCommand { get; set; }
         public AsyncRelayCommand RemoveForegroundCommand { get; set; }
-        public ProgressInfo Progress { get; set; }
 
         public Device SelectedDevice
         {
@@ -85,8 +83,10 @@ namespace TensorStack.Example.Views
         private async Task LoadAsync()
         {
             var timestamp = Stopwatch.GetTimestamp();
-            Progress.Indeterminate();
+            if (!await IsModelValidAsync())
+                return;
 
+            Progress.Indeterminate();
             var device = _selectedDevice;
             if (_selectedDevice is null)
                 device = Settings.DefaultDevice;
@@ -194,5 +194,12 @@ namespace TensorStack.Example.Views
             return BackgroundService.CanCancel;
         }
 
+        private async Task<bool> IsModelValidAsync()
+        {
+            if (File.Exists(SelectedModel.Path))
+                return true;
+
+            return await DialogService.DownloadAsync($"Download '{SelectedModel.Name}' background model?", SelectedModel.UrlPath, SelectedModel.Path);
+        }
     }
 }

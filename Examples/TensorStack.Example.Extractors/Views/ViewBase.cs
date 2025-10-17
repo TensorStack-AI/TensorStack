@@ -1,4 +1,5 @@
-﻿using TensorStack.WPF.Controls;
+﻿using System;
+using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
 
 namespace TensorStack.Example.Views
@@ -9,9 +10,18 @@ namespace TensorStack.Example.Views
             : base(navigationService)
         {
             Settings = settings;
+            Progress = new ProgressInfo();
+            DownloadCallback = new Progress<double>(OnDownloadProgress);
         }
 
         public Settings Settings { get; }
+        public ProgressInfo Progress { get;  }
+        public Progress<double> DownloadCallback { get; set; }
+
+        protected virtual void OnDownloadProgress(double value)
+        {
+            Progress.Update((int)value, 100);
+        }
     }
 
     public enum View

@@ -1,2 +1,0 @@
-https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/BSRGAN-2x.onnx?download=true
-https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/RealESR-General-4x.onnx?download=true

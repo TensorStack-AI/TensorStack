@@ -41,6 +41,7 @@ namespace TensorStack.WPF
 
             // Register Services
             services.AddSingleton<DialogService>();
+            services.AddSingleton<DownloadService>();
             services.AddSingleton<ComponentService>();
             services.AddSingleton<NavigationService>();
 

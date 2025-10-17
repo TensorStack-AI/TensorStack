@@ -15,5 +15,6 @@ namespace TensorStack.Example.Common
         public int OutputChannels { get; set; }
         public bool IsDynamicOutput { get; set; }
         public string Path { get; set; }
+        public string UrlPath { get; set; }
     }
 }

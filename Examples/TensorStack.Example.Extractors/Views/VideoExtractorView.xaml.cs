@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TensorStack.Common;
@@ -8,7 +9,6 @@ using TensorStack.Example.Common;
 using TensorStack.Example.Services;
 using TensorStack.Video;
 using TensorStack.WPF;
-using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
 
 namespace TensorStack.Example.Views
@@ -38,7 +38,6 @@ namespace TensorStack.Example.Views
             CancelCommand = new AsyncRelayCommand(CancelAsync, CanCancel);
             SelectedModel = settings.ExtractorModels.First(x => x.IsDefault);
             SelectedDevice = settings.DefaultDevice;
-            Progress = new ProgressInfo();
             _progressCallback = new Progress<RunProgress>(OnProgress);
             InitializeComponent();
         }
@@ -49,7 +48,6 @@ namespace TensorStack.Example.Views
         public AsyncRelayCommand UnloadCommand { get; set; }
         public AsyncRelayCommand ExecuteCommand { get; set; }
         public AsyncRelayCommand CancelCommand { get; set; }
-        public ProgressInfo Progress { get; set; }
 
         public Device SelectedDevice
         {
@@ -103,8 +101,10 @@ namespace TensorStack.Example.Views
         private async Task LoadAsync()
         {
             var timestamp = Stopwatch.GetTimestamp();
-            Progress.Indeterminate();
+            if (!await IsModelValidAsync())
+                return;
 
+            Progress.Indeterminate();
             var device = _selectedDevice;
             if (_selectedDevice is null)
                 device = Settings.DefaultDevice;
@@ -183,5 +183,13 @@ namespace TensorStack.Example.Views
             Progress.Update(progress.Value + 1, progress.Maximum, progress.Message);
         }
 
+
+        private async Task<bool> IsModelValidAsync()
+        {
+            if (File.Exists(SelectedModel.Path))
+                return true;
+
+            return await DialogService.DownloadAsync($"Download '{SelectedModel.Name}' extractor model?", SelectedModel.UrlPath, SelectedModel.Path);
+        }
     }
 }

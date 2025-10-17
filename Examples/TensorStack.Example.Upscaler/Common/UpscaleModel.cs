@@ -15,5 +15,6 @@ namespace TensorStack.Example.Common
         public int ScaleFactor { get; init; } = 1;
         public Normalization Normalization { get; init; }
         public string Path { get; set; }
+        public string UrlPath { get; set; }
     }
 }

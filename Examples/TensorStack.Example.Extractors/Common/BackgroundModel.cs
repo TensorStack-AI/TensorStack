@@ -17,5 +17,6 @@ namespace TensorStack.Example.Common
         public Normalization OutputNormalization { get; init; }
         public int OutputChannels { get; init; } = 1;
         public string Path { get; set; }
+        public string UrlPath { get; set; }
     }
 }

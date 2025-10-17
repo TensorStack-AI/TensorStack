@@ -1,0 +1,41 @@
+﻿<controls:DialogControl x:Class="TensorStack.WPF.Dialogs.DownloadDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TensorStack.WPF.Dialogs"
+        xmlns:controls="clr-namespace:TensorStack.WPF.Controls"
+        mc:Ignorable="d"
+        MinWidth="400"
+        MaxWidth="500"
+        x:Name="UI"
+        Icon="{StaticResource ImageIcon}"
+        Style="{StaticResource MessageBoxDialogStyle}">
+    <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
+        <DockPanel DockPanel.Dock="Top">
+            <controls:FontAwesome DockPanel.Dock="Left" Size="50" Margin="10,10,10,10" Icon="&#xf059;" IconStyle="Light" Color="{StaticResource InfoColour}" />
+         
+            <UniformGrid DockPanel.Dock="Bottom" Columns="2">
+                <TextBlock Text="{Binding Speed, FallbackValue=0.00MB/s, StringFormat={}{0:F2}MB/s}" Style="{StaticResource FieldTextBlockStyle}" Margin="0"/>
+                <TextBlock HorizontalAlignment="Right" Style="{StaticResource FieldTextBlockStyle}" Margin="0">
+                    <Run Text="{Binding TotalDownloaded, FallbackValue=0.00MB, StringFormat={}{0:F2}MB}" />
+                    <Run Text="/" />
+                    <Run Text="{Binding TotalSize, FallbackValue=0.00MB, StringFormat={}{0:F2}MB}" />
+                </TextBlock>
+            </UniformGrid>
+
+            <Grid  DockPanel.Dock="Bottom">
+                <ProgressBar Value="{Binding Progress}" Height="16" Maximum="100" />
+            </Grid>
+          
+            <TextBlock Text="{Binding Message}" FontSize="15" TextWrapping="Wrap" VerticalAlignment="Center" Margin="5,0,0,0" />
+        </DockPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0"  Height="30">
+            <UniformGrid Columns="2">
+                <Button Content="Yes" Command="{Binding YesCommand}" Width="100" IsDefault="True"/>
+                <Button Content="{Binding CancelText}" Command="{Binding NoCommand}"/>
+            </UniformGrid>
+        </StackPanel>
+    </DockPanel>
+</controls:DialogControl>

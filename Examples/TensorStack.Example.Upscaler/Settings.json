@@ -9,7 +9,8 @@
       "SampleSize": 0,
       "ScaleFactor": 4,
       "Normalization": "ZeroToOne",
-      "Path": "Models\\RealESR-General-4x.onnx"
+      "Path": "Models\\RealESR-General-4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/RealESR-General-4x.onnx?download=true"
     },
     {
       "Id": 2,
@@ -18,7 +19,8 @@
       "SampleSize": 0,
       "ScaleFactor": 2,
       "Normalization": "ZeroToOne",
-      "Path": "Models\\BSRGAN-2x.onnx"
+      "Path": "Models\\BSRGAN-2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/BSRGAN-2x.onnx?download=true"
     }
   ]
 }

@@ -1,14 +1,14 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TensorStack.Common;
+using TensorStack.Example.Common;
+using TensorStack.Example.Services;
 using TensorStack.Image;
 using TensorStack.WPF;
 using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
-using TensorStack.Example.Common;
-using TensorStack.Example.Services;
 
 namespace TensorStack.Example.Views
 {
@@ -100,8 +100,10 @@ namespace TensorStack.Example.Views
         private async Task LoadAsync()
         {
             var timestamp = Stopwatch.GetTimestamp();
-            Progress.Indeterminate();
+            if (!await IsModelValidAsync())
+                return;
 
+            Progress.Indeterminate();
             var device = _selectedDevice;
             if (_selectedDevice is null)
                 device = Settings.DefaultDevice;
@@ -173,5 +175,13 @@ namespace TensorStack.Example.Views
             return UpscaleService.CanCancel;
         }
 
+
+        private async Task<bool> IsModelValidAsync()
+        {
+            if (File.Exists(SelectedModel.Path))
+                return true;
+
+            return await DialogService.DownloadAsync($"Download '{SelectedModel.Name}' upscale model?", SelectedModel.UrlPath, SelectedModel.Path);
+        }
     }
 }
