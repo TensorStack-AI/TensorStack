@@ -7,6 +7,6 @@ namespace TensorStack.Extractors.Common
 {
     public record ExtractorStreamOptions : ExtractorOptions
     {
-        public IAsyncEnumerable<VideoFrame> Stream { get; }
+        public IAsyncEnumerable<VideoFrame> Stream { get; init; }
     }
 }

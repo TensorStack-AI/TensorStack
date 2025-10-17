@@ -112,14 +112,40 @@ namespace TensorStack.Image
                     byte* row = (byte*)bitmapData.Scan0 + (y * bitmapData.Stride);
                     for (int x = 0; x < width; x++)
                     {
-                        row[x * 4 + 3] = channels == 4 ? GetByteValue(tensor[0, 3, y, x]) : byte.MaxValue; // A
-                        row[x * 4 + 2] = GetByteValue(tensor[0, 0, y, x]); // R
-                        row[x * 4 + 1] = GetByteValue(tensor[0, 1, y, x]); // G
-                        row[x * 4 + 0] = GetByteValue(tensor[0, 2, y, x]); // B
+                        byte r, g, b, a;
+                        switch (channels)
+                        {
+                            case 1: // Grayscale
+                                r = g = b = GetByteValue(tensor[0, 0, y, x]);
+                                a = byte.MaxValue;
+                                break;
+
+                            case 3: // RGB
+                                r = GetByteValue(tensor[0, 0, y, x]);
+                                g = GetByteValue(tensor[0, 1, y, x]);
+                                b = GetByteValue(tensor[0, 2, y, x]);
+                                a = byte.MaxValue;
+                                break;
+
+                            case 4: // RGBA
+                                r = GetByteValue(tensor[0, 0, y, x]);
+                                g = GetByteValue(tensor[0, 1, y, x]);
+                                b = GetByteValue(tensor[0, 2, y, x]);
+                                a = GetByteValue(tensor[0, 3, y, x]);
+                                break;
+
+                            default:
+                                throw new NotSupportedException($"Unsupported channel count: {channels}");
+                        }
+
+                        row[x * 4 + 0] = b; // B
+                        row[x * 4 + 1] = g; // G
+                        row[x * 4 + 2] = r; // R
+                        row[x * 4 + 3] = a; // A
                     }
                 }
-                bitmap.UnlockBits(bitmapData);
             }
+            bitmap.UnlockBits(bitmapData);
             return bitmap;
         }
 

@@ -6,6 +6,6 @@ namespace TensorStack.Extractors.Common
 {
     public record ExtractorVideoOptions : ExtractorOptions
     {
-        public VideoTensor Video { get; }
+        public VideoTensor Video { get; init; }
     }
 }
