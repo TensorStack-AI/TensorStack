@@ -17,7 +17,7 @@ namespace TensorStack.Example
             NavigateCommand = new AsyncRelayCommand<View>(NavigateAsync, CanNavigate);
             InitializeComponent();
 
-            NavigateCommand.Execute(View.ImageBackground);
+            NavigateCommand.Execute(View.ImageExtractor);
         }
 
         public NavigationService Navigation { get; }
@@ -28,6 +28,7 @@ namespace TensorStack.Example
         {
             await Navigation.NavigateAsync((int)view);
         }
+
 
         private bool CanNavigate(View view)
         {

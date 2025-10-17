@@ -26,6 +26,8 @@ namespace TensorStack.Example.Views
         private TileMode _tileMode;
         private int _tileSize = 512;
         private int _tileOverlap = 16;
+        private bool _invertOutput;
+        private bool _mergeOutput;
         private IProgress<RunProgress> _progressCallback;
 
         public VideoExtractorView(Settings settings, NavigationService navigationService, IExtractorService extractorService)
@@ -97,6 +99,18 @@ namespace TensorStack.Example.Views
             set { SetProperty(ref _tileOverlap, value); }
         }
 
+        public bool InvertOutput
+        {
+            get { return _invertOutput; }
+            set { SetProperty(ref _invertOutput, value); }
+        }
+
+        public bool MergeOutput
+        {
+            get { return _mergeOutput; }
+            set { SetProperty(ref _mergeOutput, value); }
+        }
+
 
         private async Task LoadAsync()
         {
@@ -149,6 +163,8 @@ namespace TensorStack.Example.Views
                 TileMode = _tileMode,
                 MaxTileSize = _tileSize,
                 TileOverlap = _tileOverlap,
+                IsInverted = _invertOutput,
+                MergeInput = _mergeOutput
             }, _progressCallback);
 
             // Set Result

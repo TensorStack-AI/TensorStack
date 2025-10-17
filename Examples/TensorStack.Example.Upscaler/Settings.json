@@ -3,6 +3,36 @@
   "UpscaleModels": [
     {
       "Id": 1,
+      "Name": "BSRGAN-2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\BSRGAN-2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/BSRGAN-2x.onnx?download=true"
+    },
+    {
+      "Id": 2,
+      "Name": "RealESRGAN-2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\RealESRGAN-2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/RealESRGAN-2x.onnx?download=true"
+    },
+    {
+      "Id": 3,
+      "Name": "RealESRGAN-4x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\RealESRGAN-4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/RealESRGAN-4x.onnx?download=true"
+    },
+    {
+      "Id": 4,
       "Name": "RealESR-General-4x",
       "IsDefault": true,
       "Channels": 3,
@@ -13,14 +43,154 @@
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/RealESR-General-4x.onnx?download=true"
     },
     {
-      "Id": 2,
-      "Name": "BSRGAN-2x",
+      "Id": 5,
+      "Name": "Swin2SR-Classical-2x",
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
       "Normalization": "ZeroToOne",
-      "Path": "Models\\BSRGAN-2x.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/BSRGAN-2x.onnx?download=true"
+      "Path": "Models\\Swin2SR-Classical-2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/Swin2SR-Classical-2x.onnx?download=true"
+    },
+    {
+      "Id": 6,
+      "Name": "Swin2SR-Classical-4x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\Swin2SR-Classical-4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/Swin2SR-Classical-4x.onnx?download=true"
+    },
+    {
+      "Id": 7,
+      "Name": "SwinIR-BSRGAN-4x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\SwinIR-BSRGAN-4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/SwinIR-BSRGAN-4x.onnx?download=true"
+    },
+    {
+      "Id": 8,
+      "Name": "UltraMix-Smooth-4x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\UltraMix-Smooth-4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/UltraMix-Smooth-4x.onnx?download=true"
+    },
+    {
+      "Id": 9,
+      "Name": "UltraSharp-4x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\UltraSharp-4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/UltraSharp-4x.onnx?download=true"
+    },
+    {
+      "Id": 10,
+      "Name": "APISR_RRDB_GAN_2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\APISR_RRDB_GAN_2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/APISR_RRDB_GAN_2x.onnx?download=true"
+    },
+    {
+      "Id": 11,
+      "Name": "APISR_GRL_GAN_4x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\APISR_GRL_GAN_4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/APISR_GRL_GAN_4x.onnx?download=true"
+    },
+    {
+      "Id": 12,
+      "Name": "RealWebPhoto_RGT_4x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\RealWebPhoto_RGT_4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/RealWebPhoto_RGT_4x.onnx?download=true"
+    },
+    {
+      "Id": 13,
+      "Name": "AnimeSharpV2_ESRGAN_Soft_2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\AnimeSharpV2_ESRGAN_Soft_2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/AnimeSharpV2_ESRGAN_Soft_2x.onnx?download=true"
+    },
+    {
+      "Id": 14,
+      "Name": "AnimeSharpV2_MoSR_Sharp_2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\AnimeSharpV2_MoSR_Sharp_2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/AnimeSharpV2_MoSR_Sharp_2x.onnx?download=true"
+    },
+    {
+      "Id": 15,
+      "Name": "AnimeSharpV2_MoSR_Soft_2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\AnimeSharpV2_MoSR_Soft_2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/AnimeSharpV2_MoSR_Soft_2x.onnx?download=true"
+    },
+    {
+      "Id": 16,
+      "Name": "AnimeSharpV2_RPLKSR_Sharp_2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\AnimeSharpV2_RPLKSR_Sharp_2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/AnimeSharpV2_RPLKSR_Sharp_2x.onnx?download=true"
+    },
+    {
+      "Id": 17,
+      "Name": "AnimeSharpV2_RPLKSR_Soft_2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\AnimeSharpV2_RPLKSR_Soft_2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/AnimeSharpV2_RPLKSR_Soft_2x.onnx?download=true"
+    },
+    {
+      "Id": 18,
+      "Name": "AnimeSharpV3_2x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 2,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\AnimeSharpV3_2x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/AnimeSharpV3_2x.onnx?download=true"
+    },
+    {
+      "Id": 19,
+      "Name": "Swin2SR-RealWorld-BSRGAN-PSN-4x",
+      "Channels": 3,
+      "SampleSize": 0,
+      "ScaleFactor": 4,
+      "Normalization": "ZeroToOne",
+      "Path": "Models\\Swin2SR-RealWorld-BSRGAN-PSN-4x.onnx",
+      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Upscaler/Swin2SR-RealWorld-BSRGAN-PSN-4x.onnx?download=true"
     }
   ]
 }
