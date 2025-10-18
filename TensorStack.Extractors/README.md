@@ -22,27 +22,27 @@ static async Task QuickStartAsync()
         Normalization = Normalization.OneToOne,
         OutputNormalization = Normalization.MinMaxOneToOne,
         ExecutionProvider = Provider.GetProvider(),
-        Path = @"M:\TensorStack\Extractor\Depth.onnx"
+        Path = @"M:\Extractor\Depth.onnx"
     });
 
     // 2. Extract Depth map from Image
-    var inputImage = new ImageInput("ImageInput.png");
+    var inputImage = new ImageInput("Input.png");
     var depthMapImage = await pipeline.RunAsync(new ExtractorImageOptions
     {
         Image = inputImage
     });
-    await depthMapImage.SaveAsync("ImageOutput.png");
+    await depthMapImage.SaveAsync("Output.png");
 
     // 3. Extract Depth map from Video (Streaming mode)
-    var inputStream = await VideoInputStream.CreateAsync("VideoInput.mp4");
+    var inputStream = await VideoInputStream.CreateAsync("Input.mp4");
     var depthMapVideo = pipeline.RunAsync(new ExtractorStreamOptions
     {
             Stream = inputStream.GetAsync()
     });
-    await depthMapVideo.SaveAync("VideoOutput.mp4");
+    await depthMapVideo.SaveAync("Output.mp4");
 
     // 4. Add audio from the source video (optional)
-    await AudioManager.AddAudioAsync("VideoOutput.mp4", "VideoInput.mp4");
+    await AudioManager.AddAudioAsync("Output.mp4", "Input.mp4");
 }
 ```
 

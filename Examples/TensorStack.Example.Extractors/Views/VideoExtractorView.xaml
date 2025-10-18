@@ -16,7 +16,7 @@
 
         <Grid Grid.Row="0" >
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" />
+                <ColumnDefinition MinWidth="360"/>
                 <ColumnDefinition Width="5" />
                 <ColumnDefinition Width="4*" />
             </Grid.ColumnDefinitions>
@@ -92,10 +92,10 @@
                                     <TextBox Text="{Binding TileOverlap}" />
                                 </StackPanel>
                             </UniformGrid>
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <UniformGrid Columns="3" Margin="0,8,0,0">
                                 <CheckBox Content="Invert Output" IsChecked="{Binding InvertOutput}" />
-                                <CheckBox Content="Merge Output" IsChecked="{Binding MergeOutput}" Margin="20,0,0,0"/>
-                            </StackPanel>
+                                <CheckBox Content="Merge Output" IsChecked="{Binding MergeOutput}" />
+                            </UniformGrid>
 
                         </StackPanel>
                     </DockPanel>

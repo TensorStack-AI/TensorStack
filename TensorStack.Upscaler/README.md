@@ -23,7 +23,7 @@ async Task QuickStartAsync()
         ScaleFactor = 4,
         Normalization = Normalization.ZeroToOne,
         ExecutionProvider = Provider.GetProvider(),
-        Path = @"M:\Models\RealESR-General-4x\model.onnx"
+        Path = @"M:\Upscaler\RealESR-General-4x.onnx"
     });
 
     // 2. Upscale an Image
