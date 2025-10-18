@@ -7,7 +7,7 @@
 
 Upscaler Windows demo application avaliable for testing  **[Upscaler Demo](Examples/TensorStack.Example.Upscaler)**
 
-<img src="../../Assets/Examples/UpscaleImage.PNG" width="640"/> 
+<img src="Assets/Examples/UpscaleImage.PNG" width="640"/> 
 
 More information and examples can be found in the `TensorStack.Upscaler` project **[README](TensorStack.Upscaler/README.md)**
 
@@ -19,7 +19,7 @@ More information and examples can be found in the `TensorStack.Upscaler` project
 
 Extractor Windows demo application avaliable for testing  **[Extractor Demo](Examples/TensorStack.Example.Extractors)**
 
-<img src="../../Assets/Examples/BackgroundRemove.PNG" width="640"/> 
+<img src="Assets/Examples/BackgroundRemove.PNG" width="640"/> 
 
 More information and examples can be found in the `TensorStack.Extractors` project **[README](TensorStack.Extractors/README.md)**
 
