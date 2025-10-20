@@ -2,7 +2,7 @@
 // Licensed under the Apache 2.0 License.
 namespace TensorStack.Common.Vision
 {
-    public record CLIPImageOptions(int Width = 224, int Height = 224)
+    public record CLIPImageOptions(int Width = 224, int Height = 224, ResizeMode ResizeMode = ResizeMode.Stretch, ResizeMethod ResizeMethod = ResizeMethod.Bilinear)
     {
         /// <summary>
         /// The Mean to use if normalizing the image.

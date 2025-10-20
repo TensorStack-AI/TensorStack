@@ -58,19 +58,19 @@ namespace TensorStack.Extractors.Pipelines
         {
             var timestamp = RunProgress.GetTimestamp();
             if (_model.Normalization == Normalization.ZeroToOne)
-                options.Input.NormalizeZeroToOne();
+                options.Image.NormalizeZeroToOne();
 
-            var resultTensor = await ExtractBackgroundInternalAsync(options.Input, cancellationToken);
+            var resultTensor = await ExtractBackgroundInternalAsync(options.Image, cancellationToken);
             NormalizeOutput(resultTensor);
 
             if (_model.Normalization == Normalization.ZeroToOne)
-                options.Input.NormalizeOneToOne();
+                options.Image.NormalizeOneToOne();
 
             if (options.Mode == BackgroundMode.RemoveForeground || options.Mode == BackgroundMode.MaskBackground)
                 resultTensor.Memory.Span.Invert();
 
             if (options.Mode == BackgroundMode.RemoveBackground || options.Mode == BackgroundMode.RemoveForeground)
-                resultTensor = AddAlphaChannel(options.Input, resultTensor);
+                resultTensor = AddAlphaChannel(options.Image, resultTensor);
 
             progressCallback?.Report(new RunProgress(timestamp));
             return resultTensor;

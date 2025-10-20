@@ -16,10 +16,9 @@ namespace TensorStack.Common.Vision
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns>ImageTensor.</returns>
-        public static ImageTensor Process(ImageTensor input, int width = 224, int height = 224)
+        public static ImageTensor Process(ImageTensor input, int width = 224, int height = 224, ResizeMode ResizeMode = ResizeMode.Stretch)
         {
-            var options = new CLIPImageOptions(width, height);
-            return Process(input, options);
+            return Process(input, new CLIPImageOptions(width, height, ResizeMode));
         }
 
 
@@ -32,8 +31,7 @@ namespace TensorStack.Common.Vision
         public static ImageTensor Process(ImageTensor input, CLIPImageOptions options)
         {
             options ??= new CLIPImageOptions();
-            var resultTensor = input.ResizeImage(options.Width, options.Height, ResizeMode.Stretch);
-            resultTensor.NormalizeZeroToOne();
+            var resultTensor = input.ResizeImage(options.Width, options.Height, options.ResizeMode, options.ResizeMethod);
             for (int x = 0; x < resultTensor.Width; x++)
             {
                 for (int y = 0; y < resultTensor.Height; y++)

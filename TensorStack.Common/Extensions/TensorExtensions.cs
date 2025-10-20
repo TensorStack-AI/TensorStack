@@ -1020,6 +1020,45 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Gets the crop coordinates.
+        /// </summary>
+        /// <param name="sourceHeight">Height of the source.</param>
+        /// <param name="sourceWidth">Width of the source.</param>
+        /// <param name="targetHeight">Height of the target.</param>
+        /// <param name="targetWidth">Width of the target.</param>
+        /// <param name="resizeMode">The resize mode.</param>
+        /// <returns>CoordinateBox&lt;System.Int32&gt;.</returns>
+        private static CoordinateBox<int> GetCropCoordinates(int sourceHeight, int sourceWidth, int targetHeight, int targetWidth, ResizeMode resizeMode)
+        {
+            var cropX = 0;
+            var cropY = 0;
+            var croppedWidth = targetWidth;
+            var croppedHeight = targetHeight;
+            if (resizeMode == ResizeMode.Crop)
+            {
+                var scaleX = (float)targetWidth / sourceWidth;
+                var scaleY = (float)targetHeight / sourceHeight;
+                var scaleFactor = Math.Max(scaleX, scaleY);
+                croppedWidth = (int)(sourceWidth * scaleFactor);
+                croppedHeight = (int)(sourceHeight * scaleFactor);
+                cropX = Math.Abs(Math.Max((croppedWidth - targetWidth) / 2, 0));
+                cropY = Math.Abs(Math.Max((croppedHeight - targetHeight) / 2, 0));
+            }
+            else if (resizeMode == ResizeMode.LetterBox)
+            {
+                var scaleX = (float)targetWidth / sourceWidth;
+                var scaleY = (float)targetHeight / sourceHeight;
+                var scaleFactor = Math.Min(scaleX, scaleY);
+                croppedWidth = (int)(sourceWidth * scaleFactor);
+                croppedHeight = (int)(sourceHeight * scaleFactor);
+                cropX = -(targetWidth - croppedWidth) / 2;
+                cropY = -(targetHeight - croppedHeight) / 2;
+            }
+            return new CoordinateBox<int>(cropX, cropY, croppedWidth, croppedHeight);
+        }
+
+
+        /// <summary>
         /// Resizes the specified ImageTensor (Bilinear)
         /// </summary>
         /// <param name="sourceImage">The input.</param>
@@ -1032,15 +1071,20 @@ namespace TensorStack.Common
             var sourceHeight = sourceImage.Dimensions[2];
             var sourceWidth = sourceImage.Dimensions[3];
             var cropSize = GetCropCoordinates(sourceHeight, sourceWidth, targetHeight, targetWidth, resizeMode);
-            var destination = new ImageTensor(new[] { 1, channels, targetHeight, targetWidth });
-            Parallel.For(0, channels, c =>
+            var destination = new ImageTensor([1, channels, targetHeight, targetWidth]);
+            if (resizeMode == ResizeMode.LetterBox)
+                destination.Fill(0f);
+
+            var scaleY = (float)(sourceHeight - 1) / (cropSize.MaxY - 1);
+            var sclaeX = (float)(sourceWidth - 1) / (cropSize.MaxX - 1);
+            Parallel.For(0, cropSize.MaxY, h =>
             {
-                for (int h = 0; h < cropSize.MaxY; h++)
+                for (var c = 0; c < channels; c++)
                 {
                     for (int w = 0; w < cropSize.MaxX; w++)
                     {
-                        var y = h * (float)(sourceHeight - 1) / (cropSize.MaxY - 1);
-                        var x = w * (float)(sourceWidth - 1) / (cropSize.MaxX - 1);
+                        var y = h * scaleY;
+                        var x = w * sclaeX;
 
                         var y0 = (int)Math.Floor(y);
                         var x0 = (int)Math.Floor(x);
@@ -1084,42 +1128,46 @@ namespace TensorStack.Common
             var sourceHeight = sourceImage.Dimensions[2];
             var sourceWidth = sourceImage.Dimensions[3];
             var cropSize = GetCropCoordinates(sourceHeight, sourceWidth, targetHeight, targetWidth, resizeMode);
-            var destination = new ImageTensor(new[] { 1, channels, targetHeight, targetWidth });
-            Parallel.For(0, channels, c =>
+            var destination = new ImageTensor([1, channels, targetHeight, targetWidth]);
+            if (resizeMode == ResizeMode.LetterBox)
+                destination.Fill(0f);
+
+            var scaleX = (float)sourceWidth / cropSize.MaxX;
+            var scaleY = (float)sourceHeight / cropSize.MaxY;
+            Parallel.For(0, cropSize.MaxY, h =>
             {
-                for (int h = 0; h < cropSize.MaxY; h++)
+                for (var c = 0; c < channels; c++)
                 {
                     for (int w = 0; w < cropSize.MaxX; w++)
                     {
-                        float y = h * (float)(sourceHeight - 1) / (cropSize.MaxY - 1);
-                        float x = w * (float)(sourceWidth - 1) / (cropSize.MaxX - 1);
+                        float srcY = (h + 0.5f) * scaleY - 0.5f;
+                        float srcX = (w + 0.5f) * scaleX - 0.5f;
 
-                        int yInt = (int)Math.Floor(y);
-                        int xInt = (int)Math.Floor(x);
-                        float yFrac = y - yInt;
-                        float xFrac = x - xInt;
+                        int yInt = (int)Math.Floor(srcY);
+                        int xInt = (int)Math.Floor(srcX);
+                        float yFrac = srcY - yInt;
+                        float xFrac = srcX - xInt;
+                        float pixelValue = 0f;
 
-                        float[] colVals = new float[4];
-
-                        for (int i = -1; i <= 2; i++)
+                        // 2D bicubic: sum over 16 neighbors
+                        for (int m = -1; m <= 2; m++)
                         {
-                            int yi = Math.Clamp(yInt + i, 0, sourceHeight - 1);
-                            float[] rowVals = new float[4];
+                            int yi = MirrorIndex(yInt + m, sourceHeight);
+                            float wY = MitchellNetravali(m - yFrac);
 
-                            for (int j = -1; j <= 2; j++)
+                            for (int n = -1; n <= 2; n++)
                             {
-                                int xi = Math.Clamp(xInt + j, 0, sourceWidth - 1);
-                                rowVals[j + 1] = sourceImage[0, c, yi, xi];
+                                int xi = MirrorIndex(xInt + n, sourceWidth);
+                                float wX = MitchellNetravali(n - xFrac);
+                                pixelValue += sourceImage[0, c, yi, xi] * wX * wY;
                             }
-
-                            colVals[i + 1] = CubicInterpolate(rowVals[0], rowVals[1], rowVals[2], rowVals[3], xFrac);
                         }
 
-                        var targetY = h - cropSize.MinY;
-                        var targetX = w - cropSize.MinX;
+                        int targetY = h - cropSize.MinY;
+                        int targetX = w - cropSize.MinX;
                         if (targetX >= 0 && targetY >= 0 && targetY < targetHeight && targetX < targetWidth)
                         {
-                            destination[0, c, h, w] = CubicInterpolate(colVals[0], colVals[1], colVals[2], colVals[3], yFrac);
+                            destination[0, c, targetY, targetX] = pixelValue;
                         }
                     }
                 }
@@ -1130,50 +1178,38 @@ namespace TensorStack.Common
 
 
         /// <summary>
-        /// Cubic interpolate.
+        /// Mitchell-Netravali kernel (sharper, natural bicubic)
         /// </summary>
-        /// <param name="v0">The v0.</param>
-        /// <param name="v1">The v1.</param>
-        /// <param name="v2">The v2.</param>
-        /// <param name="v3">The v3.</param>
-        /// <param name="fraction">The fraction.</param>
+        /// <param name="value">The value.</param>
         /// <returns>System.Single.</returns>
-        private static float CubicInterpolate(float v0, float v1, float v2, float v3, float fraction)
+        private static float MitchellNetravali(float value)
         {
-            float A = (-0.5f * v0) + (1.5f * v1) - (1.5f * v2) + (0.5f * v3);
-            float B = (v0 * -1.0f) + (v1 * 2.5f) - (v2 * 2.0f) + (v3 * 0.5f);
-            float C = (-0.5f * v0) + (0.5f * v2);
-            float D = v1;
-            return A * (fraction * fraction * fraction) + B * (fraction * fraction) + C * fraction + D;
+            value = Math.Abs(value);
+            const float B = 1f / 3f;
+            const float C = 1f / 3f;
+
+            if (value < 1f)
+                return ((12 - 9 * B - 6 * C) * (value * value * value) + (-18 + 12 * B + 6 * C) * (value * value) + (6 - 2 * B)) / 6f;
+            else if (value < 2f)
+                return ((-B - 6 * C) * (value * value * value) + (6 * B + 30 * C) * (value * value) + (-12 * B - 48 * C) * value + (8 * B + 24 * C)) / 6f;
+            else
+                return 0f;
         }
 
 
         /// <summary>
-        /// Gets the crop coordinates.
+        /// Mirror padding helper
         /// </summary>
-        /// <param name="sourceHeight">Height of the source.</param>
-        /// <param name="sourceWidth">Width of the source.</param>
-        /// <param name="targetHeight">Height of the target.</param>
-        /// <param name="targetWidth">Width of the target.</param>
-        /// <param name="resizeMode">The resize mode.</param>
-        /// <returns>CoordinateBox&lt;System.Int32&gt;.</returns>
-        private static CoordinateBox<int> GetCropCoordinates(int sourceHeight, int sourceWidth, int targetHeight, int targetWidth, ResizeMode resizeMode)
+        /// <param name="i">The i.</param>
+        /// <param name="max">The maximum.</param>
+        /// <returns>System.Int32.</returns>
+        private static int MirrorIndex(int i, int max)
         {
-            var cropX = 0;
-            var cropY = 0;
-            var croppedWidth = targetWidth;
-            var croppedHeight = targetHeight;
-            if (resizeMode == ResizeMode.Crop)
-            {
-                var scaleX = (float)targetWidth / sourceWidth;
-                var scaleY = (float)targetHeight / sourceHeight;
-                var scaleFactor = Math.Max(scaleX, scaleY);
-                croppedWidth = (int)(sourceWidth * scaleFactor);
-                croppedHeight = (int)(sourceHeight * scaleFactor);
-                cropX = Math.Abs(Math.Max((croppedWidth - targetWidth) / 2, 0));
-                cropY = Math.Abs(Math.Max((croppedHeight - targetHeight) / 2, 0));
-            }
-            return new CoordinateBox<int>(cropX, cropY, croppedWidth, croppedHeight);
+            if (i < 0)
+                return -i;
+            if (i >= max)
+                return 2 * max - i - 2;
+            return i;
         }
     }
 }

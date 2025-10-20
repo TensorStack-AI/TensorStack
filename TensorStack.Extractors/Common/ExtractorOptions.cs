@@ -1,7 +1,10 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
+using System.Collections.Generic;
 using TensorStack.Common;
 using TensorStack.Common.Pipeline;
+using TensorStack.Common.Tensor;
+using TensorStack.Common.Video;
 
 namespace TensorStack.Extractors.Common
 {
@@ -34,5 +37,41 @@ namespace TensorStack.Extractors.Common
         /// Gets a value indicating whether the output is inverted.
         /// </summary>
         public bool IsInverted { get; init; }
+    }
+
+
+    /// <summary>
+    /// Image ExtractorOptions.
+    /// </summary>
+    public record ExtractorImageOptions : ExtractorOptions
+    {
+        /// <summary>
+        /// Gets the image.
+        /// </summary>
+        public ImageTensor Image { get; init; }
+    }
+
+
+    /// <summary>
+    /// Video ExtractorOptions.
+    /// </summary>
+    public record ExtractorVideoOptions : ExtractorOptions
+    {
+        /// <summary>
+        /// Gets the video.
+        /// </summary>
+        public VideoTensor Video { get; init; }
+    }
+
+
+    /// <summary>
+    /// Stream ExtractorOptions.
+    /// </summary>
+    public record ExtractorStreamOptions : ExtractorOptions
+    {
+        /// <summary>
+        /// Gets the stream.
+        /// </summary>
+        public IAsyncEnumerable<VideoFrame> Stream { get; init; }
     }
 }

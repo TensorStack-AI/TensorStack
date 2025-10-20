@@ -133,9 +133,9 @@ namespace TensorStack.Common.Tensor
         /// <param name="width">The target width in pixels.</param>
         /// <param name="height">The target height in pixels..</param>
         /// <param name="resizeMode">The resize mode.</param>
-        public void Resize(int width, int height, ResizeMode resizeMode)
+        public void Resize(int width, int height, ResizeMode resizeMode, ResizeMethod resizeMethod = ResizeMethod.Bilinear)
         {
-           UpdateTensor(this.ResizeImage(width, height, resizeMode));
+           UpdateTensor(this.ResizeImage(width, height, resizeMode, resizeMethod));
         }
 
 

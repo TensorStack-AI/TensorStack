@@ -133,7 +133,7 @@ namespace TensorStack.Example.Services
                     var imageTensor = await Task.Run(() => _currentPipeline.RunAsync(new BackgroundImageOptions
                     {
                         Mode = options.Mode,
-                        Input = options.Image
+                        Image = options.Image
                     }, cancellationToken: _cancellationTokenSource.Token));
 
                     if (options.IsTransparentSupported)
@@ -169,7 +169,7 @@ namespace TensorStack.Example.Services
                     {
                         var processedFrame = await _currentPipeline.RunAsync(new BackgroundImageOptions
                         {
-                            Input = frame.Frame,
+                            Image = frame.Frame,
                             Mode = options.Mode
                         }, cancellationToken: cancellationToken);
 

@@ -18,8 +18,9 @@ namespace TensorStack.Extractors.Common
         /// <summary>
         /// Gets the input.
         /// </summary>
-        public ImageTensor Input { get; init; }
+        public ImageTensor Image { get; init; }
     }
+
 
     public enum BackgroundMode
     {

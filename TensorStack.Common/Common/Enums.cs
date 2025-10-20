@@ -58,7 +58,12 @@ namespace TensorStack.Common
         /// <summary>
         /// Center Crop Image
         /// </summary>
-        Crop = 1
+        Crop = 1,
+
+        /// <summary>
+        /// LetterBox Center Image
+        /// </summary>
+        LetterBox = 2
     }
 
 
