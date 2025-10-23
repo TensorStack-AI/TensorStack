@@ -2,7 +2,7 @@
 TensorStack Upscale Demo, a simple WPF application showcasing the capabilities of [TensorStack.Upscaler](https://github.com/TensorStack-AI/TensorStack/tree/master/TensorStack.Upscaler) project.
 
 ## Download
-[Upscaler Demo v0.1.17 (DirectML)](https://github.com/TensorStack-AI/TensorStack/releases/download/v0.1.17/UpscaleDemo_DirectML.zip)
+[Upscaler Demo v0.1.18 (DirectML)](https://github.com/TensorStack-AI/TensorStack/releases/download/v0.1.18/UpscaleDemo_v0.1.18.zip)
 
 ## Upscale Image
 <img src="../../Assets/Examples/UpscaleImage.PNG"/> 

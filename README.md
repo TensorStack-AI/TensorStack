@@ -19,7 +19,7 @@ More information and examples can be found in the `TensorStack.Upscaler` project
 
 Extractor Windows demo application avaliable for testing  **[Extractor Demo](Examples/TensorStack.Example.Extractors)**
 
-<img src="Assets/Examples/BackgroundRemove.PNG" width="640"/> 
+<img width="2000" height="983" alt="Image" src="https://github.com/user-attachments/assets/880654eb-e811-4739-a11c-0f87458718c0" />
 
 More information and examples can be found in the `TensorStack.Extractors` project **[README](TensorStack.Extractors/README.md)**
 
