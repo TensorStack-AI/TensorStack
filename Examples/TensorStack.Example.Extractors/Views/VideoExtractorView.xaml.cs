@@ -7,6 +7,7 @@ using TensorStack.Common;
 using TensorStack.Common.Pipeline;
 using TensorStack.Example.Common;
 using TensorStack.Example.Services;
+using TensorStack.Extractors.Common;
 using TensorStack.Video;
 using TensorStack.WPF;
 using TensorStack.WPF.Services;
@@ -29,6 +30,15 @@ namespace TensorStack.Example.Views
         private bool _invertOutput;
         private bool _mergeOutput;
         private IProgress<RunProgress> _progressCallback;
+        private BackgroundMode _selectedBackgroundMode = BackgroundMode.RemoveBackground;
+        private int _detections = 0;
+        private float _bodyConfidence = 0.4f;
+        private float _jointConfidence = 0.1f;
+        private float _colorAlpha = 0.8f;
+        private float _jointRadius = 7f;
+        private float _boneRadius = 8f;
+        private float _boneThickness = 1f;
+        private bool _isTransparent = false;
 
         public VideoExtractorView(Settings settings, NavigationService navigationService, IExtractorService extractorService)
             : base(settings, navigationService)
@@ -111,6 +121,60 @@ namespace TensorStack.Example.Views
             set { SetProperty(ref _mergeOutput, value); }
         }
 
+        public BackgroundMode SelectedBackgroundMode
+        {
+            get { return _selectedBackgroundMode; }
+            set { SetProperty(ref _selectedBackgroundMode, value); }
+        }
+
+        public int Detections
+        {
+            get { return _detections; }
+            set { SetProperty(ref _detections, value); }
+        }
+
+        public float BodyConfidence
+        {
+            get { return _bodyConfidence; }
+            set { SetProperty(ref _bodyConfidence, value); }
+        }
+
+        public float JointConfidence
+        {
+            get { return _jointConfidence; }
+            set { SetProperty(ref _jointConfidence, value); }
+        }
+
+        public float ColorAlpha
+        {
+            get { return _colorAlpha; }
+            set { SetProperty(ref _colorAlpha, value); }
+        }
+
+        public float JointRadius
+        {
+            get { return _jointRadius; }
+            set { SetProperty(ref _jointRadius, value); }
+        }
+
+        public float BoneRadius
+        {
+            get { return _boneRadius; }
+            set { SetProperty(ref _boneRadius, value); }
+        }
+
+        public float BoneThickness
+        {
+            get { return _boneThickness; }
+            set { SetProperty(ref _boneThickness, value); }
+        }
+
+        public bool IsTransparent
+        {
+            get { return _isTransparent; }
+            set { SetProperty(ref _isTransparent, value); }
+        }
+
 
         private async Task LoadAsync()
         {
@@ -157,15 +221,13 @@ namespace TensorStack.Example.Views
             CompareVideo = default;
 
             // Run Extractor
-            var resultVideo = await ExtractorService.ExecuteAsync(new ExtractorVideoRequest
+            var resultVideo = _selectedModel.Type switch
             {
-                VideoStream = _sourceVideo,
-                TileMode = _tileMode,
-                MaxTileSize = _tileSize,
-                TileOverlap = _tileOverlap,
-                IsInverted = _invertOutput,
-                MergeInput = _mergeOutput
-            }, _progressCallback);
+                ExtractorType.Default => await ExecuteDefaultAsync(),
+                ExtractorType.Background => await ExecuteBackgroundAsync(),
+                ExtractorType.Pose => await ExecutePoseAsync(),
+                _ => throw new NotImplementedException()
+            };
 
             // Set Result
             ResultVideo = resultVideo;
@@ -206,6 +268,47 @@ namespace TensorStack.Example.Views
                 return true;
 
             return await DialogService.DownloadAsync($"Download '{SelectedModel.Name}' extractor model?", SelectedModel.UrlPath, SelectedModel.Path);
+        }
+
+
+        private async Task<VideoInputStream> ExecuteDefaultAsync()
+        {
+            return await ExtractorService.ExecuteAsync(new ExtractorVideoRequest
+            {
+                VideoStream = _sourceVideo,
+                TileMode = _tileMode,
+                MaxTileSize = _tileSize,
+                TileOverlap = _tileOverlap,
+                IsInverted = _invertOutput,
+                MergeInput = _mergeOutput
+            }, _progressCallback);
+        }
+
+
+        private async Task<VideoInputStream> ExecuteBackgroundAsync()
+        {
+            return await ExtractorService.ExecuteAsync(new BackgroundVideoRequest
+            {
+                VideoStream = _sourceVideo,
+                Mode = _selectedBackgroundMode,
+            }, _progressCallback);
+        }
+
+
+        private async Task<VideoInputStream> ExecutePoseAsync()
+        {
+            return await ExtractorService.ExecuteAsync(new PoseVideoRequest
+            {
+                VideoStream = _sourceVideo,
+                Detections = _detections,
+                BodyConfidence = _bodyConfidence,
+                BoneRadius = _boneRadius,
+                BoneThickness = _boneThickness,
+                ColorAlpha = _colorAlpha,
+                IsTransparent = _isTransparent,
+                JointConfidence = _jointConfidence,
+                JointRadius = _jointRadius
+            }, _progressCallback);
         }
     }
 }

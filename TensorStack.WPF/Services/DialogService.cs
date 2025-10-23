@@ -117,6 +117,14 @@ namespace TensorStack.WPF.Services
         }
 
 
+        public static async Task<DialogResult> DownloadAsync(string message, string[] downloadSource, string downloadDestination)
+        {
+            var dialog = GetDialogInstance<DownloadDialog>();
+            var result = await dialog.ShowDialogAsync(message, downloadSource, downloadDestination);
+            return new DialogResult(result, false);
+        }
+
+
         private static T GetDialogInstance<T>() where T : DialogControl
         {
             return _dialogFactory.CreateDialog<T, WindowMainBase>();

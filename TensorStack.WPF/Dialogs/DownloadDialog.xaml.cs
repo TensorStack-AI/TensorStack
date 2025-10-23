@@ -2,6 +2,7 @@
 // Licensed under the Apache 2.0 License.
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
@@ -20,6 +21,7 @@ namespace TensorStack.WPF.Dialogs
         private string _message;
         private double _progress;
         private string _downloadSource;
+        private string[] _downloadSources;
         private string _downloadDestination;
         private double _speed;
         private double _totalSize;
@@ -89,6 +91,17 @@ namespace TensorStack.WPF.Dialogs
         }
 
 
+        public Task<bool> ShowDialogAsync(string message, string[] downloadSources, string downloadDestination)
+        {
+            Progress = 0;
+            Title = "Download";
+            Message = message;
+            _downloadSources = downloadSources;
+            _downloadDestination = downloadDestination;
+            return base.ShowDialogAsync();
+        }
+
+
         private async Task Yes()
         {
             try
@@ -96,7 +109,15 @@ namespace TensorStack.WPF.Dialogs
                 CancelText = "Cancel";
                 using (_cancellationTokenSource = new CancellationTokenSource())
                 {
-                    await _downloadService.DownloadAsync(_downloadSource, _downloadDestination, _downloadCallback, _cancellationTokenSource.Token);
+                    if (!_downloadSources.IsNullOrEmpty())
+                    {
+                        await _downloadService.DownloadAsync([.. _downloadSources], _downloadDestination, _downloadCallback, _cancellationTokenSource.Token);
+                    }
+                    else
+                    {
+                        await _downloadService.DownloadAsync(_downloadSource, _downloadDestination, _downloadCallback, _cancellationTokenSource.Token);
+                    }
+
                     await base.SaveAsync();
                 }
             }

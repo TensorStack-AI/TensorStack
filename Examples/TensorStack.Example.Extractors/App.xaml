@@ -1,8 +1,10 @@
 ﻿<Application x:Class="TensorStack.Example.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:System="clr-namespace:System;assembly=mscorlib"
              xmlns:local="clr-namespace:TensorStack.Example"
              xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls;assembly=TensorStack.WPF"
+             xmlns:Extractors="clr-namespace:TensorStack.Extractors.Common;assembly=TensorStack.Extractors"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
 
@@ -10,6 +12,14 @@
         <ResourceDictionary>
 
             <!--TensorStack.Example-->
+
+            <ObjectDataProvider x:Key="BackgroundMode" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="Extractors:BackgroundMode"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+
+
             <Style x:Key="ImageDropZoneStyle" TargetType="{x:Type Border}">
                 <Setter Property="AllowDrop" Value="False"/>
                 <Setter Property="BorderBrush" Value="Transparent"/>

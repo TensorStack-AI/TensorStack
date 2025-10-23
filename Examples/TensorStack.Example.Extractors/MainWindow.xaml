@@ -15,40 +15,46 @@
 
         <!--Main Menu-->
         <Grid DockPanel.Dock="Top" WindowChrome.IsHitTestVisibleInChrome="True">
-            <UniformGrid Columns="6" Height="30" Margin="2">
 
-                <!--Logo-->
-                <Grid IsHitTestVisible="False">
-                    <Image Source="{StaticResource ImageTensorstackText}" Height="32" HorizontalAlignment="Left" Margin="4,2,20,0" />
-                </Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="200" />
+            </Grid.ColumnDefinitions>
+
+            <!--Logo-->
+            <Grid Grid.Column="0" IsHitTestVisible="False">
+                <Image Source="{StaticResource ImageTensorstackText}" Height="32" HorizontalAlignment="Left" Margin="4,2,20,0" />
+            </Grid>
+
+
+            <UniformGrid Grid.Column="1" Columns="2" Height="30" Margin="2">
 
                 <!--Views-->
                 <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.ImageExtractor}" Content="Image Extractor" />
-                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.ImageBackground}" Content="Image Background" />
                 <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.VideoExtractor}" Content="Video Extractor" />
-                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.VideoBackground}" Content="Video Background" />
-
-                <!--Window Options-->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <UniformGrid  Columns="3" >
-                        <Button Command="{Binding MinimizeCommand}" Padding="10,1" >
-                            <CommonControls:FontAwesome Icon="&#xf2d1;" />
-                        </Button>
-                        <Grid>
-                            <Button Command="{Binding RestoreCommand}" Padding="10,1" Visibility="{Binding WindowState, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Maximized}">
-                                <CommonControls:FontAwesome Icon="&#xf2d2;" />
-                            </Button>
-                            <Button Command="{Binding MaximizeCommand}" Padding="10,1" Visibility="{Binding WindowState, Converter={StaticResource InverseEnumToVisibilityConverter}, ConverterParameter=Maximized}">
-                                <CommonControls:FontAwesome Icon="&#xf2d0;" />
-                            </Button>
-                        </Grid>
-                        <Button x:Name="CloseButton" Command="{Binding CloseCommand}" Padding="12,0" >
-                            <CommonControls:FontAwesome Icon="&#xf00d;" />
-                        </Button>
-                    </UniformGrid>
-                </StackPanel>
 
             </UniformGrid>
+
+            <!--Window Options-->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <UniformGrid  Columns="3" >
+                    <Button Command="{Binding MinimizeCommand}" Padding="10,1" >
+                        <CommonControls:FontAwesome Icon="&#xf2d1;" />
+                    </Button>
+                    <Grid>
+                        <Button Command="{Binding RestoreCommand}" Padding="10,1" Visibility="{Binding WindowState, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Maximized}">
+                            <CommonControls:FontAwesome Icon="&#xf2d2;" />
+                        </Button>
+                        <Button Command="{Binding MaximizeCommand}" Padding="10,1" Visibility="{Binding WindowState, Converter={StaticResource InverseEnumToVisibilityConverter}, ConverterParameter=Maximized}">
+                            <CommonControls:FontAwesome Icon="&#xf2d0;" />
+                        </Button>
+                    </Grid>
+                    <Button x:Name="CloseButton" Command="{Binding CloseCommand}" Padding="12,0" >
+                        <CommonControls:FontAwesome Icon="&#xf00d;" />
+                    </Button>
+                </UniformGrid>
+            </StackPanel>
         </Grid>
 
         <!--View Container-->

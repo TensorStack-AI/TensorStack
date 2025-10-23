@@ -77,25 +77,85 @@
                             </Border>
 
 
-                            <!--Options-->
-                            <UniformGrid Columns="3">
-                                <StackPanel>
-                                    <TextBlock Text="Tile Mode" Style="{StaticResource FieldTextBlockStyle}" />
-                                    <ComboBox SelectedItem="{Binding TileMode}" ItemsSource="{Binding Source={StaticResource TileMode}}" />
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="Tile Size" Style="{StaticResource FieldTextBlockStyle}" />
-                                    <TextBox Text="{Binding TileSize}" />
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="Tile Overlap" Style="{StaticResource FieldTextBlockStyle}" />
-                                    <TextBox Text="{Binding TileOverlap}" />
-                                </StackPanel>
-                            </UniformGrid>
-                            <UniformGrid Columns="3" Margin="0,8,0,0">
-                                <CheckBox Content="Invert Output" IsChecked="{Binding InvertOutput}" />
-                                <CheckBox Content="Merge Output" IsChecked="{Binding MergeOutput}" />
-                            </UniformGrid>
+                            <!--Default Options-->
+                            <StackPanel Visibility="{Binding SelectedModel.Type, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Default}">
+                                <UniformGrid Columns="3">
+                                    <StackPanel>
+                                        <TextBlock Text="Tile Mode" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <ComboBox SelectedItem="{Binding TileMode}" ItemsSource="{Binding Source={StaticResource TileMode}}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="Tile Size" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <TextBox Text="{Binding TileSize}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="Tile Overlap" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <TextBox Text="{Binding TileOverlap}" />
+                                    </StackPanel>
+                                </UniformGrid>
+                                <UniformGrid Columns="3" Margin="0,8,0,0">
+                                    <CheckBox Content="Invert Output" IsChecked="{Binding InvertOutput}" />
+                                    <CheckBox Content="Merge Output" IsChecked="{Binding MergeOutput}" />
+                                </UniformGrid>
+                            </StackPanel>
+
+
+                            <!--Background Options-->
+                            <StackPanel Visibility="{Binding SelectedModel.Type, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Background}">
+                                <UniformGrid Columns="2">
+                                    <StackPanel>
+                                        <TextBlock Text="Background Mode" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <ComboBox SelectedItem="{Binding SelectedBackgroundMode}" ItemsSource="{Binding Source={StaticResource BackgroundMode}}" >
+                                            <ComboBox.ItemContainerStyle>
+                                                <Style TargetType="ComboBoxItem">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding}" Value="RemoveBackground">
+                                                            <Setter Property="IsEnabled" Value="False"/>
+                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding}" Value="RemoveForeground">
+                                                            <Setter Property="IsEnabled" Value="False"/>
+                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ComboBox.ItemContainerStyle>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
+  
+                            <!--Pose Options-->
+                            <StackPanel Visibility="{Binding SelectedModel.Type, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Pose}">
+                                <UniformGrid Columns="3">
+                                    <StackPanel>
+                                        <TextBlock Text="Max Detections" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <TextBox Text="{Binding Detections, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="Body Confidence" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <TextBox Text="{Binding BodyConfidence, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="Joint Confidence" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <TextBox Text="{Binding JointConfidence, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="Bone Radius" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <TextBox Text="{Binding BoneRadius, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="Bone Thickness" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <TextBox Text="{Binding BoneThickness, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="Joint Radius" Style="{StaticResource FieldTextBlockStyle}" />
+                                        <TextBox Text="{Binding JointRadius, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <CommonControls:SliderControl Value="{Binding ColorAlpha}" Text="Alpha" Minimum="0" Maximum="1" TickFrequency="0.01" ValueFormat="N2" />
+                                    <CheckBox Content="IsTransparent" IsChecked="{Binding IsTransparent}" Margin="8, 16, 0, 0" />
+                                </UniformGrid>
+                            </StackPanel>
 
                         </StackPanel>
                     </DockPanel>

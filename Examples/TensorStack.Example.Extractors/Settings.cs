@@ -20,8 +20,6 @@ namespace TensorStack.Example
         public string DirectoryTemp { get; set; }
         public IReadOnlyList<Device> Devices { get; set; }
         public ObservableCollection<ExtractorModel> ExtractorModels { get; set; }
-        public ObservableCollection<BackgroundModel> BackgroundModels { get; set; }
-
 
         public void Initialize()
         {

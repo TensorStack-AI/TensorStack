@@ -31,7 +31,6 @@ namespace TensorStack.Example
 
             builder.Services.AddSingleton<IMediaService, MediaService>();
             builder.Services.AddSingleton<IExtractorService, ExtractorService>();
-            builder.Services.AddSingleton<IBackgroundService, BackgroundService>();
 
             _appHost = builder.Build();
 

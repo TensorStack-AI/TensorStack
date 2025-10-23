@@ -18,7 +18,7 @@ namespace TensorStack.Example.Services
     {
         private readonly Settings _settings;
         private readonly IMediaService _mediaService;
-        private ExtractorPipeline _currentPipeline;
+        private IPipeline _currentPipeline;
         private CancellationTokenSource _cancellationTokenSource;
         private bool _isLoaded;
         private bool _isLoading;
@@ -101,7 +101,12 @@ namespace TensorStack.Example.Services
                     };
 
                     _currentConfig.SetProvider(device.GetProvider());
-                    _currentPipeline = ExtractorPipeline.Create(_currentConfig);
+                    _currentPipeline = model.Type switch
+                    {
+                        ExtractorType.Pose => PosePipeline.Create(_currentConfig),
+                        ExtractorType.Background => BackgroundPipeline.Create(_currentConfig),
+                        _ => ExtractorPipeline.Create(_currentConfig)
+                    };
                     await Task.Run(() => _currentPipeline.LoadAsync(cancellationToken), cancellationToken);
                 }
             }
@@ -121,7 +126,7 @@ namespace TensorStack.Example.Services
 
 
         /// <summary>
-        /// Execute the image pipeline
+        /// Execute the image ExtractorPipeline
         /// </summary>
         /// <param name="request">The request.</param>
         public async Task<ImageInput> ExecuteAsync(ExtractorImageRequest options)
@@ -129,9 +134,10 @@ namespace TensorStack.Example.Services
             try
             {
                 IsExecuting = true;
+                var pipeline = _currentPipeline as ExtractorPipeline;
                 using (_cancellationTokenSource = new CancellationTokenSource())
                 {
-                    var imageTensor = await Task.Run(() => _currentPipeline.RunAsync(new ExtractorImageOptions
+                    var imageTensor = await Task.Run(() => pipeline.RunAsync(new ExtractorImageOptions
                     {
                         Image = options.Image,
                         IsInverted = options.IsInverted,
@@ -152,7 +158,73 @@ namespace TensorStack.Example.Services
 
 
         /// <summary>
-        /// Execute the video pipeline
+        /// Execute the image BackgroundPipeline
+        /// </summary>
+        /// <param name="request">The request.</param>
+        public async Task<ImageInput> ExecuteAsync(BackgroundImageRequest options)
+        {
+            try
+            {
+                IsExecuting = true;
+                var pipeline = _currentPipeline as BackgroundPipeline;
+                using (_cancellationTokenSource = new CancellationTokenSource())
+                {
+                    var imageTensor = await Task.Run(() => pipeline.RunAsync(new BackgroundImageOptions
+                    {
+                        Mode = options.Mode,
+                        Image = options.Image
+                    }, cancellationToken: _cancellationTokenSource.Token));
+
+                    if (options.IsTransparentSupported)
+                        return new ImageInput(imageTensor.ToImageTransparent());
+
+                    return new ImageInput(imageTensor);
+                }
+            }
+            finally
+            {
+                IsExecuting = false;
+            }
+        }
+
+
+        /// <summary>
+        /// Execute the image PosePipeline
+        /// </summary>
+        /// <param name="request">The request.</param>
+        public async Task<ImageInput> ExecuteAsync(PoseImageRequest options)
+        {
+            try
+            {
+                IsExecuting = true;
+                var pipeline = _currentPipeline as PosePipeline;
+                using (_cancellationTokenSource = new CancellationTokenSource())
+                {
+                    var imageTensor = await Task.Run(() => pipeline.RunAsync(new PoseImageOptions
+                    {
+                        Image = options.Image,
+                        BodyConfidence = options.BodyConfidence,
+                        BoneRadius = options.BoneRadius,
+                        BoneThickness = options.BoneThickness,
+                        ColorAlpha = options.ColorAlpha,
+                        Detections = options.Detections,
+                        IsTransparent = options.IsTransparent,
+                        JointConfidence = options.JointConfidence,
+                        JointRadius = options.JointRadius,
+                    }, cancellationToken: _cancellationTokenSource.Token));
+
+                    return new ImageInput(imageTensor);
+                }
+            }
+            finally
+            {
+                IsExecuting = false;
+            }
+        }
+
+
+        /// <summary>
+        /// Execute the video ExtractorPipeline
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
@@ -162,6 +234,7 @@ namespace TensorStack.Example.Services
             try
             {
                 IsExecuting = true;
+                var pipeline = _currentPipeline as ExtractorPipeline;
                 var resultVideoFile = FileHelper.RandomFileName(_settings.DirectoryTemp, "mp4");
                 using (_cancellationTokenSource = new CancellationTokenSource())
                 {
@@ -170,7 +243,7 @@ namespace TensorStack.Example.Services
 
                     async Task<VideoFrame> FrameProcessor(VideoFrame frame)
                     {
-                        var processedFrame = await _currentPipeline.RunAsync(new ExtractorImageOptions
+                        var processedFrame = await pipeline.RunAsync(new ExtractorImageOptions
                         {
                             Image = frame.Frame,
                             IsInverted = options.IsInverted,
@@ -178,6 +251,93 @@ namespace TensorStack.Example.Services
                             TileMode = options.TileMode,
                             TileOverlap = options.TileOverlap,
                             MergeInput = options.MergeInput
+                        }, cancellationToken: cancellationToken);
+
+                        progressCallback.Report(new RunProgress(frame.Index, frameCount));
+                        return new VideoFrame(frame.Index, processedFrame, frame.SourceFrameRate, frame.AuxFrame);
+                    }
+
+                    return await _mediaService.SaveWithAudioAsync(options.VideoStream, resultVideoFile, FrameProcessor, cancellationToken);
+                }
+            }
+            finally
+            {
+                IsExecuting = false;
+            }
+        }
+
+
+        /// <summary>
+        /// Execute the video BackgroundPipeline
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <returns>A Task&lt;VideoInputStream&gt; representing the asynchronous operation.</returns>
+        public async Task<VideoInputStream> ExecuteAsync(BackgroundVideoRequest options, IProgress<RunProgress> progressCallback)
+        {
+            try
+            {
+                IsExecuting = true;
+                var pipeline = _currentPipeline as BackgroundPipeline;
+                var resultVideoFile = FileHelper.RandomFileName(_settings.DirectoryTemp, "mp4");
+                using (_cancellationTokenSource = new CancellationTokenSource())
+                {
+                    var frameCount = options.VideoStream.FrameCount;
+                    var cancellationToken = _cancellationTokenSource.Token;
+
+                    async Task<VideoFrame> FrameProcessor(VideoFrame frame)
+                    {
+                        var processedFrame = await pipeline.RunAsync(new BackgroundImageOptions
+                        {
+                            Image = frame.Frame,
+                            Mode = options.Mode
+                        }, cancellationToken: cancellationToken);
+
+                        progressCallback.Report(new RunProgress(frame.Index, frameCount));
+                        return new VideoFrame(frame.Index, processedFrame, frame.SourceFrameRate, frame.AuxFrame);
+                    }
+
+                    return await _mediaService.SaveWithAudioAsync(options.VideoStream, resultVideoFile, FrameProcessor, cancellationToken);
+                }
+            }
+            finally
+            {
+                IsExecuting = false;
+            }
+        }
+
+
+        /// <summary>
+        /// Execute the video PosePipeline
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <returns>A Task&lt;VideoInputStream&gt; representing the asynchronous operation.</returns>
+        public async Task<VideoInputStream> ExecuteAsync(PoseVideoRequest options, IProgress<RunProgress> progressCallback)
+        {
+            try
+            {
+                IsExecuting = true;
+                var pipeline = _currentPipeline as PosePipeline;
+                var resultVideoFile = FileHelper.RandomFileName(_settings.DirectoryTemp, "mp4");
+                using (_cancellationTokenSource = new CancellationTokenSource())
+                {
+                    var frameCount = options.VideoStream.FrameCount;
+                    var cancellationToken = _cancellationTokenSource.Token;
+
+                    async Task<VideoFrame> FrameProcessor(VideoFrame frame)
+                    {
+                        var processedFrame = await pipeline.RunAsync(new PoseImageOptions
+                        {
+                            Image = frame.Frame,
+                            BodyConfidence = options.BodyConfidence,
+                            BoneRadius = options.BoneRadius,
+                            BoneThickness = options.BoneThickness,
+                            ColorAlpha = options.ColorAlpha,
+                            Detections = options.Detections,
+                            IsTransparent = options.IsTransparent,
+                            JointConfidence = options.JointConfidence,
+                            JointRadius = options.JointRadius,
                         }, cancellationToken: cancellationToken);
 
                         progressCallback.Report(new RunProgress(frame.Index, frameCount));
@@ -234,7 +394,11 @@ namespace TensorStack.Example.Services
         Task UnloadAsync();
         Task CancelAsync();
         Task<ImageInput> ExecuteAsync(ExtractorImageRequest options);
+        Task<ImageInput> ExecuteAsync(BackgroundImageRequest options);
+        Task<ImageInput> ExecuteAsync(PoseImageRequest options);
         Task<VideoInputStream> ExecuteAsync(ExtractorVideoRequest options, IProgress<RunProgress> progressCallback);
+        Task<VideoInputStream> ExecuteAsync(BackgroundVideoRequest options, IProgress<RunProgress> progressCallback);
+        Task<VideoInputStream> ExecuteAsync(PoseVideoRequest options, IProgress<RunProgress> progressCallback);
     }
 
 
@@ -256,6 +420,49 @@ namespace TensorStack.Example.Services
         public int TileOverlap { get; init; }
         public bool IsInverted { get; init; }
         public bool MergeInput { get; init; }
+        public VideoInputStream VideoStream { get; init; }
+    }
+
+
+    public record BackgroundImageRequest
+    {
+        public BackgroundMode Mode { get; init; }
+        public ImageInput Image { get; set; }
+        public bool IsTransparentSupported { get; set; }
+    }
+
+
+    public record BackgroundVideoRequest
+    {
+        public BackgroundMode Mode { get; init; }
+        public VideoInputStream VideoStream { get; set; }
+    }
+
+
+    public record PoseImageRequest
+    {
+        public int Detections { get; set; } = 0;
+        public float BodyConfidence { get; init; } = 0.4f;
+        public float JointConfidence { get; init; } = 0.1f;
+        public float ColorAlpha { get; init; } = 0.8f;
+        public float JointRadius { get; init; } = 7f;
+        public float BoneRadius { get; init; } = 8f;
+        public float BoneThickness { get; init; } = 1f;
+        public bool IsTransparent { get; set; }
+        public ImageInput Image { get; init; }
+    }
+
+
+    public record PoseVideoRequest
+    {
+        public int Detections { get; set; } = 0;
+        public float BodyConfidence { get; init; } = 0.4f;
+        public float JointConfidence { get; init; } = 0.1f;
+        public float ColorAlpha { get; init; } = 0.8f;
+        public float JointRadius { get; init; } = 7f;
+        public float BoneRadius { get; init; } = 8f;
+        public float BoneThickness { get; init; } = 1f;
+        public bool IsTransparent { get; set; }
         public VideoInputStream VideoStream { get; init; }
     }
 }

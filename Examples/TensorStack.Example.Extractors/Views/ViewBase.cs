@@ -27,8 +27,6 @@ namespace TensorStack.Example.Views
     public enum View
     {
         ImageExtractor = 0,
-        VideoExtractor = 1,
-        ImageBackground = 2,
-        VideoBackground = 3
+        VideoExtractor = 1
     }
 }
