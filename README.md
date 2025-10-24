@@ -7,7 +7,7 @@
 
 Upscaler Windows demo application avaliable for testing  **[Upscaler Demo](Examples/TensorStack.Example.Upscaler)**
 
-<img src="Assets/Examples/UpscaleImage.PNG" width="640"/> 
+<img width="2000" height="439" alt="Image" src="https://github.com/user-attachments/assets/04481a95-cbfd-40a5-8595-3c469e669ecc" />
 
 More information and examples can be found in the `TensorStack.Upscaler` project **[README](TensorStack.Upscaler/README.md)**
 
