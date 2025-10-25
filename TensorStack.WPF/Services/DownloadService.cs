@@ -17,6 +17,8 @@ namespace TensorStack.WPF.Services
     /// <seealso cref="Amuserv.Common.Services.IDownloadService" />
     public sealed class DownloadService
     {
+        private static readonly HttpClient HttpClient = new HttpClient();
+
         public async Task DownloadAsync(string fileUrl, string outputFilename, IProgress<DownloadProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
             var fileDownload = new FileDownloadResult
@@ -47,100 +49,96 @@ namespace TensorStack.WPF.Services
             await DownloadAsync(downloadFiles, progressCallback, cancellationToken);
         }
 
-        private async Task DownloadAsync(List<FileDownloadResult> downloadFiles, IProgress<DownloadProgress> progressCallback = default, CancellationToken cancellationToken = default)
+
+        private static async Task DownloadAsync(List<FileDownloadResult> downloadFiles, IProgress<DownloadProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
             if (downloadFiles.All(x => x.Exists))
                 return;
 
-            using (var httpClient = new HttpClient())
+            var totalDownloadSize = await GetTotalSizeFromHeadersAsync(downloadFiles, HttpClient, cancellationToken);
+            if (totalDownloadSize == 0)
+                throw new Exception("Queried file headers returned 0 bytes");
+
+            var totalBytesRead = 0L;
+            var bytePerSecond = new Queue<double>();
+            foreach (var file in downloadFiles.Where(x => !x.Exists))
             {
-                var totalDownloadSize = await GetTotalSizeFromHeadersAsync(downloadFiles, httpClient, cancellationToken);
-                if (totalDownloadSize == 0)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                long existingFileSize = 0;
+                var tempFilename = $"{file.FileName}.download";
+                if (File.Exists(tempFilename))
                 {
-                    throw new Exception("Queried file headers returned 0 bytes");
+                    var fileInfo = new FileInfo(tempFilename);
+                    existingFileSize = fileInfo.Length;
                 }
 
-                var totalBytesRead = 0L;
-                var bytePerSecond = new Queue<double>();
-                foreach (var file in downloadFiles.Where(x => !x.Exists))
+                Directory.CreateDirectory(Path.GetDirectoryName(tempFilename));
+                using (var fileStream = new FileStream(tempFilename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    long existingFileSize = 0;
-                    var tempFilename = $"{file.FileName}.download";
-                    if (File.Exists(tempFilename))
+                    if (existingFileSize > 0)
                     {
-                        var fileInfo = new FileInfo(tempFilename);
-                        existingFileSize = fileInfo.Length;
+                        fileStream.Seek(existingFileSize, SeekOrigin.Begin);
+                        HttpClient.DefaultRequestHeaders.Range = new System.Net.Http.Headers.RangeHeaderValue(existingFileSize, null);
                     }
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(tempFilename));
-                    using (FileStream fileStream = new FileStream(tempFilename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                    using (var response = await HttpClient.GetAsync(file.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
                     {
-                        if (existingFileSize > 0)
+                        response.EnsureSuccessStatusCode();
+
+                        var fileBytesRead = 0;
+                        var fileBuffer = new byte[32768];
+                        var fileSize = existingFileSize + response.Content.Headers.ContentLength ?? -1;
+
+                        using (var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken))
                         {
-                            fileStream.Seek(existingFileSize, SeekOrigin.Begin);
-                            httpClient.DefaultRequestHeaders.Range = new System.Net.Http.Headers.RangeHeaderValue(existingFileSize, null);
-                        }
-
-                        using (var response = await httpClient.GetAsync(file.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
-                        {
-                            response.EnsureSuccessStatusCode();
-
-                            var fileBytesRead = 0;
-                            var fileBuffer = new byte[32768];
-                            var fileSize = existingFileSize + response.Content.Headers.ContentLength ?? -1;
-
-                            using (var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken))
+                            while (true)
                             {
-                                while (true)
+                                var timestamp = Stopwatch.GetTimestamp();
+                                cancellationToken.ThrowIfCancellationRequested();
+                                var readSize = await contentStream.ReadAsync(fileBuffer, cancellationToken);
+                                if (readSize == 0)
+                                    break;
+
+                                await fileStream.WriteAsync(fileBuffer.AsMemory(0, readSize), cancellationToken);
+
+                                fileBytesRead += readSize;
+                                totalBytesRead += readSize;
+                                var fileProgress = fileBytesRead * 100.0 / fileSize;
+                                var totalProgressValue = totalBytesRead * 100.0 / totalDownloadSize;
+
+                                bytePerSecond.Enqueue(readSize / Stopwatch.GetElapsedTime(timestamp).TotalSeconds);
+                                if (bytePerSecond.Count > 500)
+                                    bytePerSecond.Dequeue();
+
+                                progressCallback?.Report(new DownloadProgress
                                 {
-                                    var timestamp = Stopwatch.GetTimestamp();
-                                    cancellationToken.ThrowIfCancellationRequested();
-                                    var readSize = await contentStream.ReadAsync(fileBuffer, cancellationToken);
-                                    if (readSize == 0)
-                                        break;
-
-                                    await fileStream.WriteAsync(fileBuffer.AsMemory(0, readSize), cancellationToken);
-
-                                    fileBytesRead += readSize;
-                                    totalBytesRead += readSize;
-                                    var fileProgress = fileBytesRead * 100.0 / fileSize;
-                                    var totalProgressValue = totalBytesRead * 100.0 / totalDownloadSize;
-
-                                    bytePerSecond.Enqueue(readSize / Stopwatch.GetElapsedTime(timestamp).TotalSeconds);
-                                    if (bytePerSecond.Count > 50)
-                                        bytePerSecond.Dequeue();
-
-                                    progressCallback?.Report(new DownloadProgress
-                                    {
-                                        FileSize = fileSize,
-                                        FileBytes = fileBytesRead,
-                                        FileProgress = fileProgress,
-                                        TotalSize = totalDownloadSize,
-                                        TotalBytes = totalBytesRead,
-                                        TotalProgress = totalProgressValue,
-                                        BytesSec = bytePerSecond.Average(),
-                                    });
-                                }
+                                    FileSize = fileSize,
+                                    FileBytes = fileBytesRead,
+                                    FileProgress = fileProgress,
+                                    TotalSize = totalDownloadSize,
+                                    TotalBytes = totalBytesRead,
+                                    TotalProgress = totalProgressValue,
+                                    BytesSec = bytePerSecond.Average(),
+                                });
                             }
                         }
                     }
-
-                    // File Complete, Rename
-                    File.Move(tempFilename, file.FileName, true);
-                    file.Exists = File.Exists(file.FileName);
                 }
 
-                // Model Download Complete
-                progressCallback?.Report(new DownloadProgress
-                {
-                    TotalProgress = 100,
-                    TotalSize = totalDownloadSize,
-                    TotalBytes = totalDownloadSize,
-                    BytesSec = bytePerSecond.Average(),
-                });
+                // File Complete, Rename
+                File.Move(tempFilename, file.FileName, true);
+                file.Exists = File.Exists(file.FileName);
             }
+
+            // Model Download Complete
+            progressCallback?.Report(new DownloadProgress
+            {
+                TotalProgress = 100,
+                TotalSize = totalDownloadSize,
+                TotalBytes = totalDownloadSize,
+                BytesSec = bytePerSecond.Average(),
+            });
 
         }
 
@@ -152,26 +150,22 @@ namespace TensorStack.WPF.Services
         /// <param name="httpClient">The HTTP client.</param>
         /// <returns></returns>
         /// <exception cref="Exception">Failed to query file headers, {ex.Message}</exception>
-        private static async Task<long> GetTotalSizeFromHeadersAsync(IEnumerable<FileDownloadResult> fileList, HttpClient httpClient, CancellationToken cancellationToken)
+        private static async Task<long> GetTotalSizeFromHeadersAsync(List<FileDownloadResult> fileList, HttpClient httpClient, CancellationToken cancellationToken)
         {
             var totalDownloadSize = 0L;
-            foreach (var file in fileList)
+            var responseTasks = new Task<HttpResponseMessage>[fileList.Count];
+            foreach (var file in fileList.Index())
             {
-                try
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    using (var response = await httpClient.GetAsync(file.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
-                    {
-                        response.EnsureSuccessStatusCode();
-                        totalDownloadSize += response.Content.Headers.ContentLength ?? 0;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"Error: {ex.Message}\nUrl: {file.Url}");
-                }
+                responseTasks[file.Index] = httpClient.GetAsync(file.Item.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             }
+
+            var responses = await Task.WhenAll(responseTasks);
+            foreach (var response in responses)
+            {
+                response.EnsureSuccessStatusCode();
+                totalDownloadSize += response.Content.Headers.ContentLength ?? 0;
+            }
+
             return totalDownloadSize;
         }
 
@@ -193,7 +187,6 @@ namespace TensorStack.WPF.Services
             }
             return minUrlSegmentLength;
         }
-
 
 
         private static List<FileDownloadResult> GetFileMapping(List<string> urls, string outputDirectory)
@@ -231,6 +224,7 @@ namespace TensorStack.WPF.Services
         public string FileName { get; set; }
         public bool Exists { get; set; }
     }
+
 
     public record DownloadProgress
     {

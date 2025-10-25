@@ -1,0 +1,22 @@
+{
+  "DirectoryTemp": "Temp",
+  "TextModels": [
+    {
+      "Id": 1,
+      "Name": "Text Summary",
+      "IsDefault": true,
+      "Type": "Summary",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "summarize: ", "translate English to German: ", "translate English to French: ", "translate English to Romanian: " ],
+      "Path": "Models\\TextGeneration\\TextSummary",
+      "UrlPaths": [
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/config.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/encoder_model.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/spiece.model?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/tokenizer.json?download=true"
+      ]
+    }
+  ]
+}

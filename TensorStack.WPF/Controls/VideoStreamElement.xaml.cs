@@ -343,7 +343,7 @@ namespace TensorStack.WPF.Controls
             var saveFilename = await DialogService.SaveFileAsync("Save Video", "Video", filter: "mp4 files (*.mp4)|*.mp4", defualtExt: "mp4");
             if (!string.IsNullOrEmpty(saveFilename))
             {
-                File.Copy(Source.SourceFile, saveFilename);
+                File.Copy(Source.SourceFile, saveFilename, true);
             }
         }
 
@@ -367,7 +367,7 @@ namespace TensorStack.WPF.Controls
             var saveFilename = await DialogService.SaveFileAsync("Save Video", "Overlay", filter: "mp4 files (*.mp4)|*.mp4", defualtExt: "mp4");
             if (!string.IsNullOrEmpty(saveFilename))
             {
-                File.Copy(OverlaySource.SourceFile, saveFilename);
+                File.Copy(OverlaySource.SourceFile, saveFilename, true);
             }
         }
 
