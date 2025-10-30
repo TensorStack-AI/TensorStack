@@ -168,8 +168,8 @@
                                 SplitterPosition="Source"
                                 SplitterDirection="LeftToRight"
                                 Progress="{Binding Progress}"
-                                Source="{Binding ResultImage}" 
-                                OverlaySource="{Binding CompareImage}" 
+                                Source="{Binding ResultImage, Mode=TwoWay}" 
+                                OverlaySource="{Binding CompareImage, Mode=TwoWay}" 
                                 IsLoadEnabled="False" 
                                 IsLoadOverlayEnabled="False"/>
                         </Grid>

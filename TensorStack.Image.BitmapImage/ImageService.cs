@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace TensorStack.Image
@@ -55,24 +53,7 @@ namespace TensorStack.Image
             bitmapSource.CacheOption = BitmapCacheOption.OnLoad;
             bitmapSource.EndInit();
             bitmapSource.Freeze();
-
-            if (bitmapSource.Format == PixelFormats.Bgra32 || bitmapSource.Format == PixelFormats.Bgr32)
-            {
-                // BGRA32 WriteableBitmap
-                var writeableBitmap = new WriteableBitmap(bitmapSource);
-                writeableBitmap.Freeze();
-                return writeableBitmap;
-            }
-
-            // Convert to BGRA32 WriteableBitmap
-            var convertTarget = new WriteableBitmap(bitmapSource.PixelWidth, bitmapSource.PixelHeight, bitmapSource.DpiX, bitmapSource.DpiY, PixelFormats.Bgra32, null);
-            var stride = convertTarget.PixelWidth * (convertTarget.Format.BitsPerPixel / 8);
-            var buffer = new byte[stride * convertTarget.PixelHeight];
-            var convertSource = new FormatConvertedBitmap(bitmapSource, PixelFormats.Bgra32, null, 0);
-            convertSource.CopyPixels(buffer, stride, 0);
-            convertTarget.WritePixels(new Int32Rect(0, 0, convertTarget.PixelWidth, convertTarget.PixelHeight), buffer, stride, 0);
-            convertTarget.Freeze();
-            return convertTarget;
+            return bitmapSource.ToWriteableBitmap();
         }
 
 

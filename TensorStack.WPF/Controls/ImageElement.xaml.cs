@@ -19,33 +19,18 @@ namespace TensorStack.WPF.Controls
             LoadOverlayCommand = new AsyncRelayCommand(LoadOverlayAsync, CanLoadOverlay);
             SaveOverlayCommand = new AsyncRelayCommand(SaveOverlayAsync, CanSaveOverlay);
             CopyOverlayCommand = new AsyncRelayCommand(CopyOverlayAsync, CanCopyOverlay);
-
             SaveCanvasCommand = new AsyncRelayCommand(SaveCanvasAsync, CanSaveCanvas);
             CopyCanvasCommand = new AsyncRelayCommand(CopyCanvasAsync, CanCopyCanvas);
             InitializeComponent();
         }
 
-
-        public static readonly DependencyProperty OverlaySourceProperty =
-            DependencyProperty.Register(nameof(OverlaySource), typeof(ImageInput), typeof(ImageElement), new PropertyMetadata<ImageElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty SplitterPositionProperty =
-            DependencyProperty.Register(nameof(SplitterPosition), typeof(SplitterPosition), typeof(ImageElement), new PropertyMetadata<ImageElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty SplitterVisibilityProperty =
-            DependencyProperty.Register(nameof(SplitterVisibility), typeof(SplitterVisibility), typeof(ImageElement), new PropertyMetadata<ImageElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty SplitterDirectionProperty =
-            DependencyProperty.Register(nameof(SplitterDirection), typeof(SplitterDirection), typeof(ImageElement), new PropertyMetadata<ImageElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty IsLoadOverlayEnabledProperty =
-            DependencyProperty.Register(nameof(IsLoadOverlayEnabled), typeof(bool), typeof(ImageElement));
-
-        public static readonly DependencyProperty IsSaveOverlayEnabledProperty =
-            DependencyProperty.Register(nameof(IsSaveOverlayEnabled), typeof(bool), typeof(ImageElement));
-
-        public static readonly DependencyProperty IsSaveCanvasEnabledProperty =
-            DependencyProperty.Register(nameof(IsSaveCanvasEnabled), typeof(bool), typeof(ImageElement));
+        public static readonly DependencyProperty OverlaySourceProperty = DependencyProperty.Register(nameof(OverlaySource), typeof(ImageInput), typeof(ImageElement), new PropertyMetadata<ImageElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty SplitterPositionProperty = DependencyProperty.Register(nameof(SplitterPosition), typeof(SplitterPosition), typeof(ImageElement), new PropertyMetadata<ImageElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty SplitterVisibilityProperty = DependencyProperty.Register(nameof(SplitterVisibility), typeof(SplitterVisibility), typeof(ImageElement), new PropertyMetadata<ImageElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty SplitterDirectionProperty = DependencyProperty.Register(nameof(SplitterDirection), typeof(SplitterDirection), typeof(ImageElement), new PropertyMetadata<ImageElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty IsLoadOverlayEnabledProperty = DependencyProperty.Register(nameof(IsLoadOverlayEnabled), typeof(bool), typeof(ImageElement));
+        public static readonly DependencyProperty IsSaveOverlayEnabledProperty = DependencyProperty.Register(nameof(IsSaveOverlayEnabled), typeof(bool), typeof(ImageElement));
+        public static readonly DependencyProperty IsSaveCanvasEnabledProperty = DependencyProperty.Register(nameof(IsSaveCanvasEnabled), typeof(bool), typeof(ImageElement));
 
         public ImageInput OverlaySource
         {
@@ -94,7 +79,6 @@ namespace TensorStack.WPF.Controls
         public AsyncRelayCommand SaveCanvasCommand { get; }
         public AsyncRelayCommand CopyOverlayCommand { get; }
         public AsyncRelayCommand CopyCanvasCommand { get; }
-
         public bool HasOverlayImage => OverlaySource != null;
 
 
@@ -132,7 +116,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Clears thes control
         /// </summary>
-        /// <returns>Task.</returns>
         protected override Task ClearAsync()
         {
             Source = null;
@@ -155,7 +138,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Load overlay
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task LoadOverlayAsync()
         {
             var image = await LoadImageAsync();
@@ -170,14 +152,13 @@ namespace TensorStack.WPF.Controls
         /// <returns><c>true</c> if this instance can load overlay; otherwise, <c>false</c>.</returns>
         private bool CanLoadOverlay()
         {
-            return true;
+            return IsLoadOverlayEnabled;
         }
 
 
         /// <summary>
         /// Save the overlay
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task SaveOverlayAsync()
         {
             var saveFilename = await DialogService.SaveFileAsync("Save Image", "Overlay", filter: "png files (*.png)|*.png", defualtExt: "png");
@@ -201,7 +182,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Save the canvas
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task SaveCanvasAsync()
         {
             var saveFilename = await DialogService.SaveFileAsync("Save Image", "Canavs", filter: "png files (*.png)|*.png", defualtExt: "png");
@@ -229,7 +209,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Copies the overlay.
         /// </summary>
-        /// <returns>Task.</returns>
         private Task CopyOverlayAsync()
         {
             Clipboard.SetImage(OverlaySource.Image);
@@ -250,7 +229,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Copies the canvas.
         /// </summary>
-        /// <returns>Task.</returns>
         private Task CopyCanvasAsync()
         {
             var canvasSource = CreateCanvasSource();
@@ -327,7 +305,10 @@ namespace TensorStack.WPF.Controls
             {
                 GridSplitterContainer.Visibility = Visibility.Visible;
             }
-            Keyboard.Focus(this);
+
+            if (!IsKeyboardFocusWithin)
+                Keyboard.Focus(this);
+
             base.OnMouseEnter(e);
         }
 
@@ -342,7 +323,6 @@ namespace TensorStack.WPF.Controls
             {
                 GridSplitterContainer.Visibility = Visibility.Hidden;
             }
-            //Keyboard.ClearFocus();
             base.OnMouseLeave(e);
         }
 
@@ -361,6 +341,28 @@ namespace TensorStack.WPF.Controls
                     DragDropHelper.DoDragDropObject(this, bitmapSource, DragDropType.Image, ImageControl, 4);
                 }
             }
+        }
+
+
+        /// <summary>
+        /// Handles the PreviewMouseDown event of the SplitterControl control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseButtonEventArgs"/> instance containing the event data.</param>
+        private void SplitterControl_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            SplitterControl.CaptureMouse();
+        }
+
+
+        /// <summary>
+        /// Handles the PreviewMouseUp event of the SplitterControl control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseButtonEventArgs"/> instance containing the event data.</param>
+        private void SplitterControl_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            SplitterControl.ReleaseMouseCapture();
         }
     }
 

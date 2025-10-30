@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,7 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.UI.StartScreen;
+using TensorStack.Common.Common;
 
 namespace TensorStack.WPF.Services
 {
@@ -19,16 +18,30 @@ namespace TensorStack.WPF.Services
     {
         private static readonly HttpClient HttpClient = new HttpClient();
 
+
+        /// <summary>
+        /// Download as an asynchronous operation.
+        /// </summary>
+        /// <param name="fileUrl">The file URL.</param>
+        /// <param name="outputFilename">The output filename.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
         public async Task DownloadAsync(string fileUrl, string outputFilename, IProgress<DownloadProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
             var fileDownload = new FileDownloadResult
             {
                 Url = fileUrl,
                 FileName = outputFilename,
+                Exists = File.Exists(outputFilename)
             };
+
+            if (fileDownload.Exists)
+                return;
 
             await DownloadAsync([fileDownload], progressCallback, cancellationToken);
         }
+
 
         /// <summary>
         /// Downloads the files from a list of repository links, folder mapping by common prefix.
@@ -46,11 +59,12 @@ namespace TensorStack.WPF.Services
             if (downloadFiles.All(x => x.Exists))
                 return;
 
-            await DownloadAsync(downloadFiles, progressCallback, cancellationToken);
+            var remainingFiles = downloadFiles.Where(x => !x.Exists);
+            await DownloadAsync(remainingFiles, progressCallback, cancellationToken);
         }
 
 
-        private static async Task DownloadAsync(List<FileDownloadResult> downloadFiles, IProgress<DownloadProgress> progressCallback = default, CancellationToken cancellationToken = default)
+        private static async Task DownloadAsync(IEnumerable<FileDownloadResult> downloadFiles, IProgress<DownloadProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
             if (downloadFiles.All(x => x.Exists))
                 return;
@@ -150,13 +164,13 @@ namespace TensorStack.WPF.Services
         /// <param name="httpClient">The HTTP client.</param>
         /// <returns></returns>
         /// <exception cref="Exception">Failed to query file headers, {ex.Message}</exception>
-        private static async Task<long> GetTotalSizeFromHeadersAsync(List<FileDownloadResult> fileList, HttpClient httpClient, CancellationToken cancellationToken)
+        private static async Task<long> GetTotalSizeFromHeadersAsync(IEnumerable<FileDownloadResult> fileList, HttpClient httpClient, CancellationToken cancellationToken)
         {
             var totalDownloadSize = 0L;
-            var responseTasks = new Task<HttpResponseMessage>[fileList.Count];
-            foreach (var file in fileList.Index())
+            var responseTasks = new List<Task<HttpResponseMessage>>();
+            foreach (var file in fileList)
             {
-                responseTasks[file.Index] = httpClient.GetAsync(file.Item.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                responseTasks.Add(httpClient.GetAsync(file.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken));
             }
 
             var responses = await Task.WhenAll(responseTasks);
@@ -170,49 +184,15 @@ namespace TensorStack.WPF.Services
         }
 
 
-        /// <summary>
-        /// Gets the length of the base URL segment.
-        /// </summary>
-        /// <param name="repositoryUrls">The repository urls.</param>
-        /// <returns></returns>
-        private static int GetBaseUrlSegmentLength(List<Uri> repositoryUrls)
+        private static IEnumerable<FileDownloadResult> GetFileMapping(List<string> urls, string outputDirectory)
         {
-            var minUrlSegmentLength = repositoryUrls.Select(x => x.Segments.Length).Min();
-            for (int i = 0; i < minUrlSegmentLength; i++)
+            var files = FileHelper.GetUrlFileMapping(urls, outputDirectory);
+            return files.Select(x => new FileDownloadResult
             {
-                if (repositoryUrls.Select(x => x.Segments[i]).Distinct().Count() > 1)
-                {
-                    return i;
-                }
-            }
-            return minUrlSegmentLength;
-        }
-
-
-        private static List<FileDownloadResult> GetFileMapping(List<string> urls, string outputDirectory)
-        {
-            var files = new List<FileDownloadResult>();
-            var repositoryUrls = urls.Select(x => new Uri(x)).ToList();
-            var baseUrlSegmentLength = GetBaseUrlSegmentLength(repositoryUrls);
-            foreach (var repositoryUrl in repositoryUrls)
-            {
-                var filename = repositoryUrl.Segments.Last().Trim('\\', '/');
-                var subFolder = Path.Combine(repositoryUrl.Segments
-                    .Where(x => x != repositoryUrl.Segments.Last())
-                    .Select(x => x.Trim('\\', '/'))
-                    .Skip(baseUrlSegmentLength)
-                    .ToArray()) ?? string.Empty;
-                var destination = Path.Combine(outputDirectory, subFolder);
-                var destinationFile = Path.Combine(destination, filename);
-
-                files.Add(new FileDownloadResult
-                {
-                    Url = repositoryUrl.OriginalString,
-                    FileName = destinationFile,
-                    Exists = File.Exists(destinationFile)
-                });
-            }
-            return files;
+                Url = x.Key,
+                FileName = x.Value,
+                Exists = File.Exists(x.Value)
+            });
         }
 
     }

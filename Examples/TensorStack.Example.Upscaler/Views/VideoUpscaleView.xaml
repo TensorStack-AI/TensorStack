@@ -121,8 +121,8 @@
                                 SplitterPosition="Source"
                                 SplitterDirection="LeftToRight"
                                 Progress="{Binding Progress}"
-                                Source="{Binding ResultVideo}" 
-                                OverlaySource="{Binding CompareVideo}" 
+                                Source="{Binding ResultVideo, Mode=TwoWay}" 
+                                OverlaySource="{Binding CompareVideo, Mode=TwoWay}" 
                                 IsLoadEnabled="False" 
                                 IsLoadOverlayEnabled="False"/>
                         </Grid>

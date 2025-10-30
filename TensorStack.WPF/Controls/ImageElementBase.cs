@@ -11,6 +11,9 @@ namespace TensorStack.WPF.Controls
 {
     public class ImageElementBase : BaseControl
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageElementBase"/> class.
+        /// </summary>
         public ImageElementBase()
         {
             ClearCommand = new AsyncRelayCommand(ClearAsync, CanClear);
@@ -20,26 +23,14 @@ namespace TensorStack.WPF.Controls
             PasteSourceCommand = new AsyncRelayCommand(PasteSourceAsync, CanPasteSource);
         }
 
-        public static readonly DependencyProperty SourceProperty =
-            DependencyProperty.Register(nameof(Source), typeof(ImageInput), typeof(ImageElementBase), new PropertyMetadata<ImageElementBase>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty CropWidthProperty =
-            DependencyProperty.Register(nameof(CropWidth), typeof(int), typeof(ImageElementBase));
-
-        public static readonly DependencyProperty CropHeightProperty =
-            DependencyProperty.Register(nameof(CropHeight), typeof(int), typeof(ImageElementBase));
-
-        public static readonly DependencyProperty IsToolbarEnabledProperty =
-            DependencyProperty.Register(nameof(IsToolbarEnabled), typeof(bool), typeof(ImageElementBase), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty IsLoadEnabledProperty =
-            DependencyProperty.Register(nameof(IsLoadEnabled), typeof(bool), typeof(ImageElementBase), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty IsSaveEnabledProperty =
-            DependencyProperty.Register(nameof(IsSaveEnabled), typeof(bool), typeof(ImageElementBase), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty ProgressProperty =
-            DependencyProperty.Register(nameof(Progress), typeof(ProgressInfo), typeof(ImageElementBase), new PropertyMetadata(new ProgressInfo()));
+        public static readonly DependencyProperty SourceProperty = DependencyProperty.Register(nameof(Source), typeof(ImageInput), typeof(ImageElementBase), new PropertyMetadata<ImageElementBase>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty CropWidthProperty = DependencyProperty.Register(nameof(CropWidth), typeof(int), typeof(ImageElementBase));
+        public static readonly DependencyProperty CropHeightProperty = DependencyProperty.Register(nameof(CropHeight), typeof(int), typeof(ImageElementBase));
+        public static readonly DependencyProperty IsToolbarEnabledProperty = DependencyProperty.Register(nameof(IsToolbarEnabled), typeof(bool), typeof(ImageElementBase), new PropertyMetadata(true));
+        public static readonly DependencyProperty IsLoadEnabledProperty = DependencyProperty.Register(nameof(IsLoadEnabled), typeof(bool), typeof(ImageElementBase), new PropertyMetadata(true));
+        public static readonly DependencyProperty IsSaveEnabledProperty = DependencyProperty.Register(nameof(IsSaveEnabled), typeof(bool), typeof(ImageElementBase), new PropertyMetadata(true));
+        public static readonly DependencyProperty ProgressProperty = DependencyProperty.Register(nameof(Progress), typeof(ProgressInfo), typeof(ImageElementBase), new PropertyMetadata(new ProgressInfo()));
+        public static readonly DependencyProperty PlaceholderProperty = DependencyProperty.Register(nameof(Placeholder), typeof(BitmapSource), typeof(ImageElementBase));
 
         public ImageInput Source
         {
@@ -83,6 +74,12 @@ namespace TensorStack.WPF.Controls
             set { SetValue(ProgressProperty, value); }
         }
 
+        public BitmapSource Placeholder
+        {
+            get { return (BitmapSource)GetValue(PlaceholderProperty); }
+            set { SetValue(PlaceholderProperty, value); }
+        }
+
         public AsyncRelayCommand ClearCommand { get; }
         public AsyncRelayCommand LoadSourceCommand { get; }
         public AsyncRelayCommand SaveSourceCommand { get; }
@@ -103,7 +100,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Clears thes control
         /// </summary>
-        /// <returns>Task.</returns>
         protected virtual Task ClearAsync()
         {
             Source = null;
@@ -124,7 +120,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Load source
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         protected virtual async Task LoadSourceAsync()
         {
             var image = await LoadImageAsync();
@@ -139,14 +134,13 @@ namespace TensorStack.WPF.Controls
         /// <returns><c>true</c> if this instance can load source; otherwise, <c>false</c>.</returns>
         protected virtual bool CanLoadSource()
         {
-            return true;
+            return IsLoaded;
         }
 
 
         /// <summary>
         /// Saves the source
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         protected virtual async Task SaveSourceAsync()
         {
             var saveFilename = await DialogService.SaveFileAsync("Save Image", "Image", filter: "png files (*.png)|*.png", defualtExt: "png");
@@ -170,7 +164,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Copies the source.
         /// </summary>
-        /// <returns>Task.</returns>
         protected virtual Task CopySourceAsync()
         {
             Clipboard.SetImage(Source.Image);
@@ -191,7 +184,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Paste source
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         protected virtual async Task PasteSourceAsync()
         {
             if (!IsLoadEnabled)
@@ -230,7 +222,7 @@ namespace TensorStack.WPF.Controls
         /// </summary>
         /// <param name="initialFilename">The initial filename.</param>
         /// <param name="initialImage">The initial image.</param>
-        /// <returns>A Task&lt;ImageInput&gt; representing the asynchronous operation.</returns>
+        /// <returns>ImageInput</returns>
         protected virtual async Task<ImageInput> LoadImageAsync(string initialFilename = null, BitmapSource initialImage = null)
         {
             if (CropWidth > 0 && CropHeight > 0)

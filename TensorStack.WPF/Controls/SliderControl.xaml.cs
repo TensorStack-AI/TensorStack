@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 
 namespace TensorStack.WPF.Controls
 {
@@ -9,6 +10,8 @@ namespace TensorStack.WPF.Controls
     {
         private string _valueText;
         private string _valueFormat;
+        private string _valuePostFix = string.Empty;
+        private bool _isPercent;
 
         public SliderControl()
         {
@@ -51,6 +54,12 @@ namespace TensorStack.WPF.Controls
             set { SetValue(TickFrequencyProperty, value); }
         }
 
+        public bool IsPercent
+        {
+            get { return _isPercent; }
+            set { SetProperty(ref _isPercent, value); }
+        }
+
         public string ValueText
         {
             get { return _valueText; }
@@ -67,8 +76,6 @@ namespace TensorStack.WPF.Controls
             }
         }
 
-        private string _valuePostFix = string.Empty;
-
         public string ValuePostFix
         {
             get { return _valuePostFix; }
@@ -82,6 +89,12 @@ namespace TensorStack.WPF.Controls
 
         private void UpdateValueText()
         {
+            if (_isPercent)
+            {
+                ValueText = $"{Math.Round(Value * 100.0):F0}%";
+                return;
+            }
+
             if (string.IsNullOrEmpty(_valueFormat))
             {
                 ValueText = Value.ToString() + _valuePostFix;
@@ -90,7 +103,6 @@ namespace TensorStack.WPF.Controls
 
             ValueText = Value.ToString(_valueFormat) + _valuePostFix;
         }
-
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {

@@ -18,6 +18,9 @@
     <BitmapImage x:Key="ImageTensorstackLong" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/Tensorstack-Long.png" />
     <BitmapImage x:Key="ImageTensorstackCubeW" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/Tensorstack-720.png" />
     <BitmapImage x:Key="ImageTensorstackCubeG" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/Tensorstack-720-Gray.png" />
+    <BitmapImage x:Key="PlaceholderImage" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/PlaceholderImage.png" />
+    <BitmapImage x:Key="PlaceholderVideo" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/PlaceholderVideo.png" />
+
 
     <!--Fonts-->
     <FontFamily x:Key="FontAwesomeBrands">pack://application:,,,/TensorStack.WPF;component/Fonts/Brands-Regular-400.otf#Font Awesome 6 Brands Regular</FontFamily>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Windows.Controls;
 using System.Windows.Data;
 
@@ -15,6 +16,9 @@ namespace TensorStack.WPF.Converters
             string stringToConvert = (string)value;
             if (stringToConvert != null)
             {
+                if (Path.Exists(stringToConvert) && !Path.IsPathFullyQualified(stringToConvert))
+                    stringToConvert = Path.GetFullPath(stringToConvert);
+
                 return new Uri(stringToConvert);
             }
             return nullUri;

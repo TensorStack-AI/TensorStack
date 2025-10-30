@@ -10,7 +10,7 @@
         MaxWidth="500"
         x:Name="UI"
         Icon="{StaticResource ImageIcon}"
-        Style="{StaticResource MessageBoxDialogStyle}">
+        Style="{StaticResource {x:Type controls:DialogControl}}">
     <DockPanel DataContext="{Binding ElementName=UI}" Margin="15, 15, 15, 10">
         <DockPanel DockPanel.Dock="Top">
             <controls:FontAwesome DockPanel.Dock="Left" Size="50" Margin="10,10,10,10" Icon="&#xf059;" IconStyle="Light" Color="{StaticResource InfoColour}" />

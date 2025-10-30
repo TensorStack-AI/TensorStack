@@ -220,6 +220,26 @@ namespace TensorStack.StableDiffusion.Helpers
                 else if (c == '[')
                 {
                     FlushBuffer(buffer, currentWeight, fragments);
+
+                    // Check for explicit weight
+                    int end = FindClosing(prompt, i, '[', ']');
+                    if (end > i)
+                    {
+                        int colonIndex = prompt.LastIndexOf(':', end - 1, end - i);
+                        if (colonIndex > i)
+                        {
+                            string innerText = prompt.Substring(i + 1, colonIndex - i - 1);
+                            string weightText = prompt.Substring(colonIndex + 1, end - colonIndex - 1);
+
+                            if (float.TryParse(weightText, out float weight))
+                            {
+                                fragments.Add(new PromptFragment(innerText.Trim(), currentWeight * weight));
+                                i = end + 1;
+                                continue;
+                            }
+                        }
+                    }
+
                     stack.Push(currentWeight);
                     currentWeight *= DeemphasisMultiplier;
                     i++;

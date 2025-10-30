@@ -11,7 +11,7 @@
         </Storyboard>
     </controls:BaseControl.Resources>
     <Grid DataContext="{Binding ElementName=UI}" x:Name="SpinTarget" RenderTransformOrigin="0.5,0.5">
-        <TextBlock Text="{Binding Icon}" FontSize="{Binding Size}" Foreground="{Binding Color}" VerticalAlignment="Center" HorizontalAlignment="Center" >
+        <TextBlock Text="{Binding IconUnicode}" FontSize="{Binding Size}" Foreground="{Binding Color}" VerticalAlignment="Center" HorizontalAlignment="Center" >
             <TextBlock.Style>
                 <Style TargetType="{x:Type TextBlock}">
                     <Style.Triggers>

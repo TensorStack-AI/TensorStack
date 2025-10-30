@@ -117,8 +117,9 @@ namespace TensorStack.Image
         /// </summary>
         /// <param name="writeableBitmap">The writeable bitmap.</param>
         /// <returns>ImageTensor.</returns>
-        internal static ImageTensor ToTensor(this WriteableBitmap writeableBitmap)
+        internal static ImageTensor ToTensor(this WriteableBitmap bitmapSource)
         {
+            var writeableBitmap = bitmapSource.ToWriteableBitmap();
             var width = writeableBitmap.PixelWidth;
             var height = writeableBitmap.PixelHeight;
             var stride = writeableBitmap.BackBufferStride;
@@ -142,8 +143,31 @@ namespace TensorStack.Image
                     dataSpan[3 * hw + offset] = GetFloatValue(bufferSpan[pixelIndex + 3]); // A
                 }
             }
-
             return tensor;
+        }
+
+
+        internal static WriteableBitmap ToWriteableBitmap(this BitmapSource bitmapSource)
+        {
+            if (bitmapSource.Format == PixelFormats.Bgra32 || bitmapSource.Format == PixelFormats.Bgr32)
+            {
+                if (bitmapSource is WriteableBitmap writeableBitmap)
+                    return writeableBitmap;
+
+                writeableBitmap = new WriteableBitmap(bitmapSource);
+                writeableBitmap.Freeze();
+                return writeableBitmap;
+            }
+
+            // Convert to BGRA32 WriteableBitmap
+            var convertTarget = new WriteableBitmap(bitmapSource.PixelWidth, bitmapSource.PixelHeight, bitmapSource.DpiX, bitmapSource.DpiY, PixelFormats.Bgra32, null);
+            var stride = convertTarget.PixelWidth * (convertTarget.Format.BitsPerPixel / 8);
+            var buffer = new byte[stride * convertTarget.PixelHeight];
+            var convertSource = new FormatConvertedBitmap(bitmapSource, PixelFormats.Bgra32, null, 0);
+            convertSource.CopyPixels(buffer, stride, 0);
+            convertTarget.WritePixels(new Int32Rect(0, 0, convertTarget.PixelWidth, convertTarget.PixelHeight), buffer, stride, 0);
+            convertTarget.Freeze();
+            return convertTarget;
         }
 
 

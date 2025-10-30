@@ -9,7 +9,7 @@
              Focusable="True">
     <CommonControls:BaseControl.InputBindings>
         <KeyBinding Modifiers="Ctrl" Key="O" Command="{Binding LoadSourceCommand , ElementName=VideoElementUI}" />
-        <KeyBinding Modifiers="Ctrl" Key="C"  Command="{Binding CopyOverlayCommand, ElementName=VideoElementUI}" />
+        <KeyBinding Modifiers="Ctrl" Key="C"  Command="{Binding CopySourceCommand, ElementName=VideoElementUI}" />
         <KeyBinding Modifiers="Ctrl" Key="S" Command="{Binding SaveSourceCommand, ElementName=VideoElementUI}" />
         <KeyBinding Modifiers="Ctrl" Key="V"  Command="{Binding PasteSourceCommand, ElementName=VideoElementUI}" />
         <KeyBinding Modifiers="Ctrl" Key="Z"  Command="{Binding ClearCommand, ElementName=VideoElementUI}" />
@@ -17,7 +17,7 @@
         <KeyBinding Modifiers="Ctrl" Key="G"  Command="{Binding CopyOverlayCommand, ElementName=VideoElementUI}" />
         <KeyBinding Modifiers="Ctrl" Key="H" Command="{Binding SaveOverlayCommand, ElementName=VideoElementUI}" />
     </CommonControls:BaseControl.InputBindings>
-    <Border DataContext="{Binding ElementName=VideoElementUI}" BorderBrush="{StaticResource ButtonBorderBrush}" Background="{StaticResource ContainerBackground}" BorderThickness="1"  >
+    <Border DataContext="{Binding ElementName=VideoElementUI}" BorderBrush="{StaticResource ButtonBorderBrush}" Background="{StaticResource ContainerBackground}" BorderThickness="1" >
         <DockPanel >
 
             <!--Controls-->
@@ -88,13 +88,14 @@
             <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
 
                 <!--Video-->
-                <Grid x:Name="SourceContainer" >
+                <Grid x:Name="SourceContainer">
+
                     <!--PlaceHolder-->
-                    <Image Source="{StaticResource ImageTensorstackCubeG}" Visibility="{Binding Source, Converter={StaticResource InverseNullVisibilityConverter}}" Stretch="Uniform" Opacity="0.2" Margin="90"/>
+                    <Image Source="{Binding Placeholder, TargetNullValue={StaticResource PlaceholderVideo}}" Visibility="{Binding Source, Converter={StaticResource InverseNullVisibilityConverter}}" Stretch="Uniform" IsHitTestVisible="False"/>
 
                     <!--Source-->
                     <MediaElement x:Name="VideoControl"
-                        Source="{Binding FileSource}" 
+                        Source="{Binding FileSource, Converter={StaticResource StringToUriConverter}}" 
                         Volume="0"
                         Stretch="Uniform" 
                         LoadedBehavior="Manual" 
@@ -107,7 +108,7 @@
 
                     <!--Overlay-->
                     <MediaElement x:Name="VideoOverlayControl" 
-                        Source="{Binding FileOverlaySource}" 
+                        Source="{Binding FileOverlaySource, Converter={StaticResource StringToUriConverter}}" 
                         Volume="0"
                         Stretch="Uniform"
                         LoadedBehavior="Manual" 
@@ -131,7 +132,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Grid x:Name="GridSplitterControl" Grid.Column="0" SizeChanged="GridSplitter_SizeChanged" />
-                    <GridSplitter Grid.Column="1"  Margin="-15,0,15,0"  Width="30" HorizontalAlignment="Stretch" Background="Transparent" Cursor="ScrollWE" Style="{x:Null}" />
+                    <GridSplitter x:Name="SplitterControl" Grid.Column="1"  Margin="-15,0,15,0"  Width="30" HorizontalAlignment="Stretch" Background="Transparent" Cursor="ScrollWE" Style="{x:Null}" PreviewMouseDown="SplitterControl_PreviewMouseDown" PreviewMouseUp="SplitterControl_PreviewMouseUp"/>
                     <Border Grid.Column="1" Margin="-15,0,15,0" BorderBrush="White" BorderThickness="1,0,1,0" Width="1" Opacity=".4" IsHitTestVisible="False" HorizontalAlignment="Center"  />
                     <Grid Grid.Column="1" Margin="-15,0,15,0"  HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False" Opacity="1" IsHitTestVisible="False" >
                         <TextBlock Text="&lt; &gt;" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3" Foreground="White" Opacity=".8" FontWeight="Bold" FontSize="16"  />

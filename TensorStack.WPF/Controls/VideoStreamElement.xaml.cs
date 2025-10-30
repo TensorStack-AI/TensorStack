@@ -8,11 +8,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using TensorStack.Common;
+using TensorStack.Video;
 using TensorStack.WPF.Services;
 using TensorStack.WPF.Utils;
-using TensorStack.Video;
 
 namespace TensorStack.WPF.Controls
 {
@@ -22,13 +23,14 @@ namespace TensorStack.WPF.Controls
     public partial class VideoStreamElement : BaseControl
     {
         private readonly DispatcherTimer _progressTimer;
-
         private string _fileSource;
         private string _fileOverlaySource;
         private MediaState _mediaState;
         private TimeSpan _progressPosition;
 
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VideoStreamElement"/> class.
+        /// </summary>
         public VideoStreamElement()
         {
             _progressTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Normal, UpdateProgress, Dispatcher);
@@ -46,47 +48,21 @@ namespace TensorStack.WPF.Controls
             InitializeComponent();
         }
 
-        public static readonly DependencyProperty ConfigurationProperty =
-            DependencyProperty.Register(nameof(Configuration), typeof(IUIConfiguration), typeof(VideoStreamElement));
-
-        public static readonly DependencyProperty SourceProperty =
-            DependencyProperty.Register(nameof(Source), typeof(VideoInputStream), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty OverlaySourceProperty =
-            DependencyProperty.Register(nameof(OverlaySource), typeof(VideoInputStream), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty SplitterPositionProperty =
-            DependencyProperty.Register(nameof(SplitterPosition), typeof(SplitterPosition), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty SplitterVisibilityProperty =
-            DependencyProperty.Register(nameof(SplitterVisibility), typeof(SplitterVisibility), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty SplitterDirectionProperty =
-            DependencyProperty.Register(nameof(SplitterDirection), typeof(SplitterDirection), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
-
-        public static readonly DependencyProperty IsToolbarEnabledProperty =
-            DependencyProperty.Register(nameof(IsToolbarEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty IsLoadEnabledProperty =
-            DependencyProperty.Register(nameof(IsLoadEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty IsSaveEnabledProperty =
-            DependencyProperty.Register(nameof(IsSaveEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty IsLoadOverlayEnabledProperty =
-            DependencyProperty.Register(nameof(IsLoadOverlayEnabled), typeof(bool), typeof(VideoStreamElement));
-
-        public static readonly DependencyProperty IsSaveOverlayEnabledProperty =
-            DependencyProperty.Register(nameof(IsSaveOverlayEnabled), typeof(bool), typeof(VideoStreamElement));
-
-        public static readonly DependencyProperty IsReplayEnabledProperty =
-            DependencyProperty.Register(nameof(IsReplayEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty IsAutoPlayEnabledProperty =
-            DependencyProperty.Register(nameof(IsAutoPlayEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
-
-        public static readonly DependencyProperty ProgressProperty =
-            DependencyProperty.Register(nameof(Progress), typeof(ProgressInfo), typeof(VideoStreamElement), new PropertyMetadata(new ProgressInfo()));
+        public static readonly DependencyProperty ConfigurationProperty = DependencyProperty.Register(nameof(Configuration), typeof(IUIConfiguration), typeof(VideoStreamElement));
+        public static readonly DependencyProperty SourceProperty = DependencyProperty.Register(nameof(Source), typeof(VideoInputStream), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty OverlaySourceProperty = DependencyProperty.Register(nameof(OverlaySource), typeof(VideoInputStream), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty SplitterPositionProperty = DependencyProperty.Register(nameof(SplitterPosition), typeof(SplitterPosition), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty SplitterVisibilityProperty = DependencyProperty.Register(nameof(SplitterVisibility), typeof(SplitterVisibility), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty SplitterDirectionProperty = DependencyProperty.Register(nameof(SplitterDirection), typeof(SplitterDirection), typeof(VideoStreamElement), new PropertyMetadata<VideoStreamElement>((c) => c.OnValueChanged()));
+        public static readonly DependencyProperty IsToolbarEnabledProperty = DependencyProperty.Register(nameof(IsToolbarEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
+        public static readonly DependencyProperty IsLoadEnabledProperty = DependencyProperty.Register(nameof(IsLoadEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
+        public static readonly DependencyProperty IsSaveEnabledProperty = DependencyProperty.Register(nameof(IsSaveEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
+        public static readonly DependencyProperty IsLoadOverlayEnabledProperty = DependencyProperty.Register(nameof(IsLoadOverlayEnabled), typeof(bool), typeof(VideoStreamElement));
+        public static readonly DependencyProperty IsSaveOverlayEnabledProperty = DependencyProperty.Register(nameof(IsSaveOverlayEnabled), typeof(bool), typeof(VideoStreamElement));
+        public static readonly DependencyProperty IsReplayEnabledProperty = DependencyProperty.Register(nameof(IsReplayEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
+        public static readonly DependencyProperty IsAutoPlayEnabledProperty = DependencyProperty.Register(nameof(IsAutoPlayEnabled), typeof(bool), typeof(VideoStreamElement), new PropertyMetadata(true));
+        public static readonly DependencyProperty ProgressProperty = DependencyProperty.Register(nameof(Progress), typeof(ProgressInfo), typeof(VideoStreamElement), new PropertyMetadata(new ProgressInfo()));
+        public static readonly DependencyProperty PlaceholderProperty = DependencyProperty.Register(nameof(Placeholder), typeof(BitmapSource), typeof(VideoStreamElement));
 
         public IUIConfiguration Configuration
         {
@@ -172,6 +148,12 @@ namespace TensorStack.WPF.Controls
             set { SetValue(ProgressProperty, value); }
         }
 
+        public BitmapSource Placeholder
+        {
+            get { return (BitmapSource)GetValue(PlaceholderProperty); }
+            set { SetValue(PlaceholderProperty, value); }
+        }
+
         public AsyncRelayCommand ClearCommand { get; }
         public AsyncRelayCommand LoadSourceCommand { get; }
         public AsyncRelayCommand SaveSourceCommand { get; }
@@ -180,11 +162,9 @@ namespace TensorStack.WPF.Controls
         public AsyncRelayCommand LoadOverlayCommand { get; }
         public AsyncRelayCommand SaveOverlayCommand { get; }
         public AsyncRelayCommand CopyOverlayCommand { get; }
-
         public AsyncRelayCommand PlayCommand { get; set; }
         public AsyncRelayCommand PauseCommand { get; set; }
         public AsyncRelayCommand StopCommand { get; set; }
-
         public bool HasSourceVideo => Source != null;
         public bool HasOverlayVideo => OverlaySource != null;
 
@@ -223,20 +203,18 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Called when DependencyProperty changeded.
         /// </summary>
-        private async Task OnValueChanged()
+        private Task OnValueChanged()
         {
-            FileSource = string.Empty;
-            FileOverlaySource = string.Empty;
+            FileSource = default;
+            FileOverlaySource = default;
             GridSplitterContainer.Visibility = Visibility.Hidden;
             if (HasSourceVideo)
             {
-                // If filename is null, create and save temp file
                 FileSource = Source.SourceFile;
             }
 
             if (HasOverlayVideo)
             {
-                // If filename is null, create and save temp file
                 FileOverlaySource = OverlaySource.SourceFile;
 
                 AutoHideSplitter();
@@ -244,27 +222,27 @@ namespace TensorStack.WPF.Controls
                 {
                     GridSplitterColumn.Width = SplitterDirection == SplitterDirection.LeftToRight
                         ? new GridLength(0)
-                        : new GridLength(OverlaySource.Width + 45);
+                        : new GridLength(VideoControl.ActualWidth);
                 }
                 else if (SplitterPosition == SplitterPosition.Center)
                 {
                     GridSplitterColumn.Width = new GridLength(0);
-                    GridSplitterColumn.Width = new GridLength(OverlaySource.Width / 2 + 30);
+                    GridSplitterColumn.Width = new GridLength(VideoControl.Width / 2);
                 }
                 else if (SplitterPosition == SplitterPosition.Overlay)
                 {
                     GridSplitterColumn.Width = SplitterDirection == SplitterDirection.RightToLeft
                         ? new GridLength(0)
-                        : new GridLength(OverlaySource.Width + 45);
+                        : new GridLength(VideoControl.ActualWidth);
                 }
             }
+            return Task.CompletedTask;
         }
 
 
         /// <summary>
         /// Clears thes control
         /// </summary>
-        /// <returns>Task.</returns>
         private Task ClearAsync()
         {
             MediaState = MediaState.Close;
@@ -276,6 +254,9 @@ namespace TensorStack.WPF.Controls
             Progress.Clear();
             ProgressPosition = TimeSpan.Zero;
             _progressTimer.Stop();
+            MediaState = IsAutoPlayEnabled
+                ? MediaState.Play
+                : MediaState.Stop;
             return Task.CompletedTask;
         }
 
@@ -293,7 +274,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Load source
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task LoadSourceAsync()
         {
             var source = await LoadVideoAsync();
@@ -308,14 +288,13 @@ namespace TensorStack.WPF.Controls
         /// <returns><c>true</c> if this instance can load source; otherwise, <c>false</c>.</returns>
         private bool CanLoadSource()
         {
-            return true;
+            return IsLoadEnabled;
         }
 
 
         /// <summary>
         /// Load overlay
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task LoadOverlayAsync()
         {
             var source = await LoadVideoAsync();
@@ -330,14 +309,13 @@ namespace TensorStack.WPF.Controls
         /// <returns><c>true</c> if this instance can load overlay; otherwise, <c>false</c>.</returns>
         private bool CanLoadOverlay()
         {
-            return true;
+            return IsLoadOverlayEnabled;
         }
 
 
         /// <summary>
         /// Saves the source
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task SaveSourceAsync()
         {
             var saveFilename = await DialogService.SaveFileAsync("Save Video", "Video", filter: "mp4 files (*.mp4)|*.mp4", defualtExt: "mp4");
@@ -361,7 +339,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Save the overlay
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task SaveOverlayAsync()
         {
             var saveFilename = await DialogService.SaveFileAsync("Save Video", "Overlay", filter: "mp4 files (*.mp4)|*.mp4", defualtExt: "mp4");
@@ -385,7 +362,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Copies the source.
         /// </summary>
-        /// <returns>Task.</returns>
         private Task CopySourceAsync()
         {
             Clipboard.SetFileDropList(new StringCollection
@@ -409,7 +385,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Copies the overlay.
         /// </summary>
-        /// <returns>Task.</returns>
         private Task CopyOverlayAsync()
         {
             Clipboard.SetFileDropList(new StringCollection
@@ -433,7 +408,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Paste source
         /// </summary>
-        /// <returns>A Task representing the asynchronous operation.</returns>
         private async Task PasteSourceAsync()
         {
             if (!IsLoadEnabled)
@@ -464,7 +438,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Plays the Video.
         /// </summary>
-        /// <returns>Task.</returns>
         private Task PlayAsync()
         {
             if (MediaState == MediaState.Close || MediaState == MediaState.Play)
@@ -478,7 +451,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Pauses the Video.
         /// </summary>
-        /// <returns>Task.</returns>
         private Task PauseAsync()
         {
             if (MediaState != MediaState.Play)
@@ -492,7 +464,6 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Stops the Video.
         /// </summary>
-        /// <returns>Task.</returns>
         private Task StopAsync()
         {
             if (MediaState == MediaState.Close || MediaState == MediaState.Stop)
@@ -512,11 +483,14 @@ namespace TensorStack.WPF.Controls
         /// Load video as an VideoInput from file
         /// </summary>
         /// <param name="initialFilename">The initial filename.</param>
-        /// <returns>A Task&lt;VideoInput&gt; representing the asynchronous operation.</returns>
+        /// <returns>VideoInput</returns>
         private async Task<VideoInputStream> LoadVideoAsync(string initialFilename = null)
         {
-            var imageFilename = initialFilename ?? await DialogService.OpenFileAsync("Open Video", filter: "Videos|*.mp4;*.gif;|All Files|*.*;");
-            return await VideoInputStream.CreateAsync(imageFilename);
+            var videoFilename = initialFilename ?? await DialogService.OpenFileAsync("Open Video", filter: "Videos|*.mp4;*.gif;|All Files|*.*;");
+            if (string.IsNullOrEmpty(videoFilename))
+                return default;
+
+            return await VideoInputStream.CreateAsync(videoFilename);
         }
 
 
@@ -561,7 +535,10 @@ namespace TensorStack.WPF.Controls
             {
                 GridSplitterContainer.Visibility = Visibility.Visible;
             }
-            Keyboard.Focus(this);
+
+            if (!IsKeyboardFocusWithin)
+                Keyboard.Focus(this);
+
             base.OnMouseEnter(e);
         }
 
@@ -576,7 +553,6 @@ namespace TensorStack.WPF.Controls
             {
                 GridSplitterContainer.Visibility = Visibility.Hidden;
             }
-            Keyboard.ClearFocus();
             base.OnMouseLeave(e);
         }
 
@@ -595,6 +571,28 @@ namespace TensorStack.WPF.Controls
                 }
             }
             base.OnMouseLeftButtonDown(e);
+        }
+
+
+        /// <summary>
+        /// Handles the PreviewMouseDown event of the SplitterControl control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseButtonEventArgs"/> instance containing the event data.</param>
+        private void SplitterControl_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            SplitterControl.CaptureMouse();
+        }
+
+
+        /// <summary>
+        /// Handles the PreviewMouseUp event of the SplitterControl control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="MouseButtonEventArgs"/> instance containing the event data.</param>
+        private void SplitterControl_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            SplitterControl.ReleaseMouseCapture();
         }
 
 

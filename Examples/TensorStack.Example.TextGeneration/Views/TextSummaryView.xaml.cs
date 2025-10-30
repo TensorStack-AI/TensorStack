@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TensorStack.Common;
+using TensorStack.Common.Common;
 using TensorStack.Example.Common;
 using TensorStack.Example.Services;
 using TensorStack.TextGeneration.Common;
@@ -267,8 +268,8 @@ namespace TensorStack.Example.Views
 
         private async Task<bool> IsModelValidAsync()
         {
-            var filenames = SelectedModel.UrlPaths.Select(x => Path.Combine(SelectedModel.Path, Path.GetFileName(x).Split('?').First()));
-            if (filenames.All(File.Exists))
+            var modelFiles = FileHelper.GetUrlFileMapping(SelectedModel.UrlPaths, SelectedModel.Path);
+            if (modelFiles.Values.All(File.Exists))
                 return true;
 
             return await DialogService.DownloadAsync($"Download '{SelectedModel.Name}' model?", SelectedModel.UrlPaths, SelectedModel.Path);
