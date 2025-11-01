@@ -114,6 +114,47 @@ namespace TensorStack.Common.Tensor
 
 
         /// <summary>
+        /// Flattens the alpha channel.
+        /// </summary>
+        public void FlattenAlphaChannel()
+        {
+            FlattenAlphaChannel(GetChannel(4));
+        }
+
+
+        /// <summary>
+        /// Flattens the alpha channel.
+        /// </summary>
+        /// <param name="alphaChannel">The alpha channel.</param>
+        public void FlattenAlphaChannel(ReadOnlySpan<float> alphaChannel)
+        {
+            var mask = 1f;
+            var pixelCount = Height * Width;
+            var inputSpan = Memory.Span;
+            var outputSpan = Memory.Span;
+
+            var rSpan = inputSpan.Slice(0 * pixelCount, pixelCount);
+            var gSpan = inputSpan.Slice(1 * pixelCount, pixelCount);
+            var bSpan = inputSpan.Slice(2 * pixelCount, pixelCount);
+
+            var outR = outputSpan.Slice(0 * pixelCount, pixelCount);
+            var outG = outputSpan.Slice(1 * pixelCount, pixelCount);
+            var outB = outputSpan.Slice(2 * pixelCount, pixelCount);
+
+            for (int i = 0; i < pixelCount; i++)
+            {
+                float alpha = alphaChannel[i];
+                float invAlpha = 1f - alpha;
+
+                outR[i] = rSpan[i] * alpha + mask * invAlpha;
+                outG[i] = gSpan[i] * alpha + mask * invAlpha;
+                outB[i] = bSpan[i] * alpha + mask * invAlpha;
+            }
+            OnTensorDataChanged();
+        }
+
+
+        /// <summary>
         /// Resizes the ImageTensor
         /// </summary>
         /// <param name="width">The target width in pixels.</param>

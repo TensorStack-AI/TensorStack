@@ -287,7 +287,8 @@ namespace TensorStack.Example.Services
                         var processedFrame = await pipeline.RunAsync(new BackgroundImageOptions
                         {
                             Image = frame.Frame,
-                            Mode = options.Mode
+                            Mode = options.Mode,
+                            IsTransparentSupported = false,
                         }, cancellationToken: cancellationToken);
 
                         progressCallback.Report(new RunProgress(frame.Index, frameCount));

@@ -105,22 +105,7 @@
                                 <UniformGrid Columns="2">
                                     <StackPanel>
                                         <TextBlock Text="Background Mode" Style="{StaticResource FieldTextBlockStyle}" />
-                                        <ComboBox SelectedItem="{Binding SelectedBackgroundMode}" ItemsSource="{Binding Source={StaticResource BackgroundMode}}" >
-                                            <ComboBox.ItemContainerStyle>
-                                                <Style TargetType="ComboBoxItem">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding}" Value="RemoveBackground">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                            <Setter Property="Opacity" Value="0.5"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding}" Value="RemoveForeground">
-                                                            <Setter Property="IsEnabled" Value="False"/>
-                                                            <Setter Property="Opacity" Value="0.5"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </ComboBox.ItemContainerStyle>
-                                        </ComboBox>
+                                        <ComboBox SelectedItem="{Binding SelectedBackgroundMode}" ItemsSource="{Binding Source={StaticResource BackgroundMode}}" />
                                     </StackPanel>
                                 </UniformGrid>
                             </StackPanel>

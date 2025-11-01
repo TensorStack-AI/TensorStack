@@ -58,7 +58,7 @@ namespace TensorStack.Extractors.Pipelines
         public async Task<ImageTensor> RunAsync(BackgroundImageOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var timestamp = RunProgress.GetTimestamp();
-            var resultTensor = await ExtractBackgroundInternalAsync(options.Mode, options.Image, cancellationToken);
+            var resultTensor = await ExtractBackgroundInternalAsync(options.Mode, options.IsTransparentSupported, options.Image, cancellationToken);
             progressCallback?.Report(new RunProgress(timestamp));
             return resultTensor;
         }
@@ -78,7 +78,7 @@ namespace TensorStack.Extractors.Pipelines
         /// </summary>
         /// <param name="imageInput">The image tensor.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExtractBackgroundInternalAsync(BackgroundMode backgroundMode, ImageTensor imageInput, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExtractBackgroundInternalAsync(BackgroundMode backgroundMode, bool isTranparentSupported, ImageTensor imageInput, CancellationToken cancellationToken = default)
         {
             var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -104,16 +104,31 @@ namespace TensorStack.Extractors.Pipelines
 
                     // Normalize
                     outputTensor.Normalize(_model.OutputNormalization);
-                    if (backgroundMode == BackgroundMode.MaskBackground || backgroundMode == BackgroundMode.RemoveForeground)
-                        outputTensor.Invert();
 
-                    // Output Image
-                    var outputImage = backgroundMode == BackgroundMode.RemoveBackground || backgroundMode == BackgroundMode.RemoveForeground
-                        ? inputTensor.CloneAs()
-                        : new ImageTensor(inputTensor.Height, inputTensor.Width, -1);
+                    // Process Image
+                    var outputImage = default(ImageTensor);
+                    if (backgroundMode == BackgroundMode.MaskForeground || backgroundMode == BackgroundMode.MaskBackground)
+                    {
+                        if (backgroundMode == BackgroundMode.MaskBackground)
+                            outputTensor.Invert();
+                        outputImage = new ImageTensor(inputTensor.Height, inputTensor.Width, -1);
+                    }
+                    else if (backgroundMode == BackgroundMode.RemoveBackground || backgroundMode == BackgroundMode.RemoveForeground)
+                    {
+                        if (backgroundMode == BackgroundMode.RemoveForeground)
+                            outputTensor.Invert();
+                        outputImage = inputTensor.CloneAs();
+                    }
 
-                    // Set Alpha 
-                    outputImage.UpdateAlphaChannel(outputTensor.Span);
+                    // Set Alpha Channel
+                    if (isTranparentSupported)
+                    {
+                        outputImage.UpdateAlphaChannel(outputTensor.Span);
+                    }
+                    else
+                    {
+                        outputImage.FlattenAlphaChannel(outputTensor.Span);
+                    }
 
                     // Resize Output
                     if (outputImage.Width != imageInput.Width || outputImage.Height != imageInput.Height)
@@ -132,7 +147,7 @@ namespace TensorStack.Extractors.Pipelines
         /// <returns>BackgroundPipeline.</returns>
         public static BackgroundPipeline Create(ExtractorConfig configuration)
         {
-             return new BackgroundPipeline(ExtractorModel.Create(configuration));
+            return new BackgroundPipeline(ExtractorModel.Create(configuration));
         }
     }
 }

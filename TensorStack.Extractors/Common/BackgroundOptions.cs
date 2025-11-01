@@ -15,6 +15,7 @@ namespace TensorStack.Extractors.Common
         /// </summary>
         public BackgroundMode Mode { get; init; }
 
+        public bool IsTransparentSupported { get; init; } = true;
     }
 
 
