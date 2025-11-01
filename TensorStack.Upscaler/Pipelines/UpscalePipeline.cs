@@ -159,7 +159,7 @@ namespace TensorStack.Upscaler.Pipelines
 
             using (var modelParameters = new ModelParameters(metadata, cancellationToken))
             {
-                modelParameters.AddImageInput(imageTensor, _model.Normalization, _model.Channels);
+                modelParameters.AddImageInput(imageTensor, _model.Channels, _model.Normalization);
                 modelParameters.AddOutput([1, _model.Channels, imageTensor.Height * _model.ScaleFactor, imageTensor.Width * _model.ScaleFactor]);
                 using (var results = await _model.RunInferenceAsync(modelParameters))
                 {

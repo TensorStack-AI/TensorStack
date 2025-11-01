@@ -315,9 +315,9 @@ namespace TensorStack.Common
         /// Adds the ImageTensor input.
         /// </summary>
         /// <param name="value">The value.</param>
-        /// <param name="normalization">The normalization.</param>
         /// <param name="channels">The channels.</param>
-        public void AddImageInput(ImageTensor value, Normalization normalization, int channels = 3)
+        /// <param name="normalization">The normalization.</param>
+        public void AddImageInput(ImageTensor value, int channels, Normalization normalization)
         {
             AddInput(value.GetChannels(channels), normalization);
         }

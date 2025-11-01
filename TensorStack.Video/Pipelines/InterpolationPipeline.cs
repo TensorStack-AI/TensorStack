@@ -156,8 +156,8 @@ namespace TensorStack.Video.Pipelines
             using (var modelParameters = new ModelParameters(metadata, cancellationToken))
             {
                 // Inputs
-                modelParameters.AddImageInput(previousFrameTensor, _model.Normalization, _model.Channels);
-                modelParameters.AddImageInput(frameTensor, _model.Normalization, _model.Channels);
+                modelParameters.AddImageInput(previousFrameTensor, _model.Channels, _model.Normalization);
+                modelParameters.AddImageInput(frameTensor, _model.Channels, _model.Normalization);
                 modelParameters.AddScalarInput(timestep);
 
                 // Outputs

@@ -176,7 +176,7 @@ namespace TensorStack.Extractors.Pipelines
             var outputBuffer = metadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
             using (var modelParameters = new ModelParameters(metadata, cancellationToken))
             {
-                modelParameters.AddImageInput(inputTensor, _model.Normalization, _model.Channels);
+                modelParameters.AddImageInput(inputTensor, _model.Channels, _model.Normalization);
                 modelParameters.AddOutput(outputBuffer);
 
                 var results = _model.IsDynamicOutput
