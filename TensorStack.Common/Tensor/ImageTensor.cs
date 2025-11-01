@@ -1,6 +1,7 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using System;
+using TensorStack.Common.Image;
 
 namespace TensorStack.Common.Tensor
 {
@@ -16,7 +17,7 @@ namespace TensorStack.Common.Tensor
         /// </summary>
         /// <param name="tensor">The tensor.</param>
         public ImageTensor(Tensor<float> tensor)
-            : base(ProcessChannels(tensor), [1, 4, ..tensor.Dimensions[^2..]])
+            : base(ProcessChannels(tensor), [1, 4, .. tensor.Dimensions[^2..]])
         {
             ThrowIfInvalid();
         }
@@ -174,6 +175,55 @@ namespace TensorStack.Common.Tensor
         {
             return Clone().AsImageTensor();
         }
+
+
+        /// <summary>
+        /// Gets the RGBA pixel from ImageTensor
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <param name="x">The x.</param>
+        /// <param name="y">The y.</param>
+        /// <returns>ImagePixel.</returns>
+        /// <exception cref="System.ArgumentOutOfRangeException">Pixel ({x},{y}) out of range ({imageTensor.Width}x{imageTensor.Height}).</exception>
+        public ImagePixel GetPixel(int x, int y)
+        {
+            if (x >= Width || y >= Height)
+                throw new ArgumentOutOfRangeException($"Pixel ({x},{y}) out of range ({Width}x{Height}).");
+
+            var pixelIndex = y * Width + x;
+            var span = Memory.Span;
+            var stride = Height * Width;
+            return new ImagePixel(
+                span[0 * stride + pixelIndex],
+                span[1 * stride + pixelIndex],
+                span[2 * stride + pixelIndex],
+                span[3 * stride + pixelIndex]
+            );
+        }
+
+
+        /// <summary>
+        /// Sets the RGBA pixel for ImageTensor
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <param name="x">The x.</param>
+        /// <param name="y">The y.</param>
+        /// <param name="color">The color.</param>
+        /// <exception cref="System.ArgumentOutOfRangeException">Pixel ({x},{y}) out of range ({imageTensor.Width}x{imageTensor.Height}).</exception>
+        public void SetPixel(int x, int y, ImagePixel color)
+        {
+            if (x >= Width || y >= Height)
+                throw new ArgumentOutOfRangeException($"Pixel ({x},{y}) out of range ({Width}x{Height}).");
+
+            int pixelIndex = y * Width + x;
+            var span = Memory.Span;
+            int stride = Height * Width;
+            span[0 * stride + pixelIndex] = color.R;
+            span[1 * stride + pixelIndex] = color.G;
+            span[2 * stride + pixelIndex] = color.B;
+            span[3 * stride + pixelIndex] = color.A;
+        }
+
 
         /// <summary>
         /// Throws if Dimensions are invalid.
