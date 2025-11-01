@@ -37,6 +37,7 @@ namespace TensorStack.Extractors.Pipelines
             await _model.LoadAsync(cancellationToken: cancellationToken);
         }
 
+
         /// <summary>
         /// Unloads the pipeline.
         /// </summary>
@@ -57,21 +58,7 @@ namespace TensorStack.Extractors.Pipelines
         public async Task<ImageTensor> RunAsync(BackgroundImageOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var timestamp = RunProgress.GetTimestamp();
-            if (_model.Normalization == Normalization.ZeroToOne)
-                options.Image.NormalizeZeroToOne();
-
-            var resultTensor = await ExtractBackgroundInternalAsync(options.Image, cancellationToken);
-            NormalizeOutput(resultTensor);
-
-            if (_model.Normalization == Normalization.ZeroToOne)
-                options.Image.NormalizeOneToOne();
-
-            if (options.Mode == BackgroundMode.RemoveForeground || options.Mode == BackgroundMode.MaskBackground)
-                resultTensor.Memory.Span.Invert();
-
-            if (options.Mode == BackgroundMode.RemoveBackground || options.Mode == BackgroundMode.RemoveForeground)
-                resultTensor = AddAlphaChannel(options.Image, resultTensor);
-
+            var resultTensor = await ExtractBackgroundInternalAsync(options.Mode, options.Image, cancellationToken);
             progressCallback?.Report(new RunProgress(timestamp));
             return resultTensor;
         }
@@ -91,69 +78,50 @@ namespace TensorStack.Extractors.Pipelines
         /// </summary>
         /// <param name="imageInput">The image tensor.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExtractBackgroundInternalAsync(ImageTensor imageInput, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExtractBackgroundInternalAsync(BackgroundMode backgroundMode, ImageTensor imageInput, CancellationToken cancellationToken = default)
         {
+            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Resize Input
             var inputTensor = imageInput;
             var sampleSize = _model.SampleSize;
             if (inputTensor.Width != sampleSize || inputTensor.Height != sampleSize)
-                inputTensor = inputTensor.ResizeImage(sampleSize, sampleSize, ResizeMode.Stretch);
-
-            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
+                inputTensor = inputTensor.ResizeImage(sampleSize, sampleSize, ResizeMode.Stretch, ResizeMethod.Bicubic);
 
             var outputShape = new[] { 1, _model.OutputChannels, inputTensor.Dimensions[2], inputTensor.Dimensions[3] };
             var outputBuffer = metadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
             using (var modelParameters = new ModelParameters(metadata, cancellationToken))
             {
-                modelParameters.AddInput(inputTensor.GetChannels(_model.Channels));
+                modelParameters.AddImageInput(inputTensor, _model.Normalization, _model.Channels);
                 modelParameters.AddOutput(outputBuffer);
                 using (var results = await _model.RunInferenceAsync(modelParameters))
                 {
+                    // Output Tensor
                     var outputTensor = results[0].ToTensor();
                     if (outputBuffer.Length != 4)
                         outputTensor.Reshape([1, .. outputTensor.Dimensions]);
 
+                    // Normalize
+                    outputTensor.Normalize(_model.OutputNormalization);
+                    if (backgroundMode == BackgroundMode.MaskBackground || backgroundMode == BackgroundMode.RemoveForeground)
+                        outputTensor.Invert();
+
+                    // Output Image
+                    var outputImage = backgroundMode == BackgroundMode.RemoveBackground || backgroundMode == BackgroundMode.RemoveForeground
+                        ? inputTensor.CloneAs()
+                        : new ImageTensor(inputTensor.Height, inputTensor.Width, -1);
+
+                    // Set Alpha 
+                    outputImage.UpdateAlphaChannel(outputTensor.Span);
+
                     // Resize Output
-                    var outputImage = outputTensor.AsImageTensor();
                     if (outputImage.Width != imageInput.Width || outputImage.Height != imageInput.Height)
-                        outputImage = outputImage.ResizeImage(imageInput.Width, imageInput.Height, ResizeMode.Stretch);
+                        outputImage.Resize(imageInput.Width, imageInput.Height, ResizeMode.Stretch, ResizeMethod.Bicubic);
 
                     return outputImage;
                 }
             }
-        }
-
-
-        /// <summary>
-        /// Merges the input and output if required.
-        /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="input">The input.</param>
-        /// <param name="output">The output.</param>
-        /// <returns>ImageTensor.</returns>
-        private ImageTensor AddAlphaChannel(ImageTensor input, ImageTensor output)
-        {
-            var mergedInput = input.CloneAs();
-            mergedInput.UpdateAlphaChannel(output);
-            return mergedInput;
-        }
-
-
-        /// <summary>
-        /// Normalizes the output.
-        /// </summary>
-        /// <param name="resultTensor">The result tensor.</param>
-        private void NormalizeOutput(ImageTensor resultTensor)
-        {
-            if (_model.OutputNormalization == Normalization.OneToOne)
-                resultTensor.NormalizeOneToOne();
-            else if (_model.OutputNormalization == Normalization.ZeroToOne)
-                resultTensor.NormalizeZeroToOne();
-            else if (_model.OutputNormalization == Normalization.MinMaxZeroToOne)
-                resultTensor.Memory.Span.NormalizeMinMaxToZeroToOne();
-            else if (_model.OutputNormalization == Normalization.MinMaxOneToOne)
-                resultTensor.Memory.Span.NormalizeMinMaxToOneToOne();
         }
 
 
@@ -164,8 +132,7 @@ namespace TensorStack.Extractors.Pipelines
         /// <returns>BackgroundPipeline.</returns>
         public static BackgroundPipeline Create(ExtractorConfig configuration)
         {
-            var extractorModel = ExtractorModel.Create(configuration);
-            return new BackgroundPipeline(extractorModel);
+             return new BackgroundPipeline(ExtractorModel.Create(configuration));
         }
     }
 }

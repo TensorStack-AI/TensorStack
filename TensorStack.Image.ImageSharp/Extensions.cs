@@ -2,7 +2,6 @@
 // Licensed under the Apache 2.0 License.
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using System;
 using System.Threading.Tasks;
 using TensorStack.Common.Tensor;
 
@@ -66,7 +65,7 @@ namespace TensorStack.Image
         /// <returns>Tensor&lt;System.Single&gt;.</returns>
         internal static ImageTensor ToTensor(this Image<Rgba32> image)
         {
-            var imageArray = new Tensor<float>(new[] { 1, 4, image.Height, image.Width });
+            var imageTensor = new ImageTensor(image.Height, image.Width);
             image.ProcessPixelRows(img =>
             {
                 for (int x = 0; x < image.Width; x++)
@@ -74,14 +73,14 @@ namespace TensorStack.Image
                     for (int y = 0; y < image.Height; y++)
                     {
                         var pixelSpan = img.GetRowSpan(y);
-                        imageArray[0, 0, y, x] = GetFloatValue(pixelSpan[x].R);
-                        imageArray[0, 1, y, x] = GetFloatValue(pixelSpan[x].G);
-                        imageArray[0, 2, y, x] = GetFloatValue(pixelSpan[x].B);
-                        imageArray[0, 3, y, x] = GetFloatValue(pixelSpan[x].A);
+                        imageTensor[0, 0, y, x] = pixelSpan[x].R.NormalizeToFloat();
+                        imageTensor[0, 1, y, x] = pixelSpan[x].G.NormalizeToFloat();
+                        imageTensor[0, 2, y, x] = pixelSpan[x].B.NormalizeToFloat();
+                        imageTensor[0, 3, y, x] = pixelSpan[x].A.NormalizeToFloat();
                     }
                 }
             });
-            return new ImageTensor(imageArray);
+            return imageTensor;
         }
 
 
@@ -92,9 +91,6 @@ namespace TensorStack.Image
         /// <returns>Image&lt;Rgba32&gt;.</returns>
         internal static Image<Rgba32> ToImageSharp(this ImageTensor imageTensor)
         {
-            if (imageTensor.Channels == 1)
-                return imageTensor.ToSingleChannelImage();
-
             var imageData = new Image<Rgba32>(imageTensor.Width, imageTensor.Height);
             for (var y = 0; y < imageTensor.Height; y++)
             {
@@ -102,55 +98,14 @@ namespace TensorStack.Image
                 {
                     imageData[x, y] = new Rgba32
                     (
-                        GetByteValue(imageTensor[0, 0, y, x]),
-                        GetByteValue(imageTensor[0, 1, y, x]),
-                        GetByteValue(imageTensor[0, 2, y, x]),
-                        imageTensor.Channels == 4 ? GetByteValue(imageTensor[0, 3, y, x]) : byte.MaxValue
+                        imageTensor[0, 0, y, x].DenormalizeToByte(),
+                        imageTensor[0, 1, y, x].DenormalizeToByte(),
+                        imageTensor[0, 2, y, x].DenormalizeToByte(),
+                        imageTensor[0, 3, y, x].DenormalizeToByte()
                     );
                 }
             }
             return imageData;
-        }
-
-
-        /// <summary>
-        /// Converts to single channel Image.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        /// <returns>Image&lt;Rgba32&gt;.</returns>
-        private static Image<Rgba32> ToSingleChannelImage(this ImageTensor imageTensor)
-        {
-            using (var result = new Image<L8>(imageTensor.Width, imageTensor.Height))
-            {
-                for (var y = 0; y < imageTensor.Height; y++)
-                {
-                    for (var x = 0; x < imageTensor.Width; x++)
-                    {
-                        result[x, y] = new L8((byte)(imageTensor[0, 0, y, x] * 255.0f));
-                    }
-                }
-                return result.CloneAs<Rgba32>();
-            }
-        }
-
-
-        /// <summary>
-        /// Gets the normalized byte value.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        private static byte GetByteValue(float value)
-        {
-            return (byte)Math.Round(Math.Clamp(value / 2 + 0.5, 0, 1) * 255);
-        }
-
-
-        /// <summary>
-        /// Gets the normalized float value.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        private static float GetFloatValue(byte value)
-        {
-            return (value / 255.0f) * 2.0f - 1.0f;
         }
 
     }

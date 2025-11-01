@@ -10,8 +10,8 @@ namespace TensorStack.Example.Common
         public ExtractorType Type { get; set; }
         public int Channels { get; set; }
         public int SampleSize { get; set; }
-        public Normalization Normalization { get; set; }
-        public Normalization OutputNormalization { get; set; }
+        public Normalization Normalization { get; set; } = Normalization.ZeroToOne;
+        public Normalization OutputNormalization { get; set; } = Normalization.OneToOne;
         public int OutputChannels { get; set; }
         public bool IsDynamicOutput { get; set; }
         public string Path { get; set; }

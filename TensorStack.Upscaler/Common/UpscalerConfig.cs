@@ -27,6 +27,11 @@ namespace TensorStack.Upscaler.Common
         /// <summary>
         /// The models expected input normalization (0-1 or -1-1)
         /// </summary>
-        public Normalization Normalization { get; init; }
+        public Normalization Normalization { get; init; } = Normalization.ZeroToOne;
+
+        /// <summary>
+        /// The models expected output normalization (0-1 or -1-1)
+        /// </summary>
+        public Normalization OutputNormalization { get; init; } = Normalization.OneToOne;
     }
 }

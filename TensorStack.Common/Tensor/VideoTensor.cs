@@ -64,26 +64,6 @@ namespace TensorStack.Common.Tensor
 
 
         /// <summary>
-        /// Normalizes the tensor values from range -1 to 1 to 0 to 1.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        public void NormalizeZeroToOne()
-        {
-            this.NormalizeZeroOne();
-        }
-
-
-        /// <summary>
-        /// Normalizes the tensor values from range 0 to 1 to -1 to 1.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        public void NormalizeOneToOne()
-        {
-            this.NormalizeOneOne();
-        }
-
-
-        /// <summary>
         /// Gets the frames.
         /// </summary>
         /// <returns>IEnumerable&lt;ImageTensor&gt;.</returns>

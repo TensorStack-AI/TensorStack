@@ -175,9 +175,6 @@ namespace TensorStack.Example.Services
                         Image = options.Image
                     }, cancellationToken: _cancellationTokenSource.Token));
 
-                    if (options.IsTransparentSupported)
-                        return new ImageInput(imageTensor.ToImageTransparent());
-
                     return new ImageInput(imageTensor);
                 }
             }

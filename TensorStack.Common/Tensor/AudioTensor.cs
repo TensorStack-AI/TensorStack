@@ -48,24 +48,6 @@ namespace TensorStack.Common.Tensor
 
 
         /// <summary>
-        /// Normalizes the tensor values from range -1 to 1 to 0 to 1.
-        /// </summary>
-        public void NormalizeZeroToOne()
-        {
-            this.NormalizeZeroOne();
-        }
-
-
-        /// <summary>
-        /// Normalizes the tensor values from range 0 to 1 to -1 to 1.
-        /// </summary>
-        public void NormalizeOneToOne()
-        {
-            this.NormalizeOneOne();
-        }
-
-
-        /// <summary>
         /// Throws if Dimensions are invalid.
         /// </summary>
         protected void ThrowIfInvalid()

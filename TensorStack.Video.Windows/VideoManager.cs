@@ -484,7 +484,7 @@ namespace TensorStack.Video
                 }
             }
 
-            var imageTensor = new ImageTensor([1, 4, height, width]);
+            var imageTensor = new ImageTensor(height, width);
             var destination = imageTensor.Memory.Span;
 
             unsafe

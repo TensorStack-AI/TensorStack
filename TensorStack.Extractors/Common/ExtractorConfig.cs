@@ -24,7 +24,7 @@ namespace TensorStack.Extractors.Common
         /// <summary>
         /// The models required output normalization
         /// </summary>
-        public Normalization OutputNormalization { get; init; }
+        public Normalization OutputNormalization { get; init; } = Normalization.OneToOne;
 
         /// <summary>
         /// The channels the model supports 1 = Greyscale, RGB = 3, RGBA = 4.

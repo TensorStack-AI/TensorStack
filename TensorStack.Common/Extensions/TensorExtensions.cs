@@ -724,10 +724,51 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Normalizes the specified Tensor values.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
+        /// <param name="normalization">The normalization.</param>
+        public static Tensor<float> Normalize(this Tensor<float> tensor, Normalization normalization)
+        {
+            tensor.Memory.Span.Normalize(normalization);
+            return tensor;
+        }
+
+
+        /// <summary>
+        /// Normalizes the specified float values.
+        /// </summary>
+        /// <param name="dataSpan">The data span.</param>
+        /// <param name="normalization">The normalization.</param>
+        /// <returns>Span&lt;System.Single&gt;.</returns>
+        public static Span<float> Normalize(this Span<float> dataSpan, Normalization normalization)
+        {
+            switch (normalization)
+            {
+                case Normalization.ZeroToOne:
+                    dataSpan.NormalizeZeroOne();
+                    break;
+                case Normalization.OneToOne:
+                    dataSpan.NormalizeOneOne();
+                    break;
+                case Normalization.MinMaxZeroToOne:
+                    dataSpan.NormalizeMinMaxToZeroToOne();
+                    break;
+                case Normalization.MinMaxOneToOne:
+                    dataSpan.NormalizeMinMaxToOneToOne();
+                    break;
+                default:
+                    break;
+            }
+            return dataSpan;
+        }
+
+
+        /// <summary>
         /// Normalizes the values from range -1 to 1 to 0 to 1.
         /// </summary>
         /// <param name="span">The span.</param>
-        public static void NormalizeZeroOne(this Span<float> span)
+        private static void NormalizeZeroOne(this Span<float> span)
         {
             for (int i = 0; i < span.Length; i++)
             {
@@ -740,7 +781,7 @@ namespace TensorStack.Common
         /// Normalizes the values from range 0 to 1 to -1 to 1.
         /// </summary>
         /// <param name="span">The span.</param>
-        public static void NormalizeOneOne(this Span<float> span)
+        private static void NormalizeOneOne(this Span<float> span)
         {
             for (int i = 0; i < span.Length; i++)
             {
@@ -754,7 +795,7 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="values">The values.</param>
         /// <returns>Span&lt;System.Single&gt;.</returns>
-        public static Span<float> NormalizeMinMaxToZeroToOne(this Span<float> values)
+        private static Span<float> NormalizeMinMaxToZeroToOne(this Span<float> values)
         {
             float min = float.PositiveInfinity;
             float max = float.NegativeInfinity;
@@ -779,7 +820,7 @@ namespace TensorStack.Common
         /// </summary>
         /// <param name="values">The values.</param>
         /// <returns>Span&lt;System.Single&gt;.</returns>
-        public static Span<float> NormalizeMinMaxToOneToOne(this Span<float> values)
+        private static Span<float> NormalizeMinMaxToOneToOne(this Span<float> values)
         {
             float min = float.PositiveInfinity;
             float max = float.NegativeInfinity;
@@ -798,28 +839,6 @@ namespace TensorStack.Common
                 values[i] = Math.Clamp(2 * (values[i] - min) / range - 1, -1f, 1f);
             }
             return values;
-        }
-
-
-        /// <summary>
-        /// Normalizes the tensor values from range 1 to 1 to 0 to 1.
-        /// </summary>
-        /// <param name="tensor">The tensor.</param>
-        public static Tensor<float> NormalizeZeroOne(this Tensor<float> tensor)
-        {
-            tensor.Memory.Span.NormalizeZeroOne();
-            return tensor;
-        }
-
-
-        /// <summary>
-        /// Normalizes the tensor values from range 0 to 1 to -1 to 1.
-        /// </summary>
-        /// <param name="tensor">The tensor.</param>
-        public static Tensor<float> NormalizeOneOne(this Tensor<float> tensor)
-        {
-            tensor.Memory.Span.NormalizeOneOne();
-            return tensor;
         }
 
 
@@ -979,10 +998,9 @@ namespace TensorStack.Common
         /// <param name="tensor">The tensor.</param>
         public static Tensor<float> Invert(this Tensor<float> tensor)
         {
-            var result = new Tensor<float>(tensor.Dimensions);
-            for (int j = 0; j < result.Length; j++)
-                result.SetValue(j, 1f - tensor.GetValue(j));
-            return result;
+            for (int j = 0; j < tensor.Length; j++)
+                tensor.SetValue(j, -tensor.GetValue(j));
+            return tensor;
         }
 
 
@@ -1001,7 +1019,26 @@ namespace TensorStack.Common
 
 
         /// <summary>
-        /// Resizes the specified ImageTensor
+        /// Resizes the Tensor.
+        /// </summary>
+        /// <param name="sourceImage">The source image.</param>
+        /// <param name="targetWidth">Width of the target.</param>
+        /// <param name="targetHeight">Height of the target.</param>
+        /// <param name="resizeMode">The resize mode.</param>
+        /// <param name="resizeMethod">The resize method.</param>
+        /// <returns>Tensor&lt;System.Single&gt;.</returns>
+        public static Tensor<float> ResizeTensor(this Tensor<float> sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch, ResizeMethod resizeMethod = ResizeMethod.Bilinear)
+        {
+            return resizeMethod switch
+            {
+                ResizeMethod.Bicubic => ResizeBicubic(sourceImage, targetWidth, targetHeight, resizeMode),
+                _ => ResizeBilinear(sourceImage, targetWidth, targetHeight, resizeMode),
+            };
+        }
+
+
+        /// <summary>
+        /// Resizes the ImageTensor.
         /// </summary>
         /// <param name="sourceImage">The source image.</param>
         /// <param name="targetWidth">Width of the target.</param>
@@ -1011,11 +1048,7 @@ namespace TensorStack.Common
         /// <returns>ImageTensor.</returns>
         public static ImageTensor ResizeImage(this ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch, ResizeMethod resizeMethod = ResizeMethod.Bilinear)
         {
-            return resizeMethod switch
-            {
-                ResizeMethod.Bicubic => ResizeImageBicubic(sourceImage, targetWidth, targetHeight, resizeMode),
-                _ => ResizeImageBilinear(sourceImage, targetWidth, targetHeight, resizeMode),
-            };
+            return sourceImage.ResizeTensor(targetWidth, targetHeight, resizeMode, resizeMethod).AsImageTensor();
         }
 
 
@@ -1059,19 +1092,19 @@ namespace TensorStack.Common
 
 
         /// <summary>
-        /// Resizes the specified ImageTensor (Bilinear)
+        /// Resizes the specified Tensor (Bilinear)
         /// </summary>
         /// <param name="sourceImage">The input.</param>
         /// <param name="targetWidth">Width of the target.</param>
         /// <param name="targetHeight">Height of the target.</param>
         /// <returns>ImageTensor.</returns>
-        private static ImageTensor ResizeImageBilinear(ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode)
+        private static Tensor<float> ResizeBilinear(Tensor<float> sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode)
         {
             var channels = sourceImage.Dimensions[1];
             var sourceHeight = sourceImage.Dimensions[2];
             var sourceWidth = sourceImage.Dimensions[3];
             var cropSize = GetCropCoordinates(sourceHeight, sourceWidth, targetHeight, targetWidth, resizeMode);
-            var destination = new ImageTensor([1, channels, targetHeight, targetWidth]);
+            var destination = new Tensor<float>([1, channels, targetHeight, targetWidth]);
             if (resizeMode == ResizeMode.LetterBox)
                 destination.Fill(0f);
 
@@ -1100,7 +1133,7 @@ namespace TensorStack.Common
 
                         var targetY = h - cropSize.MinY;
                         var targetX = w - cropSize.MinX;
-                        if (targetX >= 0 && targetY >= 0 && targetY < destination.Height && targetX < destination.Width)
+                        if (targetX >= 0 && targetY >= 0 && targetY < targetHeight && targetX < targetWidth)
                         {
                             destination[0, c, targetY, targetX] =
                                     topLeft * (1 - dx) * (1 - dy) +
@@ -1116,19 +1149,18 @@ namespace TensorStack.Common
 
 
         /// <summary>
-        /// Resizes the specified ImageTensor (ResizeImageBicubic)
+        /// Resizes the specified Tensor (Bicubic)
         /// </summary>
         /// <param name="sourceImage">The input.</param>
         /// <param name="targetWidth">Width of the target.</param>
         /// <param name="targetHeight">Height of the target.</param>
-        /// <returns>ImageTensor.</returns>
-        private static ImageTensor ResizeImageBicubic(ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch)
+        private static Tensor<float> ResizeBicubic(Tensor<float> sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch)
         {
             var channels = sourceImage.Dimensions[1];
             var sourceHeight = sourceImage.Dimensions[2];
             var sourceWidth = sourceImage.Dimensions[3];
             var cropSize = GetCropCoordinates(sourceHeight, sourceWidth, targetHeight, targetWidth, resizeMode);
-            var destination = new ImageTensor([1, channels, targetHeight, targetWidth]);
+            var destination = new Tensor<float>([1, channels, targetHeight, targetWidth]);
             if (resizeMode == ResizeMode.LetterBox)
                 destination.Fill(0f);
 

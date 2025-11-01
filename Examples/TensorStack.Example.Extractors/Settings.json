@@ -8,8 +8,6 @@
       "Channels": 3,
       "SampleSize": 0,
       "OutputChannels": 1,
-      "Normalization": "OneToOne",
-      "OutputNormalization": "OneToOne",
       "Path": "Models\\Canny.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/Canny.onnx?download=true"
     },
@@ -21,8 +19,6 @@
       "Channels": 3,
       "SampleSize": 0,
       "OutputChannels": 1,
-      "Normalization": "OneToOne",
-      "OutputNormalization": "ZeroToOne",
       "Path": "Models\\SoftEdge.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/SoftEdge.onnx?download=true"
     },
@@ -33,7 +29,6 @@
       "Channels": 3,
       "SampleSize": 0,
       "OutputChannels": 1,
-      "Normalization": "OneToOne",
       "OutputNormalization": "MinMaxOneToOne",
       "IsDynamicOutput": true,
       "Path": "Models\\Depth.onnx",
@@ -46,8 +41,6 @@
       "Channels": 3,
       "SampleSize": 0,
       "OutputChannels": 1,
-      "Normalization": "OneToOne",
-      "OutputNormalization": "ZeroToOne",
       "Path": "Models\\LineDrawing.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/LineDrawing.onnx?download=true"
     },
@@ -59,7 +52,6 @@
       "SampleSize": 0,
       "OutputChannels": 1,
       "IsDynamicOutput": true,
-      "Normalization": "OneToOne",
       "OutputNormalization": "MinMaxOneToOne",
       "Path": "Models\\DepthAnything-Small.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/DepthAnything-Small.onnx?download=true"
@@ -72,7 +64,6 @@
       "SampleSize": 0,
       "OutputChannels": 1,
       "IsDynamicOutput": true,
-      "Normalization": "OneToOne",
       "OutputNormalization": "MinMaxOneToOne",
       "Path": "Models\\DepthAnything-Base.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/DepthAnything-Base.onnx?download=true"
@@ -85,7 +76,6 @@
       "SampleSize": 0,
       "OutputChannels": 1,
       "IsDynamicOutput": true,
-      "Normalization": "OneToOne",
       "OutputNormalization": "MinMaxOneToOne",
       "Path": "Models\\DepthAnything-Large.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/DepthAnything-Large.onnx?download=true"
@@ -97,8 +87,6 @@
       "Channels": 3,
       "SampleSize": 1024,
       "OutputChannels": 1,
-      "Normalization": "ZeroToOne",
-      "OutputNormalization": "OneToOne",
       "Path": "Models\\BiRefNet.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/BiRefNet.onnx?download=true"
     },
@@ -110,8 +98,6 @@
       "Channels": 3,
       "SampleSize": 1024,
       "OutputChannels": 1,
-      "Normalization": "ZeroToOne",
-      "OutputNormalization": "OneToOne",
       "Path": "Models\\RMBGv1.4.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/RMBGv1.4.onnx?download=true"
     },
@@ -122,8 +108,6 @@
       "Channels": 3,
       "SampleSize": 1024,
       "OutputChannels": 1,
-      "Normalization": "ZeroToOne",
-      "OutputNormalization": "OneToOne",
       "Path": "Models\\RMBGv2.0.onnx",
       "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/RMBGv2.0.onnx?download=true"
     },

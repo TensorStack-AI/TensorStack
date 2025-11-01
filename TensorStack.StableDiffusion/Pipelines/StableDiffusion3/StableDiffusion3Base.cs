@@ -539,7 +539,8 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
             if (options.ControlNet.InvertInput)
                 controlImageTensor.Invert();
 
-            return Task.FromResult(controlImageTensor.NormalizeZeroOne().AsImageTensor());
+            controlImageTensor.Normalize(Normalization.ZeroToOne);
+            return Task.FromResult(controlImageTensor.AsImageTensor());
         }
 
 

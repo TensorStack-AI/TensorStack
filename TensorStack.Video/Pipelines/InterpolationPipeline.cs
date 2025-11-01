@@ -153,24 +153,20 @@ namespace TensorStack.Video.Pipelines
             var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
-            frameTensor.NormalizeZeroOne();
-            previousFrameTensor.NormalizeZeroOne();
             using (var modelParameters = new ModelParameters(metadata, cancellationToken))
             {
                 // Inputs
-                modelParameters.AddInput(previousFrameTensor.GetChannels(3));
-                modelParameters.AddInput(frameTensor.GetChannels(3));
+                modelParameters.AddImageInput(previousFrameTensor, _model.Normalization, _model.Channels);
+                modelParameters.AddImageInput(frameTensor, _model.Normalization, _model.Channels);
                 modelParameters.AddScalarInput(timestep);
 
                 // Outputs
-                modelParameters.AddOutput([1, 3, frameTensor.Dimensions[2], frameTensor.Dimensions[3]]);
+                modelParameters.AddOutput([1, _model.Channels, frameTensor.Height, frameTensor.Width]);
                 using (var results = await _model.RunInferenceAsync(modelParameters))
                 {
-                    frameTensor.NormalizeOneOne();
-                    previousFrameTensor.NormalizeOneOne();
                     return results[0]
                         .ToTensor()
-                        .NormalizeOneOne()
+                        .Normalize(_model.OutputNormalization)
                         .AsImageTensor();
                 }
             }

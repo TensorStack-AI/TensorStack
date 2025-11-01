@@ -16,7 +16,7 @@ namespace TensorStack.Common.Tensor
         /// </summary>
         /// <param name="tensor">The tensor.</param>
         public ImageTensor(Tensor<float> tensor)
-            : base(tensor.Memory, tensor.Dimensions)
+            : base(ProcessChannels(tensor), [1, 4, ..tensor.Dimensions[^2..]])
         {
             ThrowIfInvalid();
         }
@@ -25,16 +25,12 @@ namespace TensorStack.Common.Tensor
         /// Initializes a new instance of the <see cref="ImageTensor"/> class.
         /// </summary>
         /// <param name="dimensions">The dimensions.</param>
-        public ImageTensor(ReadOnlySpan<int> dimensions)
-            : base(dimensions)
+        public ImageTensor(int height, int width, float fill = 0)
+            : base([1, 4, height, width], fill)
         {
             ThrowIfInvalid();
         }
 
-        /// <summary>
-        /// Gets the channel count (RGB, RGBA etc).
-        /// </summary>
-        public int Channels => Dimensions[1];
 
         /// <summary>
         /// Gets the image height.
@@ -46,25 +42,6 @@ namespace TensorStack.Common.Tensor
         /// </summary>
         public int Width => Dimensions[3];
 
-        /// <summary>
-        /// Normalizes the tensor values from range -1 to 1 to 0 to 1.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        public void NormalizeZeroToOne()
-        {
-            this.NormalizeZeroOne();
-        }
-
-
-        /// <summary>
-        /// Normalizes the tensor values from range 0 to 1 to -1 to 1.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        public void NormalizeOneToOne()
-        {
-            this.NormalizeOneOne();
-        }
-
 
         /// <summary>
         /// Gets a TensorSpan with the specified channels. (1 = Greyscale, 3 = RGB, 4 = RGBA)
@@ -73,9 +50,9 @@ namespace TensorStack.Common.Tensor
         /// <returns>TensorSpan&lt;System.Single&gt;.</returns>
         public TensorSpan<float> GetChannels(int channels)
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(channels, Channels);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(channels, 4);
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(channels, 0);
-            if (Channels == channels)
+            if (channels == 4)
                 return this.AsTensorSpan();
 
             var channelSize = Height * Width;
@@ -91,7 +68,7 @@ namespace TensorStack.Common.Tensor
         /// <returns>Span&lt;System.Single&gt;.</returns>
         public Span<float> GetChannel(int channel)
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(channel, Channels);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(channel, 4);
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(channel, 0);
 
             var channelSize = Height * Width;
@@ -120,10 +97,19 @@ namespace TensorStack.Common.Tensor
         /// Updates the alpha channel with the one from the specified tensor.
         /// </summary>
         /// <param name="tensor">The tensor.</param>
+        public void UpdateAlphaChannel(ReadOnlySpan<float> channelData)
+        {
+            UpdateChannel(4, channelData);
+        }
+
+
+        /// <summary>
+        /// Updates the alpha channel with the one from the specified tensor.
+        /// </summary>
+        /// <param name="tensor">The tensor.</param>
         public void UpdateAlphaChannel(ImageTensor tensor)
         {
-            var source = tensor.GetChannel(tensor.Channels);
-            UpdateChannel(Channels, source);
+            UpdateAlphaChannel(tensor.GetChannel(4));
         }
 
 
@@ -135,7 +121,7 @@ namespace TensorStack.Common.Tensor
         /// <param name="resizeMode">The resize mode.</param>
         public void Resize(int width, int height, ResizeMode resizeMode, ResizeMethod resizeMethod = ResizeMethod.Bilinear)
         {
-           UpdateTensor(this.ResizeImage(width, height, resizeMode, resizeMethod));
+            UpdateTensor(this.ResizeImage(width, height, resizeMode, resizeMethod));
         }
 
 
@@ -154,11 +140,56 @@ namespace TensorStack.Common.Tensor
         /// <param name="dimensions">The dimensions.</param>
         protected void ThrowIfInvalid()
         {
-            ArgumentOutOfRangeException.ThrowIfEqual(Channels, 2, nameof(Channels));
-            ArgumentOutOfRangeException.ThrowIfLessThan(Channels, 1, nameof(Channels));
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(Channels, 4, nameof(Channels));
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(Height, 0, nameof(Height));
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(Width, 0, nameof(Width));
         }
+
+
+        /// <summary>
+        /// Processes the channels ensuring RGBA format.
+        /// </summary>
+        /// <param name="inputTensor">The input tensor.</param>
+        /// <returns>Memory&lt;System.Single&gt;.</returns>
+        /// <exception cref="System.ArgumentException">Unsupported channel count</exception>
+        private static Memory<float> ProcessChannels(Tensor<float> inputTensor)
+        {
+            var channels = inputTensor.Dimensions[1];
+            if (channels == 4)
+                return inputTensor.Memory;
+
+            var height = inputTensor.Dimensions[2];
+            var width = inputTensor.Dimensions[3];
+            int pixelCount = height * width;
+            var output = new float[pixelCount * 4];
+            var inputSpan = inputTensor.Memory.Span;
+            var outputSpan = output.AsSpan();
+            if (channels == 3)
+            {
+                // Copy RGB channels
+                inputSpan.CopyTo(outputSpan[..inputSpan.Length]);
+
+                // Add alpha channel
+                outputSpan.Slice(3 * pixelCount, pixelCount).Fill(1f);
+                return output;
+            }
+
+            if (channels == 1)
+            {
+                // Copy RGB channels
+                var r = outputSpan.Slice(0 * pixelCount, pixelCount);
+                var g = outputSpan.Slice(1 * pixelCount, pixelCount);
+                var b = outputSpan.Slice(2 * pixelCount, pixelCount);
+                inputSpan[..pixelCount].CopyTo(r);
+                inputSpan[..pixelCount].CopyTo(g);
+                inputSpan[..pixelCount].CopyTo(b);
+
+                // Add alpha channel
+                outputSpan.Slice(3 * pixelCount, pixelCount).Fill(1f);
+                return output;
+            }
+
+            throw new ArgumentException("Unsupported channel count");
+        }
+
     }
 }

@@ -6,15 +6,20 @@ using TensorStack.Common.Tensor;
 namespace TensorStack.Extractors.Common
 {
     /// <summary>
-    /// Default ExtractorOptions.
+    /// Default BackgroundOptions.
     /// </summary>
-    public record BackgroundImageOptions : IRunOptions
+    public record BackgroundOptions : IRunOptions
     {
         /// <summary>
         /// Gets a value indicating whether the output is inverted.
         /// </summary>
         public BackgroundMode Mode { get; init; }
 
+    }
+
+
+    public record BackgroundImageOptions : BackgroundOptions
+    {
         /// <summary>
         /// Gets the input.
         /// </summary>

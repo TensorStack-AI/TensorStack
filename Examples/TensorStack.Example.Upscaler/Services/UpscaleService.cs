@@ -92,6 +92,7 @@ namespace TensorStack.Example.Services
                     {
                         Channels = model.Channels,
                         Normalization = model.Normalization,
+                        OutputNormalization = model.OutputNormalization,
                         SampleSize = model.SampleSize,
                         ScaleFactor = model.ScaleFactor,
                         Path = model.Path

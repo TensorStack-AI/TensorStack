@@ -117,6 +117,20 @@ namespace TensorStack.Common
 
 
         /// <summary>
+        /// Adds a tensor input.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        public void AddInput(TensorSpan<float> value, Normalization normalization)
+        {
+            var metadata = GetNextInputMetadata();
+            var ortValue = metadata.CreateTensorOrtValue(_allocator.Info, value);
+            ortValue.GetTensorMutableDataAsSpan<float>().Normalize(normalization);
+            _inputs.Add(metadata, ortValue);
+        }
+
+
+        /// <summary>
         /// Adds a tensor input at the specified index.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -296,6 +310,17 @@ namespace TensorStack.Common
             _inputs.Add(metaData, metaData.CreateScalarOrtValue(_allocator.Info, value));
         }
 
+
+        /// <summary>
+        /// Adds the ImageTensor input.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="normalization">The normalization.</param>
+        /// <param name="channels">The channels.</param>
+        public void AddImageInput(ImageTensor value, Normalization normalization, int channels = 3)
+        {
+            AddInput(value.GetChannels(channels), normalization);
+        }
 
 
         /// <summary>

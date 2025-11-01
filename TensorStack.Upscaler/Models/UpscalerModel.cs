@@ -9,7 +9,7 @@ namespace TensorStack.Upscaler.Models
     /// <summary>
     /// Default Upscale ModelSession.
     /// </summary>
-    /// <seealso cref="TensorStack.Core.Inference.ModelSession{UpscalerConfig}" />
+    /// <seealso cref="TensorStack.Common.ModelSession{UpscalerConfig}" />
     public class UpscalerModel : ModelSession<UpscalerConfig>
     {
         private UpscalerModel(UpscalerConfig configuration)
@@ -33,9 +33,12 @@ namespace TensorStack.Upscaler.Models
         /// <summary>
         /// The models expected input normalization (0-1 or -1-1)
         /// </summary>
-        /// <value>The normalization.</value>
         public Normalization Normalization => Configuration.Normalization;
 
+        /// <summary>
+        /// Gets the output normalization.
+        /// </summary>
+        public Normalization OutputNormalization => Configuration.OutputNormalization;
 
         /// <summary>
         /// Create a UpscalerModel with the specified UpscalerConfig

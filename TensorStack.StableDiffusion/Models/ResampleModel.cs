@@ -39,8 +39,7 @@ namespace TensorStack.StableDiffusion.Models
             using (var modelParameters = new ModelParameters(Metadata, cancellationToken))
             {
                 // Inputs
-                inputTensor.NormalizeZeroOne();
-                modelParameters.AddInput(inputTensor.AsTensorSpan());
+                modelParameters.AddInput(inputTensor.AsTensorSpan(), Normalization.ZeroToOne);
 
                 // Outputs
                 modelParameters.AddOutput(outputDimensions);
@@ -50,7 +49,7 @@ namespace TensorStack.StableDiffusion.Models
                 {
                     return results[0]
                         .ToTensor()
-                        .NormalizeOneOne();
+                        .Normalize(Normalization.OneToOne);
                 }
             }
         }

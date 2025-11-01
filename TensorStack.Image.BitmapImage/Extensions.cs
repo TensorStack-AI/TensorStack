@@ -1,7 +1,6 @@
 ﻿
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -79,40 +78,6 @@ namespace TensorStack.Image
 
 
         /// <summary>
-        /// Converts ImageTensor to WriteableBitmap.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        /// <returns>WriteableBitmap.</returns>
-        internal static WriteableBitmap ToBitmapImage(this ImageTensor imageTensor)
-        {
-            var channels = imageTensor.Dimensions[1];
-            var height = imageTensor.Dimensions[2];
-            var width = imageTensor.Dimensions[3];
-
-            if (channels == 1)
-                return imageTensor.ToSingleChannelImage();
-
-            var stride = width * 4;
-            var pixelBuffer = new byte[height * stride];
-            var writeableBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    int pixelIndex = (y * width + x) * 4;
-                    pixelBuffer[pixelIndex + 0] = GetByteValue(imageTensor[0, 2, y, x]); // B
-                    pixelBuffer[pixelIndex + 1] = GetByteValue(imageTensor[0, 1, y, x]); // G
-                    pixelBuffer[pixelIndex + 2] = GetByteValue(imageTensor[0, 0, y, x]); // R
-                    pixelBuffer[pixelIndex + 3] = channels == 4 ? GetByteValue(imageTensor[0, 3, y, x]) : byte.MaxValue; // A
-                }
-            }
-            writeableBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixelBuffer, stride, 0);
-            writeableBitmap.Freeze();
-            return writeableBitmap;
-        }
-
-
-        /// <summary>
         /// Converts WriteableBitmap to ImageTensor.
         /// </summary>
         /// <param name="writeableBitmap">The writeable bitmap.</param>
@@ -127,7 +92,7 @@ namespace TensorStack.Image
             writeableBitmap.CopyPixels(buffer, stride, 0);
 
             var hw = height * width;
-            var tensor = new ImageTensor([1, 4, height, width]);
+            var tensor = new ImageTensor(height, width);
             var dataSpan = tensor.Memory.Span;
             var bufferSpan = buffer.AsSpan();
             for (int y = 0; y < height; y++)
@@ -137,13 +102,42 @@ namespace TensorStack.Image
                 {
                     int offset = y * width + x;
                     int pixelIndex = rowStart + x * 4; // BGRA in buffer
-                    dataSpan[offset] = GetFloatValue(bufferSpan[pixelIndex + 2]);          // R
-                    dataSpan[hw + offset] = GetFloatValue(bufferSpan[pixelIndex + 1]);     // G
-                    dataSpan[2 * hw + offset] = GetFloatValue(bufferSpan[pixelIndex + 0]); // B
-                    dataSpan[3 * hw + offset] = GetFloatValue(bufferSpan[pixelIndex + 3]); // A
+                    dataSpan[offset] = bufferSpan[pixelIndex + 2].NormalizeToFloat();          // R
+                    dataSpan[hw + offset] = bufferSpan[pixelIndex + 1].NormalizeToFloat();     // G
+                    dataSpan[2 * hw + offset] = bufferSpan[pixelIndex + 0].NormalizeToFloat(); // B
+                    dataSpan[3 * hw + offset] = bufferSpan[pixelIndex + 3].NormalizeToFloat(); // A
                 }
             }
             return tensor;
+        }
+
+
+        /// <summary>
+        /// Converts ImageTensor to WriteableBitmap.
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <returns>WriteableBitmap.</returns>
+        internal static WriteableBitmap ToBitmapImage(this ImageTensor imageTensor)
+        {
+            var height = imageTensor.Dimensions[2];
+            var width = imageTensor.Dimensions[3];
+            var stride = width * 4;
+            var pixelBuffer = new byte[height * stride];
+            var writeableBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int pixelIndex = (y * width + x) * 4;
+                    pixelBuffer[pixelIndex + 0] = imageTensor[0, 2, y, x].DenormalizeToByte(); // B
+                    pixelBuffer[pixelIndex + 1] = imageTensor[0, 1, y, x].DenormalizeToByte(); // G
+                    pixelBuffer[pixelIndex + 2] = imageTensor[0, 0, y, x].DenormalizeToByte(); // R
+                    pixelBuffer[pixelIndex + 3] = imageTensor[0, 3, y, x].DenormalizeToByte(); // A
+                }
+            }
+            writeableBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixelBuffer, stride, 0);
+            writeableBitmap.Freeze();
+            return writeableBitmap;
         }
 
 
@@ -170,115 +164,5 @@ namespace TensorStack.Image
             return convertTarget;
         }
 
-
-        /// <summary>
-        /// Converts to single channel Image.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        /// <returns>WriteableBitmap.</returns>
-        private static WriteableBitmap ToSingleChannelImage(this ImageTensor imageTensor)
-        {
-            var width = imageTensor.Dimensions[3];
-            var height = imageTensor.Dimensions[2];
-            byte[] pixels = new byte[width * height];
-            for (var y = 0; y < height; y++)
-            {
-                for (var x = 0; x < width; x++)
-                {
-                    pixels[y * width + x] = GetByteValue(imageTensor[0, 0, y, x]);
-                }
-            }
-
-            var writeableBitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Gray8, null);
-            writeableBitmap.Lock();
-            try
-            {
-                IntPtr buffer = writeableBitmap.BackBuffer;
-                Marshal.Copy(pixels, 0, buffer, pixels.Length);
-                writeableBitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
-            }
-            finally
-            {
-                writeableBitmap.Unlock();
-            }
-            writeableBitmap.Freeze();
-            return writeableBitmap;
-        }
-
-
-        public static WriteableBitmap ToImageTransparent(this ImageTensor imageTensor)
-        {
-            int width = imageTensor.Width;
-            int height = imageTensor.Height;
-            int channels = imageTensor.Channels; // 1 or 4
-            int stride = width * 4;
-
-            byte[] pixels = new byte[height * stride];
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    byte alpha;
-                    if (channels == 4)
-                    {
-                        // Last channel is alpha [-1..1]
-                        float maskValue = (imageTensor[0, 3, y, x] + 1f) / 2f;
-                        alpha = (byte)(maskValue * 255);
-                    }
-                    else
-                    {
-                        // Single channel → treat as grayscale alpha [-1..1]
-                        float maskValue = (imageTensor[0, 0, y, x] + 1f) / 2f;
-                        alpha = (byte)(maskValue * 255);
-                    }
-
-                    int offset = y * stride + x * 4;
-
-                    if (channels == 4 && alpha > 0)
-                    {
-                        // Copy RGB from tensor
-                        pixels[offset + 2] = GetByteValue(imageTensor[0, 0, y, x]); // R
-                        pixels[offset + 1] = GetByteValue(imageTensor[0, 1, y, x]); // G
-                        pixels[offset + 0] = GetByteValue(imageTensor[0, 2, y, x]); // B
-                    }
-                    else
-                    {
-                        // Transparent area or single channel → clear RGB
-                        pixels[offset + 0] = 0; // B
-                        pixels[offset + 1] = 0; // G
-                        pixels[offset + 2] = 0; // R
-                    }
-
-                    pixels[offset + 3] = alpha; // A
-                }
-            }
-
-            var bmp = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
-            bmp.WritePixels(new Int32Rect(0, 0, width, height), pixels, stride, 0);
-            bmp.Freeze();
-            return bmp;
-        }
-
-
-
-        /// <summary>
-        /// Gets the normalized byte value.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        private static byte GetByteValue(this float value)
-        {
-            return (byte)Math.Round(Math.Clamp(value / 2 + 0.5, 0, 1) * 255);
-        }
-
-
-        /// <summary>
-        /// Gets the normalized float value.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        private static float GetFloatValue(this byte value)
-        {
-            return (value / 255.0f) * 2.0f - 1.0f;
-        }
     }
 }

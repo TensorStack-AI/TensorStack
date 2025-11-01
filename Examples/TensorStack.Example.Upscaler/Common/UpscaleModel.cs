@@ -13,7 +13,8 @@ namespace TensorStack.Example.Common
         public int Channels { get; init; } = 3;
         public int SampleSize { get; init; }
         public int ScaleFactor { get; init; } = 1;
-        public Normalization Normalization { get; init; }
+        public Normalization Normalization { get; init; } = Normalization.ZeroToOne;
+        public Normalization OutputNormalization { get; init; } = Normalization.OneToOne;
         public string Path { get; set; }
         public string UrlPath { get; set; }
     }

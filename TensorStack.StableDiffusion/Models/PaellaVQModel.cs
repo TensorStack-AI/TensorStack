@@ -70,7 +70,7 @@ namespace TensorStack.StableDiffusion.Models
                 {
                     return results[0]
                         .ToTensor()
-                        .NormalizeOneOne();
+                        .Normalize(Normalization.OneToOne);
                 }
             }
         }

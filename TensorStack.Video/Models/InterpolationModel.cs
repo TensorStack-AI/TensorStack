@@ -10,6 +10,9 @@ namespace TensorStack.Video.Models
         private InterpolationModel(ModelConfig configuration)
             : base(configuration) { }
 
+        public int Channels { get; init; } = 3;
+        public Normalization Normalization { get; init; } = Normalization.ZeroToOne;
+        public Normalization OutputNormalization { get; init; } = Normalization.OneToOne;
 
         public static InterpolationModel Create(ModelConfig configuration)
         {

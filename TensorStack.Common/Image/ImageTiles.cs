@@ -70,7 +70,7 @@ namespace TensorStack.Common.Image
             var totalWidth = Width * 2;
             var totalHeight = Height * 2;
             var channels = Tile1.Dimensions[1];
-            var destination = new ImageTensor(new[] { 1, channels, totalHeight, totalWidth });
+            var destination = new ImageTensor(totalHeight, totalWidth);
             JoinTile(destination, Tile1, 0, 0, Height + Overlap, Width + Overlap);
             JoinTile(destination, Tile2, 0, Width - Overlap, Height + Overlap, totalWidth);
             JoinTile(destination, Tile3, Height - Overlap, 0, totalHeight, Width + Overlap);
@@ -258,7 +258,7 @@ namespace TensorStack.Common.Image
             int height = endRow - startRow;
             int width = endCol - startCol;
             int channels = source.Dimensions[1];
-            var splitTensor = new ImageTensor(new[] { 1, channels, height, width });
+            var splitTensor = new ImageTensor(height, width);
             Parallel.For(0, channels, (c) =>
             {
                 for (int i = 0; i < height; i++)
