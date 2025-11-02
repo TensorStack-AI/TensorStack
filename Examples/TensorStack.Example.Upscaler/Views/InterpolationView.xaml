@@ -109,6 +109,7 @@
                     <Border Margin="4">
                         <Grid Margin="20" >
                             <CommonControls:VideoStreamElement 
+                                x:Name="ResultControl"
                                 SplitterVisibility="Auto"
                                 SplitterPosition="Source"
                                 SplitterDirection="LeftToRight"

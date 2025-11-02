@@ -103,6 +103,16 @@ namespace TensorStack.Example.Views
         }
 
 
+        public override Task OpenAsync(OpenViewArgs args = null)
+        {
+            if (UpscaleService.IsLoaded)
+            {
+                SelectedModel = UpscaleService.Model;
+            }
+            return base.OpenAsync(args);
+        }
+
+
         private async Task LoadAsync()
         {
             var timestamp = Stopwatch.GetTimestamp();
@@ -142,10 +152,8 @@ namespace TensorStack.Example.Views
 
         private async Task ExecuteAsync()
         {
+            await ResultControl.ClearAsync();
             var timestamp = Stopwatch.GetTimestamp();
-            Progress.Clear();
-            ResultVideo = default;
-            CompareVideo = default;
 
             // Run Upscaler
             var upscaledVideo = await UpscaleService.ExecuteAsync(new UpscaleVideoRequest

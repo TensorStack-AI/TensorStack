@@ -9,6 +9,7 @@ using TensorStack.Example.Services;
 using TensorStack.Extractors.Common;
 using TensorStack.Image;
 using TensorStack.WPF;
+using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
 
 namespace TensorStack.Example.Views
@@ -170,6 +171,16 @@ namespace TensorStack.Example.Views
         {
             get { return _isTransparent; }
             set { SetProperty(ref _isTransparent, value); }
+        }
+
+
+        public override Task OpenAsync(OpenViewArgs args = null)
+        {
+            if (ExtractorService.IsLoaded)
+            {
+                SelectedModel = ExtractorService.Model;
+            }
+            return base.OpenAsync(args);
         }
 
 

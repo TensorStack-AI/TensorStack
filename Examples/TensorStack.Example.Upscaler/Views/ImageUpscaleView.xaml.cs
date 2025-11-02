@@ -97,6 +97,16 @@ namespace TensorStack.Example.Views
         }
 
 
+        public override Task OpenAsync(OpenViewArgs args = null)
+        {
+            if (UpscaleService.IsLoaded)
+            {
+                SelectedModel = UpscaleService.Model;
+            }
+            return base.OpenAsync(args);
+        }
+
+
         private async Task LoadAsync()
         {
             var timestamp = Stopwatch.GetTimestamp();

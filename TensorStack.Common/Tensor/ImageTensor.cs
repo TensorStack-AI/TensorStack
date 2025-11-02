@@ -187,12 +187,9 @@ namespace TensorStack.Common.Tensor
         /// <exception cref="System.ArgumentOutOfRangeException">Pixel ({x},{y}) out of range ({imageTensor.Width}x{imageTensor.Height}).</exception>
         public ImagePixel GetPixel(int x, int y)
         {
-            if (x >= Width || y >= Height)
-                throw new ArgumentOutOfRangeException($"Pixel ({x},{y}) out of range ({Width}x{Height}).");
-
-            var pixelIndex = y * Width + x;
             var span = Memory.Span;
             var stride = Height * Width;
+            var pixelIndex = y * Width + x;
             return new ImagePixel(
                 span[0 * stride + pixelIndex],
                 span[1 * stride + pixelIndex],
@@ -212,16 +209,38 @@ namespace TensorStack.Common.Tensor
         /// <exception cref="System.ArgumentOutOfRangeException">Pixel ({x},{y}) out of range ({imageTensor.Width}x{imageTensor.Height}).</exception>
         public void SetPixel(int x, int y, ImagePixel color)
         {
-            if (x >= Width || y >= Height)
-                throw new ArgumentOutOfRangeException($"Pixel ({x},{y}) out of range ({Width}x{Height}).");
-
-            int pixelIndex = y * Width + x;
             var span = Memory.Span;
-            int stride = Height * Width;
+            var stride = Height * Width;
+            var pixelIndex = y * Width + x;
             span[0 * stride + pixelIndex] = color.R;
             span[1 * stride + pixelIndex] = color.G;
             span[2 * stride + pixelIndex] = color.B;
             span[3 * stride + pixelIndex] = color.A;
+        }
+
+
+        /// <summary>
+        /// Processes the pixels.
+        /// </summary>
+        /// <param name="processor">The processor.</param>
+        public void ProcessPixels(Func<ImagePixel, ImagePixel> processor)
+        {
+            var span = Memory.Span;
+            var pixelCount = Height * Width;
+            var stride = pixelCount;
+            var r = span.Slice(0 * stride, stride);
+            var g = span.Slice(1 * stride, stride);
+            var b = span.Slice(2 * stride, stride);
+            var a = span.Slice(3 * stride, stride);
+            for (int i = 0; i < pixelCount; i++)
+            {
+                var px = new ImagePixel(r[i], g[i], b[i], a[i]);
+                px = processor(px);
+                r[i] = px.R;
+                g[i] = px.G;
+                b[i] = px.B;
+                a[i] = px.A;
+            }
         }
 
 
@@ -250,7 +269,7 @@ namespace TensorStack.Common.Tensor
 
             var height = inputTensor.Dimensions[2];
             var width = inputTensor.Dimensions[3];
-            int pixelCount = height * width;
+            var pixelCount = height * width;
             var output = new float[pixelCount * 4];
             var inputSpan = inputTensor.Memory.Span;
             var outputSpan = output.AsSpan();

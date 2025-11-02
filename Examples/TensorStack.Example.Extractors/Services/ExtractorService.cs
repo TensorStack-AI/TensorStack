@@ -18,6 +18,7 @@ namespace TensorStack.Example.Services
     {
         private readonly Settings _settings;
         private readonly IMediaService _mediaService;
+        private ExtractorModel _currentModel;
         private IPipeline _currentPipeline;
         private CancellationTokenSource _cancellationTokenSource;
         private bool _isLoaded;
@@ -34,6 +35,10 @@ namespace TensorStack.Example.Services
             _settings = settings;
             _mediaService = mediaService;
         }
+
+        /// <summary>
+        /// Gets the model.
+        public ExtractorModel Model => _currentModel;
 
         /// <summary>
         /// Gets a value indicating whether this instance is loaded.
@@ -89,6 +94,7 @@ namespace TensorStack.Example.Services
                         await _currentPipeline.UnloadAsync(cancellationToken);
                     }
 
+                    _currentModel = model;
                     _currentConfig = new ExtractorConfig
                     {
                         Path = model.Path,
@@ -115,6 +121,7 @@ namespace TensorStack.Example.Services
                 _currentPipeline?.Dispose();
                 _currentPipeline = null;
                 _currentConfig = null;
+                _currentModel = null;
                 throw;
             }
             finally
@@ -373,6 +380,7 @@ namespace TensorStack.Example.Services
                 _currentPipeline.Dispose();
                 _currentPipeline = null;
                 _currentConfig = null;
+                _currentModel = null;
             }
 
             IsLoaded = false;
@@ -384,6 +392,7 @@ namespace TensorStack.Example.Services
 
     public interface IExtractorService
     {
+        ExtractorModel Model { get; }
         bool IsLoaded { get; }
         bool IsLoading { get; }
         bool IsExecuting { get; }

@@ -10,6 +10,7 @@ using TensorStack.Example.Services;
 using TensorStack.Extractors.Common;
 using TensorStack.Video;
 using TensorStack.WPF;
+using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
 
 namespace TensorStack.Example.Views
@@ -176,6 +177,16 @@ namespace TensorStack.Example.Views
         }
 
 
+        public override Task OpenAsync(OpenViewArgs args = null)
+        {
+            if (ExtractorService.IsLoaded)
+            {
+                SelectedModel = ExtractorService.Model;
+            }
+            return base.OpenAsync(args);
+        }
+
+
         private async Task LoadAsync()
         {
             var timestamp = Stopwatch.GetTimestamp();
@@ -215,10 +226,8 @@ namespace TensorStack.Example.Views
 
         private async Task ExecuteAsync()
         {
+            await ResultControl.ClearAsync();
             var timestamp = Stopwatch.GetTimestamp();
-            Progress.Clear();
-            ResultVideo = default;
-            CompareVideo = default;
 
             // Run Extractor
             var resultVideo = _selectedModel.Type switch

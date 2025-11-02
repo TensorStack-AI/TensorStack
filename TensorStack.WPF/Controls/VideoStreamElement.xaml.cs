@@ -171,13 +171,13 @@ namespace TensorStack.WPF.Controls
         public string FileSource
         {
             get { return _fileSource; }
-            set { _fileSource = value; NotifyPropertyChanged(); }
+            set { SetProperty(ref _fileSource, value); }
         }
 
         public string FileOverlaySource
         {
             get { return _fileOverlaySource; }
-            set { _fileOverlaySource = value; NotifyPropertyChanged(); }
+            set { SetProperty(ref _fileOverlaySource, value); }
         }
 
         public MediaState MediaState
@@ -189,14 +189,14 @@ namespace TensorStack.WPF.Controls
                 VideoControl.LoadedBehavior = _mediaState;
                 if (HasOverlayVideo)
                     VideoOverlayControl.LoadedBehavior = _mediaState;
-                NotifyPropertyChanged();
+                SetProperty(ref _mediaState, value);
             }
         }
 
         public TimeSpan ProgressPosition
         {
             get { return _progressPosition; }
-            set { _progressPosition = value; NotifyPropertyChanged(); }
+            set { SetProperty(ref _progressPosition, value); }
         }
 
 
@@ -243,7 +243,7 @@ namespace TensorStack.WPF.Controls
         /// <summary>
         /// Clears thes control
         /// </summary>
-        private Task ClearAsync()
+        public Task ClearAsync()
         {
             MediaState = MediaState.Close;
             FileSource = null;

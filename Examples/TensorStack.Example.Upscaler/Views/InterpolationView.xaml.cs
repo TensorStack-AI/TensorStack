@@ -112,10 +112,8 @@ namespace TensorStack.Example.Views
 
         private async Task ExecuteAsync()
         {
+            await ResultControl.ClearAsync();
             var timestamp = Stopwatch.GetTimestamp();
-            Progress.Clear();
-            ResultVideo = default;
-            CompareVideo = default;
 
             // Run Interpolation
             var resultVideo = await InterpolationService.ExecuteAsync(new InterpolationRequest
