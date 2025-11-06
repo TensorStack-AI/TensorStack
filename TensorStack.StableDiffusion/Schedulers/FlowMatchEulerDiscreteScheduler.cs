@@ -27,7 +27,6 @@ namespace TensorStack.StableDiffusion.Schedulers
         /// <param name="strength">The strength.</param>
         public override void Initialize(float strength)
         {
-            base.Initialize(strength);
             var timesteps = ArrayHelpers.Linspace(1, Options.TrainTimesteps, Options.TrainTimesteps);
             var sigmas = timesteps
                 .Select(x => x / Options.TrainTimesteps)
@@ -35,6 +34,7 @@ namespace TensorStack.StableDiffusion.Schedulers
                 .ToArray();
             _sigmaMin = sigmas.Min();
             _sigmaMax = sigmas.Max();
+            base.Initialize(strength);
         }
 
 
