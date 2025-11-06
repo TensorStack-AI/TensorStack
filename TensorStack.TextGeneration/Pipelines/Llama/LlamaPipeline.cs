@@ -49,7 +49,9 @@ namespace TensorStack.TextGeneration.Pipelines.Llama
                 return new GenerateResult
                 {
                     Score = sequence.Score,
-                    Result = Tokenizer.Decode(sequence.Tokens)
+                    Result = Tokenizer.Decode(sequence.Tokens),
+                    Tokens = sequence.Tokens,
+                    LastHiddenState = sequence.LastHiddenState
                 };
             }
         }
@@ -77,7 +79,9 @@ namespace TensorStack.TextGeneration.Pipelines.Llama
                         Beam = beam,
                         Score = sequence.Score,
                         PenaltyScore = sequence.PenaltyScore,
-                        Result = Tokenizer.Decode(sequence.Tokens)
+                        Result = Tokenizer.Decode(sequence.Tokens),
+                        Tokens = sequence.Tokens,
+                        LastHiddenState = sequence.LastHiddenState
                     };
                 }
             }
@@ -173,9 +177,9 @@ namespace TensorStack.TextGeneration.Pipelines.Llama
                 {
                     var dimension = logitsResult.GetDimensions();
                     var logits = logitsResult.ToTensor(dimension[1..]);
-                    var presentKeyValues = modelResult.ToArray()[1..];
-
-                    sequence.UpdateCache(presentKeyValues, useBranchCache);
+                    var lastHiddenState = Configuration.OutputLastHiddenStates ? modelResult[^1].ToTensor() : default;
+                    var presentKeyValues = Configuration.OutputLastHiddenStates ? modelResult.ToArray()[1..^1] : modelResult.ToArray()[1..];
+                    sequence.UpdateCache(presentKeyValues, useBranchCache, lastHiddenState);
                     return logits;
                 }
             }
@@ -200,6 +204,7 @@ namespace TensorStack.TextGeneration.Pipelines.Llama
             var vocabSize = 128256;
             var config = new LlamaConfig
             {
+                OutputLastHiddenStates = true,
                 Tokenizer = new BPETokenizer(new TokenizerConfig
                 {
                     BOS = 128000,
