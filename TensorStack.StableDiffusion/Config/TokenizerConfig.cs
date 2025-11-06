@@ -4,7 +4,7 @@ using TensorStack.Common;
 
 namespace TensorStack.StableDiffusion.Config
 {
-    public record TokenizerConfig : ModelConfig
-    {
-    }
+    //public record TokenizerConfig : ModelConfig
+    //{
+    //}
 }

@@ -7,6 +7,7 @@ using TensorStack.Common;
 using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
 using TensorStack.StableDiffusion.Config;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Models
 {
@@ -54,8 +55,8 @@ namespace TensorStack.StableDiffusion.Models
 
             var paddedInput = PadOrTruncate(tokenInput);
             var supportsAttentionMask = Metadata.Inputs.Count == 2;
-            var inputTensor = new TensorSpan<long>(paddedInput.InputIds, [1, SequenceLength]);
-            var attentionTensor = new TensorSpan<long>(paddedInput.AttentionMask, [1, SequenceLength]);
+            var inputTensor = paddedInput.InputIds.AsTensorSpan();
+            var attentionTensor = paddedInput.Mask.AsTensorSpan();
             using (var modelParameters = new ModelParameters(Metadata, cancellationToken))
             {
                 // Inputs
@@ -87,9 +88,9 @@ namespace TensorStack.StableDiffusion.Models
         /// <returns>TokenizerResult.</returns>
         protected TokenizerResult PadOrTruncate(TokenizerResult tokenizerResult)
         {
-            var inputIds = tokenizerResult.InputIds.PadOrTruncate(PadTokenId, SequenceLength);
-            var attentionMask = tokenizerResult.AttentionMask.PadOrTruncate(0, SequenceLength);
-            var weights = tokenizerResult.Weights.PadOrTruncate(1, SequenceLength);
+            var inputIds = tokenizerResult.InputIds.Span.PadOrTruncate(PadTokenId, SequenceLength);
+            var attentionMask = tokenizerResult.Mask.Span.PadOrTruncate(0, SequenceLength);
+            var weights = tokenizerResult.Weights is null ? default : tokenizerResult.Weights.Span.PadOrTruncate(1, SequenceLength);
             return new TokenizerResult(inputIds, attentionMask, weights);
         }
 

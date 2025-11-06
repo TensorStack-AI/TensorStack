@@ -4,6 +4,7 @@ using System.IO;
 using TensorStack.Common;
 using TensorStack.StableDiffusion.Config;
 using TensorStack.StableDiffusion.Enums;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
 {
@@ -59,9 +60,6 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
         /// <param name="executionProvider">The execution provider.</param>
         public override void SetProvider(ExecutionProvider executionProvider)
         {
-            Tokenizer.SetProvider(executionProvider);
-            Tokenizer2.SetProvider(executionProvider);
-            Tokenizer3.SetProvider(executionProvider);
             TextEncoder.SetProvider(executionProvider);
             TextEncoder2.SetProvider(executionProvider);
             TextEncoder3.SetProvider(executionProvider);

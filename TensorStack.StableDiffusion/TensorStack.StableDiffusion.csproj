@@ -8,17 +8,18 @@
   <!--Projects-->
   <ItemGroup Condition=" '$(Configuration)' == 'Debug'">
     <ProjectReference Include="..\TensorStack.Common\TensorStack.Common.csproj" />
+    <ProjectReference Include="..\TensorStack.TextGeneration\TensorStack.TextGeneration.csproj" />
   </ItemGroup>
 
   <!--Packages-->
   <ItemGroup Condition=" '$(Configuration)' == 'Release'">
     <PackageReference Include="TensorStack.Common" Version="$(Version)" />
+    <PackageReference Include="TensorStack.TextGeneration" Version="$(Version)" />
   </ItemGroup>
 
   <!--Common Packages-->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
-    <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0-preview.1.25125.4" />
   </ItemGroup>
 
   <!--Nuget Settings-->

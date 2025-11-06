@@ -6,6 +6,7 @@ using TensorStack.Common;
 using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
 using TensorStack.StableDiffusion.Config;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Models
 {
@@ -41,8 +42,8 @@ namespace TensorStack.StableDiffusion.Models
 
             var sequenceLength = tokenInput.InputIds.Length;
             var supportsAttentionMask = Metadata.Outputs.Count == 2;
-            var inputTensor = new TensorSpan<long>(tokenInput.InputIds, [1, sequenceLength]);
-            var attentionTensor = new TensorSpan<long>(tokenInput.AttentionMask, [1, sequenceLength]);
+            var inputTensor = tokenInput.InputIds;
+            var attentionTensor = tokenInput.Mask;
             using (var modelParameters = new ModelParameters(Metadata, cancellationToken))
             {
                 // Inputs
@@ -51,7 +52,7 @@ namespace TensorStack.StableDiffusion.Models
                     modelParameters.AddInput(attentionTensor);
 
                 // Outputs
-                modelParameters.AddOutput([1, sequenceLength, HiddenSize]);
+                modelParameters.AddOutput([1, (int)sequenceLength, HiddenSize]);
 
                 // Inference
                 using (var results = await RunInferenceAsync(modelParameters))

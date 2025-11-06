@@ -13,7 +13,7 @@ using TensorStack.StableDiffusion.Enums;
 using TensorStack.StableDiffusion.Helpers;
 using TensorStack.StableDiffusion.Models;
 using TensorStack.StableDiffusion.Schedulers;
-using TensorStack.StableDiffusion.Tokenizers;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Pipelines.Flux
 {
@@ -151,7 +151,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
             // Tokenize2
             var promptTokens = await TokenizePromptAsync(options.Prompt, cancellationToken);
             var negativePromptTokens = await TokenizePromptAsync(options.NegativePrompt, cancellationToken);
-            var maxTokenLength = Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
+            var maxTokenLength = (int)Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
 
             // Tokenizer2
             var prompt2Tokens = await TokenizePrompt2Async(options.Prompt, cancellationToken);

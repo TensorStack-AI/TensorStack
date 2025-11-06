@@ -10,7 +10,7 @@ using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
 using TensorStack.StableDiffusion.Enums;
 using TensorStack.StableDiffusion.Models;
-using TensorStack.StableDiffusion.Tokenizers;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Pipelines.Flux
 {

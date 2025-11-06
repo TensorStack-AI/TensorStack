@@ -9,7 +9,7 @@ using TensorStack.Common;
 using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
 using TensorStack.StableDiffusion.Models;
-using TensorStack.StableDiffusion.Tokenizers;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Helpers
 {
@@ -34,8 +34,8 @@ namespace TensorStack.StableDiffusion.Helpers
             foreach (var fragment in fragments)
             {
                 var fragmentTokens = await tokenizer.EncodeAsync(fragment.Text, false);
-                tokenIds.AddRange(fragmentTokens.InputIds);
-                tokenWeights.AddRange(Enumerable.Repeat(fragment.Weight, fragmentTokens.InputIds.Length));
+                tokenIds.AddRange(fragmentTokens.InputIds.Span);
+                tokenWeights.AddRange(Enumerable.Repeat(fragment.Weight, fragmentTokens.InputIds.Span.Length));
             }
 
             tokenIds.Add(tokenizer.EOS); //eos
@@ -64,9 +64,10 @@ namespace TensorStack.StableDiffusion.Helpers
             }
             else
             {
-                var bos = inputTokens.InputIds[0];
-                var eos = inputTokens.InputIds[^1];
-                var tokenIds = inputTokens.InputIds[1..^1].Pad(textEncoder.PadTokenId, minimumLength);
+ 
+                var bos = inputTokens.InputIds.Span[0];
+                var eos = inputTokens.InputIds.Span[^1];
+                var tokenIds = inputTokens.InputIds.Span[1..^1].Pad(textEncoder.PadTokenId, minimumLength);
 
                 // Create batches, 75 tokens + EOS & BOS
                 var chunkSize = textEncoder.SequenceLength - 2;
@@ -149,7 +150,7 @@ namespace TensorStack.StableDiffusion.Helpers
             var hiddenStates = encoderOutput.HiddenStates;
             var numTokens = hiddenStates.Dimensions[1];
             var embedDim = hiddenStates.Dimensions[2];
-            var weights = tokenizerOutput.Weights.Pad(1, numTokens);
+            var weights = tokenizerOutput.Weights.Span.Pad(1, numTokens);
             if (weights.All(x => x == 1))
                 return;
 

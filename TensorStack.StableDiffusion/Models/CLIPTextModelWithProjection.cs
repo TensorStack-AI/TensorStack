@@ -7,6 +7,7 @@ using TensorStack.Common;
 using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
 using TensorStack.StableDiffusion.Config;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Models
 {
@@ -36,8 +37,8 @@ namespace TensorStack.StableDiffusion.Models
             var paddedInput = PadOrTruncate(tokenInput);
             var hiddenStateCount = Metadata.Outputs.Count - 1;
             var supportsAttentionMask = Metadata.Inputs.Count == 2;
-            var inputTensor = new TensorSpan<long>(paddedInput.InputIds, [1, SequenceLength]);
-            var attentionTensor = new TensorSpan<long>(paddedInput.AttentionMask, [1, SequenceLength]);
+            var inputTensor = paddedInput.InputIds;
+            var attentionTensor = paddedInput.Mask;
             using (var modelParameters = new ModelParameters(Metadata, cancellationToken))
             {
                 // Inputs

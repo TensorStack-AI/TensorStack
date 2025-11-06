@@ -123,6 +123,12 @@ namespace TensorStack.Common
         }
 
 
+        public static T[] PadOrTruncate<T>(this ReadOnlySpan<T> inputs, T padValue, int requiredLength)
+        {
+            return PadOrTruncate(inputs.ToArray(), padValue, requiredLength);
+        }
+
+
         public static T[] Pad<T>(this T[] inputs, T padValue, int requiredLength)
         {
             int count = inputs.Length;
@@ -135,6 +141,11 @@ namespace TensorStack.Common
                 result[i] = padValue;
 
             return result;
+        }
+
+        public static T[] Pad<T>(this ReadOnlySpan<T> inputs, T padValue, int requiredLength)
+        {
+            return Pad(inputs.ToArray(), padValue, requiredLength);
         }
 
 

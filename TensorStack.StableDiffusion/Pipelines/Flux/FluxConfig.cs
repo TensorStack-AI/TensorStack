@@ -4,6 +4,7 @@ using System.IO;
 using TensorStack.Common;
 using TensorStack.StableDiffusion.Config;
 using TensorStack.StableDiffusion.Enums;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Pipelines.Flux
 {
@@ -15,7 +16,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
         public FluxConfig()
         {
             Tokenizer = new TokenizerConfig();
-            Tokenizer2 = new TokenizerConfig();
+            Tokenizer2 = new TokenizerConfig{MaxLength = 512 };
             TextEncoder = new CLIPModelConfig();
             TextEncoder2 = new CLIPModelConfig
             {
@@ -54,8 +55,6 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
         /// <param name="executionProvider">The execution provider.</param>
         public override void SetProvider(ExecutionProvider executionProvider)
         {
-            Tokenizer.SetProvider(executionProvider);
-            Tokenizer2.SetProvider(executionProvider);
             TextEncoder.SetProvider(executionProvider);
             TextEncoder2.SetProvider(executionProvider);
             Transformer.SetProvider(executionProvider);

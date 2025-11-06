@@ -13,7 +13,7 @@ using TensorStack.StableDiffusion.Enums;
 using TensorStack.StableDiffusion.Helpers;
 using TensorStack.StableDiffusion.Models;
 using TensorStack.StableDiffusion.Schedulers;
-using TensorStack.StableDiffusion.Tokenizers;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Pipelines.StableCascade
 {
@@ -150,7 +150,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
             // Tokenizer
             var promptTokens = await TokenizePromptAsync(options.Prompt, cancellationToken);
             var negativePromptTokens = await TokenizePromptAsync(options.NegativePrompt, cancellationToken);
-            var maxPromptTokenCount = Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
+            var maxPromptTokenCount = (int)Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
 
             // TextEncoder
             var hiddenStateIndex = 1 + options.ClipSkip;

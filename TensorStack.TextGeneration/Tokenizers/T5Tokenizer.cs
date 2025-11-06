@@ -54,7 +54,7 @@ namespace TensorStack.TextGeneration.Tokenizers
             var tokens = _tokenizer.EncodeToTokens(text, out var normalizedText, false, false);
             var inputIds = tokens.Select(x => Convert.ToInt64(x.Id)).ToArray();
             var attentionMask = Enumerable.Repeat<long>(1, inputIds.Length).ToArray();
-            return Task.FromResult(new TokenizerResult(inputIds, attentionMask, normalizedText));
+            return Task.FromResult(new TokenizerResult(inputIds, attentionMask, normalizedInput: normalizedText));
         }
 
 

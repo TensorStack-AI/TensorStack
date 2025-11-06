@@ -7,7 +7,7 @@ using TensorStack.StableDiffusion.Common;
 using TensorStack.StableDiffusion.Enums;
 using TensorStack.StableDiffusion.Models;
 using TensorStack.StableDiffusion.Pipelines.StableDiffusion;
-using TensorStack.StableDiffusion.Tokenizers;
+using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion2
 {
