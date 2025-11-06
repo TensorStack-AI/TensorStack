@@ -165,7 +165,7 @@
                         <Grid Margin="20" >
                             <CommonControls:ImageElement 
                                 SplitterVisibility="Auto"
-                                SplitterPosition="Source"
+                                SplitterPosition="Center"
                                 SplitterDirection="LeftToRight"
                                 Progress="{Binding Progress}"
                                 Source="{Binding ResultImage, Mode=TwoWay}" 

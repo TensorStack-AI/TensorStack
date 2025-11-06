@@ -269,7 +269,7 @@ namespace TensorStack.WPF.Dialogs
                 var scaleTransform = new ScaleTransform(scaleX, scaleY);
                 return new WriteableBitmap(new TransformedBitmap(croppedBitmap, scaleTransform));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 DialogResult = false;
                 return null;

@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <Version>0.1.33</Version>
+    <Version>0.1.37</Version>
     <Company>TensorStack</Company>
     <Copyright>TensorStack - 2025</Copyright>
     <RepositoryUrl>https://github.com/TensorStack-AI/TensorStack</RepositoryUrl>

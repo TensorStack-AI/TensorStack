@@ -7,13 +7,18 @@
   </PropertyGroup>
 
   <!--Projects-->
-  <ItemGroup Condition=" '$(Configuration)' == 'Debug'">
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <ProjectReference Include="..\TensorStack.Common\TensorStack.Common.csproj" />
   </ItemGroup>
 
   <!--Packages-->
-  <ItemGroup Condition=" '$(Configuration)' == 'Release'">
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <PackageReference Include="TensorStack.Common" Version="$(Version)" />
+  </ItemGroup>
+
+  <!--Common Packages-->
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
   </ItemGroup>
 
   <!--Nuget Settings-->
@@ -38,9 +43,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
   </ItemGroup>
 
 </Project>
