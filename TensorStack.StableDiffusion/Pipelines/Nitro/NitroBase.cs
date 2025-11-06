@@ -1,7 +1,6 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using Microsoft.Extensions.Logging;
-using Microsoft.ML.Tokenizers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,7 +20,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
     public abstract class NitroBase : PipelineBase
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="vBase"/> class.
+        /// Initializes a new instance of the <see cref="NitroBase"/> class.
         /// </summary>
         /// <param name="transformer">The transformer.</param>
         /// <param name="textEncoder">The text encoder.</param>
@@ -46,6 +45,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             new TransformerNitroModel(configuration.Transformer),
             new LlamaPipeline(new LlamaConfig
             {
+                OutputLastHiddenStates = true,
                 DecoderConfig = configuration.TextEncoder,
                 Tokenizer = new BPETokenizer(configuration.Tokenizer),
             }),
@@ -128,46 +128,28 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// <param name="cancellationToken">The cancellation token.</param>
         protected async Task<PromptResult> CreatePromptAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
-            //// Tokenize2
-            //var promptTokens = await TokenizePromptAsync(options.Prompt, cancellationToken);
-            //var negativePromptTokens = await TokenizePromptAsync(options.NegativePrompt, cancellationToken);
-            //var maxTokenLength = (int)Math.Max(promptTokens.InputIds.Length, negativePromptTokens.InputIds.Length);
-
-            //// Tokenizer2
-            //var prompt2Tokens = await TokenizePrompt2Async(options.Prompt, cancellationToken);
-            //var negativePrompt2Tokens = await TokenizePrompt2Async(options.NegativePrompt, cancellationToken);
-
-            //// TextEncoder
-            //var promptEmbeddings = await EncodePromptAsync(promptTokens, maxTokenLength, cancellationToken);
-            //var negativePromptEmbeddings = await EncodePromptAsync(negativePromptTokens, maxTokenLength, cancellationToken);
-            //if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
-            //    await TextEncoder.UnloadAsync();
-
-
-
-            //// Prompt
-            //var promptEmbeds = prompt2Embeddings.HiddenStates;
-            //var promptPooledEmbeds = promptEmbeddings.TextEmbeds;
-            //promptPooledEmbeds = promptPooledEmbeds.Reshape([promptPooledEmbeds.Dimensions[^2], promptPooledEmbeds.Dimensions[^1]]).FirstBatch();
-
-            //// Negative promt
-            //var negativePromptEmbeds = negativePrompt2Embeddings.HiddenStates;
-            //var negativePromptPooledEmbeds = negativePromptEmbeddings.TextEmbeds;
-            //negativePromptPooledEmbeds = negativePromptPooledEmbeds.Reshape([negativePromptPooledEmbeds.Dimensions[^2], negativePromptPooledEmbeds.Dimensions[^1]]).FirstBatch();
-
-            //return new PromptResult(promptEmbeds, promptPooledEmbeds, negativePromptEmbeds, negativePromptPooledEmbeds);
-
-
-            var result = TextEncoder.RunAsync(new TextGeneration.Common.GenerateOptions
+            // Conditional Prompt
+            var promptEmbeds = await TextEncoder.GetLastHiddenState(new TextGeneration.Common.GenerateOptions
             {
                 Seed = options.Seed,
-                Prompt = options.Prompt
-            });
+                Prompt = options.Prompt,
+                MaxLength = 128
+            }, cancellationToken);
 
-            return default;
+            // Unconditional prompt
+            var negativePromptEmbeds = default(Tensor<float>);
+            if (!string.IsNullOrEmpty(options.NegativePrompt))
+            {
+                negativePromptEmbeds = await TextEncoder.GetLastHiddenState(new TextGeneration.Common.GenerateOptions
+                {
+                    Seed = options.Seed,
+                    Prompt = options.NegativePrompt,
+                    MaxLength = 128
+                }, cancellationToken);
+            }
+
+            return new PromptResult(promptEmbeds, default, negativePromptEmbeds, default);
         }
-
-
 
 
         /// <summary>
@@ -372,7 +354,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
                 Scheduler = SchedulerType.FlowMatchEulerDiscrete
             };
 
-            // SD3-Turbo Models , 4 Steps, No Guidance
+            // Nitro-Distilled Models ,4 Steps, No Guidance
             if (Transformer.ModelType == ModelType.Turbo)
             {
                 return options with

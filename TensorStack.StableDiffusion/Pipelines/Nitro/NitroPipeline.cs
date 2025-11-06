@@ -44,7 +44,6 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         public async Task<ImageTensor> RunAsync(GenerateOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             ValidateOptions(options);
-
             var prompt = await CreatePromptAsync(options, cancellationToken);
             using (var scheduler = CreateScheduler(options))
             {

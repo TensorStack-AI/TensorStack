@@ -90,6 +90,21 @@ namespace TensorStack.TextGeneration.Pipelines.Llama
 
 
         /// <summary>
+        /// Gets the LastHiddenState.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        public async Task<Tensor<float>> GetLastHiddenState(GenerateOptions options, CancellationToken cancellationToken = default)
+        {
+            await TokenizePromptAsync(options);
+            using (var sequence = await InitializeAsync(options))
+            {
+                return sequence.LastHiddenState;
+            }
+        }
+
+
+        /// <summary>
         /// Gets the token processors.
         /// </summary>
         /// <param name="options">The options.</param>

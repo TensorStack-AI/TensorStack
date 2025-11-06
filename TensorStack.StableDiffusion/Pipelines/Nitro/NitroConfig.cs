@@ -5,7 +5,6 @@ using TensorStack.Common;
 using TensorStack.StableDiffusion.Config;
 using TensorStack.StableDiffusion.Enums;
 using TensorStack.TextGeneration.Common;
-using TensorStack.TextGeneration.Pipelines.Llama;
 using TensorStack.TextGeneration.Tokenizers;
 
 namespace TensorStack.StableDiffusion.Pipelines.Nitro
@@ -26,8 +25,8 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             {
                 NumHeads = 32,
                 NumLayers = 16,
-                HiddenSize = 2048,
                 NumKVHeads = 8,
+                HiddenSize = 2048,
                 VocabSize = 128256
             };
             Transformer = new TransformerModelConfig
@@ -40,8 +39,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             AutoEncoder = new AutoEncoderModelConfig
             {
                 LatentChannels = 32,
-                ScaleFactor = 0.3611f,
-                ShiftFactor = 0.1159f
+                ScaleFactor = 0.41407f
             };
         }
 
@@ -116,7 +114,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         public static NitroConfig FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider = default)
         {
             var config = FromDefault(Path.GetFileNameWithoutExtension(modelFolder), modelType, executionProvider);
-            config.Tokenizer.Path = Path.Combine(modelFolder, "tokenizer", "vocab.json");
+            config.Tokenizer.Path = Path.Combine(modelFolder, "tokenizer");
             config.TextEncoder.Path = Path.Combine(modelFolder, "text_encoder", "model.onnx");
             config.Transformer.Path = Path.Combine(modelFolder, "transformer", "model.onnx");
             config.AutoEncoder.DecoderModelPath = Path.Combine(modelFolder, "vae_decoder", "model.onnx");
