@@ -222,18 +222,18 @@ namespace TensorStack.WPF.Controls
                 {
                     GridSplitterColumn.Width = SplitterDirection == SplitterDirection.LeftToRight
                         ? new GridLength(0)
-                        : new GridLength(VideoControl.ActualWidth);
+                        : new GridLength(GridSplitterContainer.ActualWidth);
                 }
                 else if (SplitterPosition == SplitterPosition.Center)
                 {
                     GridSplitterColumn.Width = new GridLength(0);
-                    GridSplitterColumn.Width = new GridLength(VideoControl.Width / 2);
+                    GridSplitterColumn.Width = new GridLength(GridSplitterContainer.ActualWidth / 2);
                 }
                 else if (SplitterPosition == SplitterPosition.Overlay)
                 {
                     GridSplitterColumn.Width = SplitterDirection == SplitterDirection.RightToLeft
                         ? new GridLength(0)
-                        : new GridLength(VideoControl.ActualWidth);
+                        : new GridLength(GridSplitterContainer.ActualWidth);
                 }
             }
             return Task.CompletedTask;

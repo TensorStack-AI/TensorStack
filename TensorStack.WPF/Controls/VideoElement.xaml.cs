@@ -241,18 +241,18 @@ namespace TensorStack.WPF.Controls
                 {
                     GridSplitterColumn.Width = SplitterDirection == SplitterDirection.LeftToRight
                         ? new GridLength(0)
-                        : new GridLength(OverlaySource.Width + 45);
+                        : new GridLength(GridSplitterContainer.ActualWidth + 45);
                 }
                 else if (SplitterPosition == SplitterPosition.Center)
                 {
                     GridSplitterColumn.Width = new GridLength(0);
-                    GridSplitterColumn.Width = new GridLength(OverlaySource.Width / 2 + 30);
+                    GridSplitterColumn.Width = new GridLength(GridSplitterContainer.ActualWidth / 2);
                 }
                 else if (SplitterPosition == SplitterPosition.Overlay)
                 {
                     GridSplitterColumn.Width = SplitterDirection == SplitterDirection.RightToLeft
                         ? new GridLength(0)
-                        : new GridLength(OverlaySource.Width + 45);
+                        : new GridLength(GridSplitterContainer.ActualWidth + 45);
                 }
             }
         }

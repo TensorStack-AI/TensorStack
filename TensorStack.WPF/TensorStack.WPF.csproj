@@ -86,7 +86,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ColorPicker.dll">
+    <Content Include="ColorPicker.dll" PackagePath="lib\$(TargetFramework)">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <Pack>true</Pack>

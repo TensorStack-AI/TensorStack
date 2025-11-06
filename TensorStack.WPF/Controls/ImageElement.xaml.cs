@@ -95,19 +95,19 @@ namespace TensorStack.WPF.Controls
                 {
                     GridSplitterColumn.Width = SplitterDirection == SplitterDirection.LeftToRight
                         ? new GridLength(0)
-                        : new GridLength(OverlaySource.Width + 45);
+                        : new GridLength(GridSplitterContainer.ActualWidth + 45);
                 }
                 else if (SplitterPosition == SplitterPosition.Center)
                 {
                     GridSplitterColumn.Width = new GridLength(0);
                     await Task.Delay(10);
-                    GridSplitterColumn.Width = new GridLength(OverlaySource.Width / 2 + 30);
+                    GridSplitterColumn.Width = new GridLength(GridSplitterContainer.ActualWidth / 2);
                 }
                 else if (SplitterPosition == SplitterPosition.Overlay)
                 {
                     GridSplitterColumn.Width = SplitterDirection == SplitterDirection.RightToLeft
                         ? new GridLength(0)
-                        : new GridLength(OverlaySource.Width + 45);
+                        : new GridLength(GridSplitterContainer.ActualWidth + 45);
                 }
             }
         }
@@ -363,6 +363,20 @@ namespace TensorStack.WPF.Controls
         private void SplitterControl_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             SplitterControl.ReleaseMouseCapture();
+        }
+
+
+        /// <summary>
+        /// Load image as an image from file
+        /// </summary>
+        /// <param name="initialFilename">The initial filename.</param>
+        /// <param name="initialImage">The initial image.</param>
+        protected override Task<ImageInput> LoadImageAsync(string initialFilename = null, BitmapSource initialImage = null)
+        {
+            var newImage = base.LoadImageAsync(initialFilename, initialImage);
+            if (newImage != null)
+                OverlaySource = default;
+            return newImage;
         }
     }
 
