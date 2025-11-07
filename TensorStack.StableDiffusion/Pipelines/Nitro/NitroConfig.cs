@@ -38,7 +38,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             };
             AutoEncoder = new AutoEncoderModelConfig
             {
-                Scale = 32
+                Scale = 32,
                 LatentChannels = 32,
                 ScaleFactor = 0.41407f
             };
