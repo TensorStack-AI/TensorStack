@@ -11,5 +11,6 @@ namespace TensorStack.StableDiffusion.Enums
         StableCascade = 10,
         LatentConsistency = 20,
         Flux = 30,
+        Nitro = 40
     }
 }

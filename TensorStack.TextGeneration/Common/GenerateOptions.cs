@@ -19,5 +19,6 @@ namespace TensorStack.TextGeneration.Common
         public float LengthPenalty { get; set; } = 1.0f;
         public EarlyStopping EarlyStopping { get; set; }
         public int DiversityLength { get; set; } = 20;
+        public bool OutputLastHiddenStates { get; set; }
     }
 }

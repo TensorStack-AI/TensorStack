@@ -3,6 +3,7 @@
 using Microsoft.ML.OnnxRuntime;
 using System;
 using System.Collections.Generic;
+using TensorStack.Common.Tensor;
 using TensorStack.TextGeneration.Cache;
 
 namespace TensorStack.TextGeneration
@@ -10,6 +11,7 @@ namespace TensorStack.TextGeneration
     public sealed class Sequence : IDisposable
     {
         private IKVCache _cache;
+        private Tensor<float> _lastHiddenState;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Sequence"/> class.
@@ -56,6 +58,11 @@ namespace TensorStack.TextGeneration
         public OrtValue[] Cache => _cache.Values;
 
         /// <summary>
+        /// Gets the LastHiddenState.
+        /// </summary>
+        public Tensor<float> LastHiddenState => _lastHiddenState;
+
+        /// <summary>
         /// Gets or sets the sequnece score.
         /// </summary>
         public float Score { get; set; }
@@ -89,8 +96,9 @@ namespace TensorStack.TextGeneration
         /// </summary>
         /// <param name="currentValues">The current values.</param>
         /// <param name="useBranchCache">if set to <c>true</c> use branch cache.</param>
-        public void UpdateCache(OrtValue[] currentValues, bool useBranchCache)
+        public void UpdateCache(OrtValue[] currentValues, bool useBranchCache, Tensor<float> lastHiddenState = default)
         {
+            _lastHiddenState = lastHiddenState;
             _cache.Update(currentValues, useBranchCache);
         }
 
