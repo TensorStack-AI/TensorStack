@@ -105,6 +105,20 @@ namespace TensorStack.TextGeneration.Pipelines.Llama
 
 
         /// <summary>
+        /// Tokenize the prompt
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
+        protected override async Task TokenizePromptAsync(GenerateOptions options)
+        {
+            var tokenizerResult = await Tokenizer.EncodeAsync(options.Prompt);
+            var inputIds = tokenizerResult.InputIds.Span.Pad(Tokenizer.EOS, options.MinLength);
+            var mask = tokenizerResult.Mask.Span.Pad(0, options.MinLength);
+            TokenizerOutput = new TokenizerResult(inputIds, mask);
+        }
+
+
+        /// <summary>
         /// Gets the token processors.
         /// </summary>
         /// <param name="options">The options.</param>

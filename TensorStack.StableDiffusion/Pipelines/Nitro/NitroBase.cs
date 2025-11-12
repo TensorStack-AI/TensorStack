@@ -133,6 +133,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             {
                 Seed = options.Seed,
                 Prompt = options.Prompt,
+                MinLength = 128,
                 MaxLength = 128
             }, cancellationToken);
 
@@ -144,6 +145,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
                 {
                     Seed = options.Seed,
                     Prompt = options.NegativePrompt,
+                    MinLength = 128,
                     MaxLength = 128
                 }, cancellationToken);
             }
@@ -348,8 +350,8 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             {
                 Steps = 20,
                 Shift = 1f,
-                Width = 1024,
-                Height = 1024,
+                Width = 512,
+                Height = 512,
                 GuidanceScale = 0f,
                 Scheduler = SchedulerType.FlowMatchEulerDiscrete
             };
@@ -361,8 +363,8 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
                 {
                     Steps = 4,
                     Shift = 1f,
-                    Width = 1024,
-                    Height = 1024,
+                    Width = 512,
+                    Height = 512,
                     GuidanceScale = 0,
                     Scheduler = SchedulerType.FlowMatchEulerDiscrete
                 };
