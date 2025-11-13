@@ -2,7 +2,7 @@
 TensorStack Extractor Demo, a simple WPF application showcasing the capabilities of [TensorStack.Extractors](https://github.com/TensorStack-AI/TensorStack/tree/master/TensorStack.Extractors) project.
 
 ## Download
-[Extractor Demo v0.1.18 (DirectML)](https://github.com/TensorStack-AI/TensorStack/releases/download/v0.1.18/ExtractorDemo_v0.1.18.zip)
+[Extractor Demo v0.1.39 (DirectML)](https://github.com/TensorStack-AI/TensorStack/releases/download/v0.1.39/ExtractorDemo_v0.1.39.zip)
 
 ## Extractors
 Canny Edge
