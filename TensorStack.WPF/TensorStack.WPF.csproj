@@ -13,6 +13,7 @@
     <ProjectReference Include="..\TensorStack.Common\TensorStack.Common.csproj" />
     <ProjectReference Include="..\TensorStack.Image.BitmapImage\TensorStack.Image.BitmapImage.csproj" />
     <ProjectReference Include="..\TensorStack.Video.Windows\TensorStack.Video.Windows.csproj" />
+    <ProjectReference Include="..\TensorStack.Audio.Windows\TensorStack.Audio.Windows.csproj" />
   </ItemGroup>
 
   <!--Packages-->
@@ -20,6 +21,7 @@
     <PackageReference Include="TensorStack.Common" Version="$(Version)" />
     <PackageReference Include="TensorStack.Image.BitmapImage" Version="$(Version)" />
     <PackageReference Include="TensorStack.Video.Windows" Version="$(Version)" />
+    <PackageReference Include="TensorStack.Audio.Windows" Version="$(Version)" />
   </ItemGroup>
 
   <!--Common Packages-->
