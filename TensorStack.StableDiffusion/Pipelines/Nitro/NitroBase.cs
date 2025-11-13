@@ -139,7 +139,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
 
             // Unconditional prompt
             var negativePromptEmbeds = default(Tensor<float>);
-            if (!string.IsNullOrEmpty(options.NegativePrompt))
+            if (Transformer.ModelType != ModelType.Turbo)
             {
                 negativePromptEmbeds = await TextEncoder.GetLastHiddenState(new TextGeneration.Common.GenerateOptions
                 {
@@ -352,7 +352,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
                 Shift = 1f,
                 Width = 512,
                 Height = 512,
-                GuidanceScale = 0f,
+                GuidanceScale = 4f,
                 Scheduler = SchedulerType.FlowMatchEulerDiscrete
             };
 
