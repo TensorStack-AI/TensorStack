@@ -17,7 +17,7 @@
 
   <!--Common Packages-->
   <ItemGroup>
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu.Windows" Version="1.23.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu.Windows" Version="1.23.2" />
   </ItemGroup>
 
   <!--Nuget Settings-->

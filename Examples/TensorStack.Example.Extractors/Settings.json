@@ -9,7 +9,7 @@
       "SampleSize": 0,
       "OutputChannels": 1,
       "Path": "Models\\Canny.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/Canny.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/Canny/model.onnx?download=true"
     },
     {
       "Id": 2,
@@ -20,7 +20,7 @@
       "SampleSize": 0,
       "OutputChannels": 1,
       "Path": "Models\\SoftEdge.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/SoftEdge.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/SoftEdge/model.onnx?download=true"
     },
     {
       "Id": 3,
@@ -32,7 +32,7 @@
       "OutputNormalization": "MinMaxOneToOne",
       "IsDynamicOutput": true,
       "Path": "Models\\Depth.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/Depth.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/Depth/model.onnx?download=true"
     },
     {
       "Id": 4,
@@ -42,7 +42,7 @@
       "SampleSize": 0,
       "OutputChannels": 1,
       "Path": "Models\\LineDrawing.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/LineDrawing.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/LineDrawing/model.onnx?download=true"
     },
     {
       "Id": 5,
@@ -54,7 +54,7 @@
       "IsDynamicOutput": true,
       "OutputNormalization": "MinMaxOneToOne",
       "Path": "Models\\DepthAnything-Small.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/DepthAnything-Small.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/DepthAnything-Small/model.onnx?download=true"
     },
     {
       "Id": 6,
@@ -66,7 +66,7 @@
       "IsDynamicOutput": true,
       "OutputNormalization": "MinMaxOneToOne",
       "Path": "Models\\DepthAnything-Base.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/DepthAnything-Base.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/DepthAnything-Base/model.onnx?download=true"
     },
     {
       "Id": 8,
@@ -78,7 +78,7 @@
       "IsDynamicOutput": true,
       "OutputNormalization": "MinMaxOneToOne",
       "Path": "Models\\DepthAnything-Large.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/DepthAnything-Large.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/DepthAnything-Large/model.onnx?download=true"
     },
     {
       "Id": 9,
@@ -88,7 +88,7 @@
       "SampleSize": 1024,
       "OutputChannels": 1,
       "Path": "Models\\BiRefNet.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/BiRefNet.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/BiRefNet/model.onnx?download=true"
     },
     {
       "Id": 10,
@@ -99,7 +99,7 @@
       "SampleSize": 1024,
       "OutputChannels": 1,
       "Path": "Models\\RMBGv1.4.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/RMBGv1.4.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/RMBGv1.4/model.onnx?download=true"
     },
     {
       "Id": 11,
@@ -109,7 +109,7 @@
       "SampleSize": 1024,
       "OutputChannels": 1,
       "Path": "Models\\RMBGv2.0.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/RMBGv2.0.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/RMBGv2.0/model.onnx?download=true"
     },
     {
       "Id": 12,
@@ -119,7 +119,7 @@
       "Channels": 3,
       "SampleSize": 640,
       "Path": "Models\\Pose-Body7.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/Pose-Body7.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/Pose-Body7/model.onnx?download=true"
     },
     {
       "Id": 13,
@@ -128,7 +128,7 @@
       "Channels": 3,
       "SampleSize": 640,
       "Path": "Models\\Pose-Coco.onnx",
-      "UrlPath": "https://huggingface.co/TensorStack/TensorStack/resolve/main/Extractor/Pose-Coco.onnx?download=true"
+      "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/Pose-Coco/model.onnx?download=true"
     }
   ]
 }
