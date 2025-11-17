@@ -64,6 +64,13 @@
       <HintPath>ColorPicker.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="ColorPicker.dll" PackagePath="lib\$(TargetFramework)">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
 
   <!--Nuget Settings-->
   <PropertyGroup>
@@ -86,13 +93,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="ColorPicker.dll" PackagePath="lib\$(TargetFramework)">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <Pack>true</Pack>
-    </Content>
   </ItemGroup>
 
 </Project>

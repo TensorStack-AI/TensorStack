@@ -18,18 +18,20 @@
 
   <!--Binaries-->
   <ItemGroup>
-    <Content Include="ffmpeg.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <CopyToPublishDirectory>true</CopyToPublishDirectory>
-      <Pack>true</Pack>
-    </Content>
-    <Content Include="ffprobe.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <CopyToPublishDirectory>true</CopyToPublishDirectory>
-      <Pack>true</Pack>
-    </Content>
+    <Content Include="ffmpeg.exe"
+             Pack="true"
+             PackagePath="contentFiles\any\any\"
+             CopyToOutputDirectory="Always"
+             PackageCopyToOutput="true" />
+    <None Include="ffmpeg.exe" Pack="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ffprobe.exe"
+             Pack="true"
+             PackagePath="contentFiles\any\any\"
+             CopyToOutputDirectory="Always"
+             PackageCopyToOutput="true" />
+    <None Include="ffprobe.exe" Pack="false" />
   </ItemGroup>
 
   <!--Nuget Settings-->
@@ -54,6 +56,11 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TensorStack.Audio.Windows.targets"
+          Pack="true"
+          PackagePath="buildTransitive\" />
   </ItemGroup>
 
 </Project>

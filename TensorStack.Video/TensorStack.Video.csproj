@@ -18,12 +18,12 @@
 
   <!--Binaries-->
   <ItemGroup>
-    <Content Include="Interpolation.onnx">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput>
-      <CopyToPublishDirectory>true</CopyToPublishDirectory>
-      <Pack>true</Pack>
-    </Content>
+    <Content Include="Interpolation.onnx"
+             Pack="true"
+             PackagePath="contentFiles\any\any\"
+             CopyToOutputDirectory="Always"
+             PackageCopyToOutput="true" />
+    <None Include="Interpolation.onnx" Pack="false" />
   </ItemGroup>
 
   <!--Nuget Settings-->
@@ -48,6 +48,11 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TensorStack.Video.targets"
+          Pack="true"
+          PackagePath="buildTransitive\" />
   </ItemGroup>
 
 </Project>
