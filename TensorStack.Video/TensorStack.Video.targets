@@ -2,6 +2,7 @@
   <ItemGroup>
     <Content Include="$(MSBuildThisFileDirectory)..\contentFiles\any\any\Interpolation.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>false</Pack>
     </Content>
   </ItemGroup>
 </Project>

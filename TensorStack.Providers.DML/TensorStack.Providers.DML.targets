@@ -1,7 +1,0 @@
-<Project>
-  <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)..\contentFiles\any\any\DirectML.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-</Project>
