@@ -26,11 +26,12 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// <param name="textEncoder">The text encoder.</param>
         /// <param name="autoEncoder">The automatic encoder.</param>
         /// <param name="logger">The logger.</param>
-        public NitroBase(TransformerNitroModel transformer, LlamaPipeline textEncoder, AutoEncoderModel autoEncoder, ILogger logger = default) : base(logger)
+        public NitroBase(TransformerNitroModel transformer, LlamaPipeline textEncoder, AutoEncoderModel autoEncoder, int outputSize, ILogger logger = default) : base(logger)
         {
             Transformer = transformer;
             AutoEncoder = autoEncoder;
             TextEncoder = textEncoder;
+            OutputSize = outputSize;
             Initialize();
             Logger?.LogInformation("[NitroPipeline] Name: {Name}", Name);
         }
@@ -50,6 +51,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
                 Tokenizer = new BPETokenizer(configuration.Tokenizer),
             }),
             new AutoEncoderModel(configuration.AutoEncoder),
+            configuration.OutputSize,
             logger)
         {
             Name = configuration.Name;
@@ -79,6 +81,11 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// Gets the automatic encoder.
         /// </summary>
         public AutoEncoderModel AutoEncoder { get; init; }
+
+        /// <summary>
+        /// Gets the size of the image output (512 or 1024).
+        /// </summary>
+        public int OutputSize { get; }
 
 
         /// <summary>
@@ -118,6 +125,8 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             base.ValidateOptions(options);
             if (!Transformer.HasControlNet && options.HasControlNet)
                 throw new ArgumentException("Model does not support ControlNet");
+            if (options.Width != OutputSize || options.Height != OutputSize)
+                throw new ArgumentException($"Model only supports {OutputSize}x{OutputSize} output size");
         }
 
 
@@ -193,6 +202,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
 
         protected async Task<Tensor<float>> RunInferenceAsync(IPipelineOptions options, IScheduler scheduler, PromptResult prompt, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
+            System.Console.WriteLine(options);
             var timestamp = Logger.LogBegin(LogLevel.Debug, "[RunInferenceAsync] Begin Transformer Inference");
 
             // Prompt
@@ -350,8 +360,8 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             {
                 Steps = 20,
                 Shift = 1f,
-                Width = 512,
-                Height = 512,
+                Width = OutputSize,
+                Height = OutputSize,
                 GuidanceScale = 4f,
                 Scheduler = SchedulerType.FlowMatchEulerDiscrete
             };
@@ -363,8 +373,8 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
                 {
                     Steps = 4,
                     Shift = 1f,
-                    Width = 512,
-                    Height = 512,
+                    Width = OutputSize,
+                    Height = OutputSize,
                     GuidanceScale = 0,
                     Scheduler = SchedulerType.FlowMatchEulerDiscrete
                 };

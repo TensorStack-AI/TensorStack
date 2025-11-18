@@ -16,6 +16,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// </summary>
         public NitroConfig()
         {
+            OutputSize = 512;
             Tokenizer = new TokenizerConfig
             {
                 BOS = 128000,
@@ -50,6 +51,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         public DecoderConfig TextEncoder { get; init; }
         public TransformerModelConfig Transformer { get; init; }
         public AutoEncoderModelConfig AutoEncoder { get; init; }
+        public int OutputSize { get; init; }
 
 
         /// <summary>
@@ -82,9 +84,9 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// <param name="modelType">Type of the model.</param>
         /// <param name="executionProvider">The execution provider.</param>
         /// <returns>NitroConfig.</returns>
-        public static NitroConfig FromDefault(string name, ModelType modelType, ExecutionProvider executionProvider = default)
+        public static NitroConfig FromDefault(string name, int outputSize, ModelType modelType, ExecutionProvider executionProvider = default)
         {
-            var config = new NitroConfig { Name = name };
+            var config = new NitroConfig { Name = name, OutputSize = outputSize };
             config.Transformer.ModelType = modelType;
             config.SetProvider(executionProvider);
             return config;
@@ -109,12 +111,12 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// Create Nitro configuration from folder structure
         /// </summary>
         /// <param name="modelFolder">The model folder.</param>
+        /// <param name="outputSize">Size of the output.</param>
         /// <param name="modelType">Type of the model.</param>
         /// <param name="executionProvider">The execution provider.</param>
-        /// <returns>NitroConfig.</returns>
-        public static NitroConfig FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider = default)
+        public static NitroConfig FromFolder(string modelFolder, int outputSize, ModelType modelType, ExecutionProvider executionProvider = default)
         {
-            var config = FromDefault(Path.GetFileNameWithoutExtension(modelFolder), modelType, executionProvider);
+            var config = FromDefault(Path.GetFileNameWithoutExtension(modelFolder), outputSize, modelType, executionProvider);
             config.Tokenizer.Path = Path.Combine(modelFolder, "tokenizer");
             config.TextEncoder.Path = Path.Combine(modelFolder, "text_encoder", "model.onnx");
             config.Transformer.Path = Path.Combine(modelFolder, "transformer", "model.onnx");
@@ -123,5 +125,24 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             return config;
         }
 
+
+        /// <summary>
+        /// Create Nitro configuration from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        public static NitroConfig FromFolder(string modelFolder, string variant, ExecutionProvider executionProvider = default)
+        {
+            var outputSize = variant.Contains("1024") ? 1024 : 512;
+            var modelType = variant.Contains("Turbo", System.StringComparison.OrdinalIgnoreCase)  ? ModelType.Turbo : ModelType.Base;
+            var config = FromDefault(Path.GetFileNameWithoutExtension(modelFolder), outputSize, modelType, executionProvider);
+            config.Tokenizer.Path = Path.Combine(modelFolder, "tokenizer");
+            config.TextEncoder.Path = GetVariantPath(modelFolder, "text_encoder", "model.onnx", variant);
+            config.Transformer.Path = GetVariantPath(modelFolder, "transformer", "model.onnx", variant);
+            config.AutoEncoder.DecoderModelPath = GetVariantPath(modelFolder, "vae_decoder", "model.onnx", variant);
+            config.AutoEncoder.EncoderModelPath = GetVariantPath(modelFolder, "vae_encoder", "model.onnx", variant);
+            return config;
+        }
     }
 }
