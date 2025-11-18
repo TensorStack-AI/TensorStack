@@ -137,6 +137,10 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// <param name="cancellationToken">The cancellation token.</param>
         protected async Task<PromptResult> CreatePromptAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
+            var cachedPrompt = GetPromptCache(options);
+            if (cachedPrompt is not null)
+                return cachedPrompt;
+
             // Conditional Prompt
             var promptEmbeds = await TextEncoder.GetLastHiddenState(new TextGeneration.Common.GenerateOptions
             {
@@ -159,7 +163,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
                 }, cancellationToken);
             }
 
-            return new PromptResult(promptEmbeds, default, negativePromptEmbeds, default);
+            return SetPromptCache(options, new PromptResult(promptEmbeds, default, negativePromptEmbeds, default));
         }
 
 

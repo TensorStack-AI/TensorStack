@@ -147,6 +147,10 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         /// <param name="cancellationToken">The cancellation token.</param>
         protected async Task<PromptResult> CreatePromptAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
+            var cachedPrompt = GetPromptCache(options);
+            if (cachedPrompt is not null)
+                return cachedPrompt;
+
             // Tokenizer
             var promptTokens = await TokenizePromptAsync(options.Prompt, cancellationToken);
             var negativePromptTokens = await TokenizePromptAsync(options.NegativePrompt, cancellationToken);
@@ -167,7 +171,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
                ? negativePromptEmbeddings.TextEmbeds
                : negativePromptEmbeddings.TextEmbeds.Reshape([1, .. negativePromptEmbeddings.TextEmbeds.Dimensions]);
 
-            return new PromptResult(promptEmbeddings.HiddenStates, textEmbeds, negativePromptEmbeddings.HiddenStates, negativeTextEmbeds);
+            return SetPromptCache(options, new PromptResult(promptEmbeddings.HiddenStates, textEmbeds, negativePromptEmbeddings.HiddenStates, negativeTextEmbeds));
         }
 
 
