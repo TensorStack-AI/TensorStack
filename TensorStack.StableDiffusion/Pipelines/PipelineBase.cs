@@ -15,6 +15,7 @@ namespace TensorStack.StableDiffusion.Pipelines
 {
     public abstract class PipelineBase : IDisposable
     {
+        private PromptCache _promptCache;
         private GenerateOptions _defaultOptions;
         private IReadOnlyList<SchedulerType> _schedulers;
 
@@ -150,10 +151,41 @@ namespace TensorStack.StableDiffusion.Pipelines
 
 
         /// <summary>
+        /// Gets the prompt cache.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        protected PromptResult GetPromptCache(IPipelineOptions options)
+        {
+            if (_promptCache is null || !_promptCache.IsValid(options))
+                return default;
+
+            return _promptCache.CacheResult;
+        }
+
+
+        /// <summary>
+        /// Sets the prompt cache.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="promptResult">The prompt result to cache.</param>
+        protected PromptResult SetPromptCache(IPipelineOptions options, PromptResult promptResult)
+        {
+            _promptCache = new PromptCache
+            {
+                CacheResult = promptResult,
+                Conditional = options.Prompt,
+                Unconditional = options.NegativePrompt,
+            };
+            return promptResult;
+        }
+
+
+        /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()
         {
+            _promptCache = default;
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
