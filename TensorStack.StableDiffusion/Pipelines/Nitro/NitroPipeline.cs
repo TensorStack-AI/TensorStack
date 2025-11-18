@@ -84,6 +84,22 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// Create Nitro pipeline from folder structure
         /// </summary>
         /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="outputSize">Size of the output.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>NitroPipeline.</returns>
+        public static NitroPipeline FromFolder(string modelFolder, string variant, int outputSize, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
+        {
+            return new NitroPipeline(NitroConfig.FromFolder(modelFolder, variant, outputSize, modelType, executionProvider), logger);
+        }
+
+
+        /// <summary>
+        /// Create Nitro pipeline from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
         /// <param name="variant">The variant.[512, 512-Turbo, 1024, 1024-Turbo]</param>
         /// <param name="executionProvider">The execution provider.</param>
         /// <param name="logger">The logger.</param>

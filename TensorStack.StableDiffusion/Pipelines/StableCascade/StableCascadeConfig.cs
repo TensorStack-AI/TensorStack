@@ -102,13 +102,41 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         /// <returns>StableCascadeConfig.</returns>
         public static StableCascadeConfig FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider = default)
         {
+            return CreateFromFolder(modelFolder, default, modelType, executionProvider);
+        }
+
+
+        /// <summary>
+        /// Create StableCascade configuration from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <returns>StableCascadeConfig.</returns>
+        public static StableCascadeConfig FromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider = default)
+        {
+            return CreateFromFolder(modelFolder, variant, modelType, executionProvider);
+        }
+
+
+        /// <summary>
+        /// Create StableCascade configuration from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <returns>StableCascadeConfig.</returns>
+        private static StableCascadeConfig CreateFromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider)
+        {
             var config = FromDefault(Path.GetFileNameWithoutExtension(modelFolder), modelType, executionProvider);
             config.Tokenizer.Path = Path.Combine(modelFolder, "tokenizer", "vocab.json");
-            config.TextEncoder.Path = Path.Combine(modelFolder, "text_encoder", "model.onnx");
-            config.PriorUnet.Path = Path.Combine(modelFolder, "prior", "model.onnx");
-            config.DecoderUnet.Path = Path.Combine(modelFolder, "decoder", "model.onnx");
-            config.ImageEncoder.Path = Path.Combine(modelFolder, "vae_encoder", "model.onnx");
-            config.ImageDecoder.Path = Path.Combine(modelFolder, "vae_decoder", "model.onnx");
+            config.TextEncoder.Path = GetVariantPath(modelFolder, "text_encoder", "model.onnx", variant);
+            config.PriorUnet.Path = GetVariantPath(modelFolder, "prior", "model.onnx", variant);
+            config.DecoderUnet.Path = GetVariantPath(modelFolder, "decoder", "model.onnx", variant);
+            config.ImageEncoder.Path = GetVariantPath(modelFolder, "vae_encoder", "model.onnx", variant);
+            config.ImageDecoder.Path = GetVariantPath(modelFolder, "vae_decoder", "model.onnx", variant);
             return config;
         }
 

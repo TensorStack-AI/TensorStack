@@ -82,5 +82,20 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         {
             return new StableCascadePipeline(StableCascadeConfig.FromFolder(modelFolder, modelType, executionProvider), logger);
         }
+
+
+        /// <summary>
+        /// Create StableCascade pipeline from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>StableCascadePipeline.</returns>
+        public static StableCascadePipeline FromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
+        {
+            return new StableCascadePipeline(StableCascadeConfig.FromFolder(modelFolder, variant, modelType, executionProvider), logger);
+        }
     }
 }

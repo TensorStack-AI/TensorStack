@@ -94,5 +94,20 @@ namespace TensorStack.StableDiffusion.Pipelines.LatentConsistency
         {
             return new LatentConsistencyPipeline(LatentConsistencyConfig.FromFolder(modelFolder, modelType, executionProvider), logger);
         }
+
+
+        /// <summary>
+        /// Create LatentConsistency pipeline from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>LatentConsistencyPipeline.</returns>
+        public static new LatentConsistencyPipeline FromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
+        {
+            return new LatentConsistencyPipeline(LatentConsistencyConfig.FromFolder(modelFolder, variant, modelType, executionProvider), logger);
+        }
     }
 }

@@ -86,5 +86,34 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
         {
             return new StableDiffusion3Pipeline(StableDiffusion3Config.FromFolder(modelFolder, modelType, executionProvider), logger);
         }
+
+
+        /// <summary>
+        /// Create StableDiffusion3 pipeline from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>StableDiffusion3Pipeline.</returns>
+        public static StableDiffusion3Pipeline FromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
+        {
+            return new StableDiffusion3Pipeline(StableDiffusion3Config.FromFolder(modelFolder, variant, modelType, executionProvider), logger);
+        }
+
+
+        /// <summary>
+        /// Create StableDiffusion3 pipeline from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>StableDiffusion3Pipeline.</returns>
+        public static StableDiffusion3Pipeline FromFolder(string modelFolder, string variant, ExecutionProvider executionProvider, ILogger logger = default)
+        {
+            return new StableDiffusion3Pipeline(StableDiffusion3Config.FromFolder(modelFolder, variant, executionProvider), logger);
+        }
     }
 }

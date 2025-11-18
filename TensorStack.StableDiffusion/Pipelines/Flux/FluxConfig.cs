@@ -1,6 +1,8 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
+using System;
 using System.IO;
+using System.Linq;
 using TensorStack.Common;
 using TensorStack.StableDiffusion.Config;
 using TensorStack.StableDiffusion.Enums;
@@ -112,15 +114,58 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
         /// <returns>FluxConfig.</returns>
         public static FluxConfig FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider = default)
         {
+            return CreateFromFolder(modelFolder, default, modelType, executionProvider);
+        }
+
+
+        /// <summary>
+        /// Create Flux configuration from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <returns>FluxConfig.</returns>
+        public static FluxConfig FromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider = default)
+        {
+            return CreateFromFolder(modelFolder, variant, modelType, executionProvider);
+        }
+
+
+        /// <summary>
+        /// Create Flux configuration from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <returns>FluxConfig.</returns>
+        public static FluxConfig FromFolder(string modelFolder, string variant, ExecutionProvider executionProvider = default)
+        {
+            string[] typeOptions = ["Turbo", "Distilled", "Dist", "Schnell"];
+            var modelType = typeOptions.Any(v => variant.Contains(v, StringComparison.OrdinalIgnoreCase)) ? ModelType.Turbo : ModelType.Base;
+            return CreateFromFolder(modelFolder, variant, modelType, executionProvider);
+        }
+
+
+        /// <summary>
+        /// Create Flux configuration from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <returns>FluxConfig.</returns>
+        private static FluxConfig CreateFromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider)
+        {
             var config = FromDefault(Path.GetFileNameWithoutExtension(modelFolder), modelType, executionProvider);
             config.Tokenizer.Path = Path.Combine(modelFolder, "tokenizer", "vocab.json");
             config.Tokenizer2.Path = Path.Combine(modelFolder, "tokenizer_2", "spiece.model");
-            config.TextEncoder.Path = Path.Combine(modelFolder, "text_encoder", "model.onnx");
-            config.TextEncoder2.Path = Path.Combine(modelFolder, "text_encoder_2", "model.onnx");
-            config.Transformer.Path = Path.Combine(modelFolder, "transformer", "model.onnx");
-            config.AutoEncoder.DecoderModelPath = Path.Combine(modelFolder, "vae_decoder", "model.onnx");
-            config.AutoEncoder.EncoderModelPath = Path.Combine(modelFolder, "vae_encoder", "model.onnx");
-            var controlNetPath = Path.Combine(modelFolder, "transformer", "controlnet.onnx");
+            config.TextEncoder.Path = GetVariantPath(modelFolder, "text_encoder", "model.onnx", variant);
+            config.TextEncoder2.Path = GetVariantPath(modelFolder, "text_encoder_2", "model.onnx", variant);
+            config.Transformer.Path = GetVariantPath(modelFolder, "transformer", "model.onnx", variant);
+            config.AutoEncoder.DecoderModelPath = GetVariantPath(modelFolder, "vae_decoder", "model.onnx", variant);
+            config.AutoEncoder.EncoderModelPath = GetVariantPath(modelFolder, "vae_encoder", "model.onnx", variant);
+            var controlNetPath = GetVariantPath(modelFolder, "transformer", "controlnet.onnx", variant);
             if (File.Exists(controlNetPath))
                 config.Transformer.ControlNetPath = controlNetPath;
             return config;

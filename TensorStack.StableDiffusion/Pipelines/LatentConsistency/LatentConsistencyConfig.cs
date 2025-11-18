@@ -68,17 +68,44 @@ namespace TensorStack.StableDiffusion.Pipelines.LatentConsistency
         /// <returns>LatentConsistencyConfig.</returns>
         public static new LatentConsistencyConfig FromFolder(string modelFolder, ModelType modelType, ExecutionProvider executionProvider = default)
         {
+            return CreateFromFolder(modelFolder, default, modelType, executionProvider);
+        }
+
+
+        /// <summary>
+        /// Create LatentConsistency configuration from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <returns>LatentConsistencyConfig.</returns>
+        public static new LatentConsistencyConfig FromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider = default)
+        {
+            return CreateFromFolder(modelFolder, variant, modelType, executionProvider);
+        }
+
+
+        /// <summary>
+        /// Create LatentConsistency configuration from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <returns>LatentConsistencyConfig.</returns>
+        private static LatentConsistencyConfig CreateFromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider)
+        {
             var config = FromDefault(Path.GetFileNameWithoutExtension(modelFolder), modelType, executionProvider);
             config.Tokenizer.Path = Path.Combine(modelFolder, "tokenizer", "vocab.json");
-            config.TextEncoder.Path = Path.Combine(modelFolder, "text_encoder", "model.onnx");
-            config.Unet.Path = Path.Combine(modelFolder, "unet", "model.onnx");
-            config.AutoEncoder.DecoderModelPath = Path.Combine(modelFolder, "vae_decoder", "model.onnx");
-            config.AutoEncoder.EncoderModelPath = Path.Combine(modelFolder, "vae_encoder", "model.onnx");
-            var controlNetPath = Path.Combine(modelFolder, "unet", "controlnet.onnx");
+            config.TextEncoder.Path = GetVariantPath(modelFolder, "text_encoder", "model.onnx", variant);
+            config.Unet.Path = GetVariantPath(modelFolder, "unet", "model.onnx", variant);
+            config.AutoEncoder.DecoderModelPath = GetVariantPath(modelFolder, "vae_decoder", "model.onnx", variant);
+            config.AutoEncoder.EncoderModelPath = GetVariantPath(modelFolder, "vae_encoder", "model.onnx", variant);
+            var controlNetPath = GetVariantPath(modelFolder, "unet", "controlnet.onnx", variant);
             if (File.Exists(controlNetPath))
                 config.Unet.ControlNetPath = controlNetPath;
             return config;
         }
-
     }
 }

@@ -82,5 +82,34 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
         {
             return new FluxPipeline(FluxConfig.FromFolder(modelFolder, modelType, executionProvider), logger);
         }
+
+
+        /// <summary>
+        /// Create Flux pipeline from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="modelType">Type of the model.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>FluxPipeline.</returns>
+        public static FluxPipeline FromFolder(string modelFolder, string variant, ModelType modelType, ExecutionProvider executionProvider, ILogger logger = default)
+        {
+            return new FluxPipeline(FluxConfig.FromFolder(modelFolder, variant, modelType, executionProvider), logger);
+        }
+
+
+        /// <summary>
+        /// Create Flux pipeline from folder structure
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="variant">The variant.</param>
+        /// <param name="executionProvider">The execution provider.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns>FluxPipeline.</returns>
+        public static FluxPipeline FromFolder(string modelFolder, string variant, ExecutionProvider executionProvider, ILogger logger = default)
+        {
+            return new FluxPipeline(FluxConfig.FromFolder(modelFolder, variant, executionProvider), logger);
+        }
     }
 }
