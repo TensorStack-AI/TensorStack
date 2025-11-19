@@ -15,6 +15,8 @@ namespace TensorStack.StableDiffusion.Pipelines
 {
     public abstract class PipelineBase : IDisposable
     {
+        private PromptCache _promptCache;
+        private EncoderCache _encoderCache;
         private GenerateOptions _defaultOptions;
         private IReadOnlyList<SchedulerType> _schedulers;
 
@@ -150,10 +152,77 @@ namespace TensorStack.StableDiffusion.Pipelines
 
 
         /// <summary>
+        /// Gets the prompt cache.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        protected PromptResult GetPromptCache(IPipelineOptions options)
+        {
+            if (!options.IsPipelineCacheEnabled)
+                return default;
+
+            if (_promptCache is null || !_promptCache.IsValid(options))
+                return default;
+
+            return _promptCache.CacheResult;
+        }
+
+
+        /// <summary>
+        /// Sets the prompt cache.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="promptResult">The prompt result to cache.</param>
+        protected PromptResult SetPromptCache(IPipelineOptions options, PromptResult promptResult)
+        {
+            _promptCache = new PromptCache
+            {
+                CacheResult = promptResult,
+                Conditional = options.Prompt,
+                Unconditional = options.NegativePrompt,
+            };
+            return promptResult;
+        }
+
+
+        /// <summary>
+        /// Gets the encoder cache.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        protected Tensor<float> GetEncoderCache(IPipelineOptions options)
+        {
+            if (!options.IsPipelineCacheEnabled)
+                return default;
+
+            if (_encoderCache is null || !_encoderCache.IsValid(options.InputImage))
+                return default;
+
+            return _encoderCache.CacheResult;
+        }
+
+
+        /// <summary>
+        /// Sets the encoder cache.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="encoded">The encoded.</param>
+        protected Tensor<float> SetEncoderCache(IPipelineOptions options, Tensor<float> encoded)
+        {
+            _encoderCache = new EncoderCache
+            {
+                InputImage = options.InputImage,
+                CacheResult = encoded
+            };
+            return encoded;
+        }
+
+
+        /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()
         {
+            _promptCache = null;
+            _encoderCache = null;
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }

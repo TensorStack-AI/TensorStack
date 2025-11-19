@@ -11,7 +11,7 @@ namespace TensorStack.StableDiffusion.Pipelines
         /// <summary>
         /// Gets or sets the type.
         /// </summary>
-        public abstract PipelineType Pipeline { get;}
+        public abstract PipelineType Pipeline { get; }
 
         /// <summary>
         /// Saves the configuration to file.

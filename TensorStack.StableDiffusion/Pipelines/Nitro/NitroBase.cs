@@ -137,6 +137,10 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// <param name="cancellationToken">The cancellation token.</param>
         protected async Task<PromptResult> CreatePromptAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
+            var cachedPrompt = GetPromptCache(options);
+            if (cachedPrompt is not null)
+                return cachedPrompt;
+
             // Conditional Prompt
             var promptEmbeds = await TextEncoder.GetLastHiddenState(new TextGeneration.Common.GenerateOptions
             {
@@ -159,7 +163,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
                 }, cancellationToken);
             }
 
-            return new PromptResult(promptEmbeds, default, negativePromptEmbeds, default);
+            return SetPromptCache(options, new PromptResult(promptEmbeds, default, negativePromptEmbeds, default));
         }
 
 
@@ -187,16 +191,23 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
         /// <param name="options">The options.</param>
         /// <param name="image">The latents.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private async Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, ImageTensor image, CancellationToken cancellationToken = default)
+        private async Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
             var timestamp = Logger.LogBegin(LogLevel.Debug, "[EncodeLatentsAsync] Begin AutoEncoder Encode");
-            var inputTensor = image.ResizeImage(options.Width, options.Height);
+            var cacheResult = GetEncoderCache(options);
+            if (cacheResult is not null)
+            {
+                Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodeLatentsAsync] AutoEncoder Encode Complete, Cached Result.");
+                return cacheResult;
+            }
+
+            var inputTensor = options.InputImage.ResizeImage(options.Width, options.Height);
             var encoderResult = await AutoEncoder.EncodeAsync(inputTensor, cancellationToken: cancellationToken);
             if (options.IsLowMemoryEnabled || options.IsLowMemoryEncoderEnabled)
                 await AutoEncoder.EncoderUnloadAsync();
 
             Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodeLatentsAsync] AutoEncoder Encode Complete");
-            return encoderResult;
+            return SetEncoderCache(options, encoderResult);
         }
 
 
@@ -270,7 +281,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Nitro
             if (options.HasInputImage)
             {
                 var timestep = scheduler.GetStartTimestep();
-                var encoderResult = await EncodeLatentsAsync(options, options.InputImage, cancellationToken);
+                var encoderResult = await EncodeLatentsAsync(options, cancellationToken);
                 return scheduler.ScaleNoise(timestep, encoderResult, noiseTensor);
             }
             return noiseTensor;

@@ -147,6 +147,10 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         /// <param name="cancellationToken">The cancellation token.</param>
         protected async Task<PromptResult> CreatePromptAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
+            var cachedPrompt = GetPromptCache(options);
+            if (cachedPrompt is not null)
+                return cachedPrompt;
+
             // Tokenizer
             var promptTokens = await TokenizePromptAsync(options.Prompt, cancellationToken);
             var negativePromptTokens = await TokenizePromptAsync(options.NegativePrompt, cancellationToken);
@@ -167,7 +171,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
                ? negativePromptEmbeddings.TextEmbeds
                : negativePromptEmbeddings.TextEmbeds.Reshape([1, .. negativePromptEmbeddings.TextEmbeds.Dimensions]);
 
-            return new PromptResult(promptEmbeddings.HiddenStates, textEmbeds, negativePromptEmbeddings.HiddenStates, negativeTextEmbeds);
+            return SetPromptCache(options, new PromptResult(promptEmbeddings.HiddenStates, textEmbeds, negativePromptEmbeddings.HiddenStates, negativeTextEmbeds));
         }
 
 
@@ -217,7 +221,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
                 // Create latent sample
                 var latents = await CreatePriorLatentInputAsync(options, scheduler, cancellationToken);
 
-                var image = await EncodeLatentsAsync(options, options.InputImage, cancellationToken);
+                var image = await EncodeLatentsAsync(options, cancellationToken);
 
                 // Get Model metadata
                 var metadata = await PriorUnet.LoadAsync(cancellationToken: cancellationToken);
@@ -387,7 +391,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         /// <param name="options">The options.</param>
         /// <param name="image">The latents.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, ImageTensor image, CancellationToken cancellationToken = default)
+        private Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(new Tensor<float>([1, 1, ImageEncoder.HiddenSize]));
         }
