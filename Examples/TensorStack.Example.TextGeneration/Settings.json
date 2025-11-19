@@ -17,6 +17,20 @@
         "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/spiece.model?download=true",
         "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/tokenizer.json?download=true"
       ]
+    },
+     {
+      "Id": 2,
+      "Name": "Whisper-Small",
+      "Type": "Whisper",
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\TextGeneration\\Whisper-Small",
+      "UrlPaths": [
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/config.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/encoder_model.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/spiece.model?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/tokenizer.json?download=true"
+      ]
     }
   ]
 }

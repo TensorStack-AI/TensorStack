@@ -16,6 +16,7 @@ namespace TensorStack.Example.Views
 
     public enum View
     {
-        TextSummary = 0
+        TextSummary = 0,
+        Transcribe = 1
     }
 }

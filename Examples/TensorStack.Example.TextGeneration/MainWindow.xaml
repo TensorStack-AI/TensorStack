@@ -15,7 +15,7 @@
 
         <!--Main Menu-->
         <Grid DockPanel.Dock="Top" WindowChrome.IsHitTestVisibleInChrome="True">
-            <UniformGrid Columns="3" Height="30" Margin="2">
+            <UniformGrid Columns="4" Height="30" Margin="2">
 
                 <!--Logo-->
                 <Grid IsHitTestVisible="False">
@@ -24,6 +24,7 @@
 
                 <!--Views-->
                 <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.TextSummary}" Content="Text Summary" />
+                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.Transcribe}" Content="Transcribe" />
 
                 <!--Window Options-->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
