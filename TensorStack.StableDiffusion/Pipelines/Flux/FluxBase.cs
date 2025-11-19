@@ -421,8 +421,8 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
         /// <returns></returns>
         protected Tensor<float> CreateLatentImageIds(IPipelineOptions options)
         {
-            var height = options.Height  / AutoEncoder.LatentChannels;
-            var width = options.Width  / AutoEncoder.LatentChannels;
+            var height = options.Height / AutoEncoder.LatentChannels;
+            var width = options.Width / AutoEncoder.LatentChannels;
             var latentIds = new Tensor<float>([height, width, 3]);
 
             for (int i = 0; i < height; i++)

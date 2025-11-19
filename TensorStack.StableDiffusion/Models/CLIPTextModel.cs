@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
-using TensorStack.Common.Tensor;
 using TensorStack.StableDiffusion.Common;
 using TensorStack.StableDiffusion.Config;
 using TensorStack.TextGeneration.Tokenizers;

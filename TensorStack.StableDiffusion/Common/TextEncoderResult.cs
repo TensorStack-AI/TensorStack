@@ -1,6 +1,5 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-using System;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.StableDiffusion.Common
@@ -32,6 +31,4 @@ namespace TensorStack.StableDiffusion.Common
             return _hiddenStates[0];
         }
     }
-
-    public record TextEncoderBatchedResult(Memory<float> PromptEmbeds, Memory<float> PromptPooledEmbeds);
 }

@@ -27,7 +27,7 @@ namespace TensorStack.StableDiffusion.Pipelines
         float ControlNetStrength { get; set; }
         ImageTensor InputControlImage { get; set; }
 
-        int ClipSkip{ get; set; }
+        int ClipSkip { get; set; }
         float AestheticScore { get; set; }
         float AestheticNegativeScore { get; set; }
 
