@@ -157,6 +157,9 @@ namespace TensorStack.StableDiffusion.Pipelines
         /// <param name="options">The options.</param>
         protected PromptResult GetPromptCache(IPipelineOptions options)
         {
+            if (!options.IsPipelineCacheEnabled)
+                return default;
+
             if (_promptCache is null || !_promptCache.IsValid(options))
                 return default;
 
@@ -187,10 +190,10 @@ namespace TensorStack.StableDiffusion.Pipelines
         /// <param name="options">The options.</param>
         protected Tensor<float> GetEncoderCache(IPipelineOptions options)
         {
-            if (_encoderCache is null)
+            if (!options.IsPipelineCacheEnabled)
                 return default;
 
-            if (!_encoderCache.IsValid(options.InputImage))
+            if (_encoderCache is null || !_encoderCache.IsValid(options.InputImage))
                 return default;
 
             return _encoderCache.CacheResult;
