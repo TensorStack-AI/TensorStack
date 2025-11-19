@@ -221,7 +221,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
                 // Create latent sample
                 var latents = await CreatePriorLatentInputAsync(options, scheduler, cancellationToken);
 
-                var image = await EncodeLatentsAsync(options, options.InputImage, cancellationToken);
+                var image = await EncodeLatentsAsync(options, cancellationToken);
 
                 // Get Model metadata
                 var metadata = await PriorUnet.LoadAsync(cancellationToken: cancellationToken);
@@ -391,7 +391,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         /// <param name="options">The options.</param>
         /// <param name="image">The latents.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, ImageTensor image, CancellationToken cancellationToken = default)
+        private Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(new Tensor<float>([1, 1, ImageEncoder.HiddenSize]));
         }

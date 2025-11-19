@@ -221,13 +221,20 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
         private async Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, ImageTensor image, CancellationToken cancellationToken = default)
         {
             var timestamp = Logger.LogBegin(LogLevel.Debug, "[EncodeLatentsAsync] Begin AutoEncoder Encode");
+            var cacheResult = GetEncoderCache(options);
+            if (cacheResult is not null)
+            {
+                Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodeLatentsAsync] AutoEncoder Encode Complete, Cached Result.");
+                return cacheResult;
+            }
+
             var inputTensor = image.ResizeImage(options.Width, options.Height);
             var encoderResult = await AutoEncoder.EncodeAsync(inputTensor, cancellationToken: cancellationToken);
             if (options.IsLowMemoryEnabled || options.IsLowMemoryEncoderEnabled)
                 await AutoEncoder.EncoderUnloadAsync();
 
             Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodeLatentsAsync] AutoEncoder Encode Complete");
-            return encoderResult;
+            return SetEncoderCache(options, encoderResult);
         }
 
 
