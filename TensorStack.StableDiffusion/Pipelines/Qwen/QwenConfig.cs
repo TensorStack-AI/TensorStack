@@ -43,7 +43,45 @@ namespace TensorStack.StableDiffusion.Pipelines.Qwen
             {
                 Scale = 16,
                 LatentChannels = 16,
-                ScaleFactor = 1
+                ScaleFactor = 1,
+                LatentsMean =
+                [
+                    -0.7571f,
+                    -0.7089f,
+                    -0.9113f,
+                    0.1075f,
+                    -0.1745f,
+                    0.9653f,
+                    -0.1517f,
+                    1.5508f,
+                    0.4134f,
+                    -0.0715f,
+                    0.5517f,
+                    -0.3632f,
+                    -0.1922f,
+                    -0.9497f,
+                    0.2503f,
+                    -0.2921f
+                ],
+                LatentsStd =
+                [
+                    2.8184f,
+                    1.4541f,
+                    2.3275f,
+                    2.6558f,
+                    1.2196f,
+                    1.7708f,
+                    2.6052f,
+                    2.0743f,
+                    3.2687f,
+                    2.1526f,
+                    2.8652f,
+                    1.5579f,
+                    1.6382f,
+                    1.1253f,
+                    2.8251f,
+                    1.916f
+                ]
             };
         }
 

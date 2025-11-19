@@ -165,7 +165,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Qwen
         protected async Task<ImageTensor> DecodeLatentsAsync(IPipelineOptions options, Tensor<float> latents, CancellationToken cancellationToken = default)
         {
             var timestamp = Logger.LogBegin(LogLevel.Debug, "[DecodeLatentsAsync] Begin AutoEncoder Decode");
-            var decoderResult = await AutoEncoder.DecodeAsync(latents, cancellationToken: cancellationToken);
+            var decoderResult = await AutoEncoder.DecodeAsync(latents, disableShift: true, disableScale: true, cancellationToken: cancellationToken);
             if (options.IsLowMemoryEnabled || options.IsLowMemoryDecoderEnabled)
                 await AutoEncoder.DecoderUnloadAsync();
 
