@@ -29,23 +29,18 @@ namespace TensorStack.StableDiffusion.Models
         /// <param name="encoderHiddenStates">The encoder hidden states.</param>
         /// <param name="imgShapes">The image shapes.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public async Task<Tensor<float>> RunAsync(int timestep, Tensor<float> hiddenStates, Tensor<float> encoderHiddenStates, Tensor<float> imgShapes, CancellationToken cancellationToken = default)
+        public async Task<Tensor<float>> RunAsync(int timestep, Tensor<float> hiddenStates, Tensor<float> encoderHiddenStates, Tensor<long> imgShapes, CancellationToken cancellationToken = default)
         {
             if (!Transformer.IsLoaded())
                 await Transformer.LoadAsync(cancellationToken: cancellationToken);
 
-            var txtSequenceLength = encoderHiddenStates.Dimensions[1];
-            var encoderHiddenStatesMask = new Tensor<float>([1, txtSequenceLength]);
-            encoderHiddenStatesMask.Fill(1);
             using (var transformerParams = new ModelParameters(Transformer.Metadata, cancellationToken))
             {
                 // Inputs
                 transformerParams.AddInput(hiddenStates);
-                transformerParams.AddScalarInput(timestep);
-                transformerParams.AddInput(encoderHiddenStatesMask);
                 transformerParams.AddInput(encoderHiddenStates);
+                transformerParams.AddScalarInput(timestep);
                 transformerParams.AddInput(imgShapes);
-                transformerParams.AddScalarInput(txtSequenceLength);
 
                 // Outputs
                 transformerParams.AddOutput(hiddenStates.Dimensions);

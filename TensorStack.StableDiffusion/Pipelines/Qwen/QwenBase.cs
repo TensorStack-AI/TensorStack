@@ -220,7 +220,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Qwen
             var latents = await CreateLatentInputAsync(options, scheduler, cancellationToken);
 
             // Create ImgShapes
-            var imgShapes = new Tensor<float>([1, 64, 64]); // TODO:
+            var imgShapes = new Tensor<long>([1, 64, 64]); // TODO: H/W
 
             // Load Model
             await LoadTransformerAsync(options, progressCallback, cancellationToken);
