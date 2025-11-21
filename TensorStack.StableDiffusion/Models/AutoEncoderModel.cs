@@ -142,6 +142,7 @@ namespace TensorStack.StableDiffusion.Models
             if (!disableShift)
                 inputTensor.Add(ShiftFactor);
 
+            ApplyNormalization(inputTensor, Configuration.LatentsMean, Configuration.LatentsStd);
             var outputDimensions = new[] { 1, OutChannels, inputTensor.Dimensions[2] * Scale, inputTensor.Dimensions[3] * Scale };
             using (var modelParameters = new ModelParameters(Decoder.Metadata, cancellationToken))
             {
@@ -191,6 +192,39 @@ namespace TensorStack.StableDiffusion.Models
 
                     return tensorResult;
                 }
+            }
+        }
+
+
+        /// <summary>
+        /// Applies per-channel normalization to a latent tensor in-place, equivalent to:
+        /// <c>latents = latents / latentsStd + latentsMean</c>
+        /// </summary>
+        /// <param name="latents">The latents.</param>
+        /// <param name="latentsMean">Per-channel mean values. Length must equal the number of channels in <paramref name="latents"/>.</param>
+        /// <param name="latentsStd">Per-channel standard deviation values. Length must equal the number of channels in <paramref name="latents"/>. Each value is inverted (1 / std) before applying to the tensor.</param>
+        private static void ApplyNormalization(Tensor<float> latents, ReadOnlySpan<float> latentsMean, ReadOnlySpan<float> latentsStd)
+        {
+            if (latentsMean.IsEmpty || latentsStd.IsEmpty)
+                return;
+
+            var dimensions = latents.Dimensions;
+            var channels = dimensions[1];
+
+            Span<float> invStd = stackalloc float[channels];
+            for (int c = 0; c < channels; c++)
+                invStd[c] = 1f / latentsStd[c];
+
+            var data = latents.Memory.Span;
+            var strideC = data.Length / channels;
+
+            for (int c = 0; c < channels; c++)
+            {
+                var mean = latentsMean[c];
+                var inv = invStd[c];
+                var slice = data.Slice(c * strideC, strideC);
+                for (int i = 0; i < slice.Length; i++)
+                    slice[i] = slice[i] * inv + mean;
             }
         }
 

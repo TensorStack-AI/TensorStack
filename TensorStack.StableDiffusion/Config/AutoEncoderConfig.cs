@@ -1,5 +1,6 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
+using System.Text.Json.Serialization;
 using TensorStack.Common;
 
 namespace TensorStack.StableDiffusion.Config
@@ -14,5 +15,11 @@ namespace TensorStack.StableDiffusion.Config
         public int LatentChannels { get; set; } = 4;
         public string DecoderModelPath { get; set; }
         public string EncoderModelPath { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public float[] LatentsStd { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public float[] LatentsMean { get; set; }
     }
 }
