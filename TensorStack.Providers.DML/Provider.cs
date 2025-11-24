@@ -91,7 +91,7 @@ namespace TensorStack.Providers
         /// Gets the DirectML provider this DeviceType.
         /// </summary>
         /// <param name="optimizationLevel">The optimization level.</param>
-        public static ExecutionProvider GetProvider(GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        public static ExecutionProvider GetProvider(GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
         {
             return GetDevice().GetProvider(optimizationLevel);
         }
@@ -102,7 +102,7 @@ namespace TensorStack.Providers
         /// </summary>
         /// <param name="deviceType">Type of the device.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
-        public static ExecutionProvider GetProvider(DeviceType deviceType, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        public static ExecutionProvider GetProvider(DeviceType deviceType, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
         {
             return GetDevice(deviceType).GetProvider(optimizationLevel);
         }
@@ -114,7 +114,7 @@ namespace TensorStack.Providers
         /// <param name="deviceType">Type of the device.</param>
         /// <param name="deviceId">The device identifier.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
-        public static ExecutionProvider GetProvider(DeviceType deviceType, int deviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        public static ExecutionProvider GetProvider(DeviceType deviceType, int deviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
         {
             return GetDevice(deviceType, deviceId).GetProvider(optimizationLevel);
         }
@@ -125,7 +125,7 @@ namespace TensorStack.Providers
         /// </summary>
         /// <param name="device">The device.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
-        public static ExecutionProvider GetProvider(this Device device, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        public static ExecutionProvider GetProvider(this Device device, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
         {
             if (device == null)
                 return default;
@@ -143,7 +143,7 @@ namespace TensorStack.Providers
         /// </summary>
         /// <param name="deviceId">The device identifier.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
-        private static ExecutionProvider CreateProvider(int deviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        private static ExecutionProvider CreateProvider(int deviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
         {
             var memoryInfo = new OrtMemoryInfo(OrtMemoryInfo.allocatorCPU, OrtAllocatorType.DeviceAllocator, deviceId, OrtMemType.Default);
             return new ExecutionProvider(_providerName, memoryInfo, configuration =>
@@ -165,7 +165,7 @@ namespace TensorStack.Providers
         /// </summary>
         /// <param name="optimizationLevel">The optimization level.</param>
         /// <returns>ExecutionProvider.</returns>
-        private static ExecutionProvider CreateProvider(GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_DISABLE_ALL)
+        private static ExecutionProvider CreateProvider(GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
         {
             return new ExecutionProvider(DeviceManager.CPUProviderName, OrtMemoryInfo.DefaultInstance, configuration =>
             {
