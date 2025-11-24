@@ -27,7 +27,7 @@ namespace TensorStack.StableDiffusion.Pipelines
         float ControlNetStrength { get; set; }
         ImageTensor InputControlImage { get; set; }
 
-        int ClipSkip{ get; set; }
+        int ClipSkip { get; set; }
         float AestheticScore { get; set; }
         float AestheticNegativeScore { get; set; }
 
@@ -36,7 +36,7 @@ namespace TensorStack.StableDiffusion.Pipelines
         bool IsLowMemoryEncoderEnabled { get; set; }
         bool IsLowMemoryDecoderEnabled { get; set; }
         bool IsLowMemoryTextEncoderEnabled { get; set; }
-
+        bool IsPipelineCacheEnabled { get; set; }
 
         bool HasControlNet => ControlNet is not null;
         bool HasInputImage => InputImage is not null;

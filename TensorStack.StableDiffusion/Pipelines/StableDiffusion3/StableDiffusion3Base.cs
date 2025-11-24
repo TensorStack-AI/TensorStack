@@ -165,6 +165,10 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
         /// <param name="cancellationToken">The cancellation token.</param>
         protected async Task<PromptResult> CreatePromptAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
+            var cachedPrompt = GetPromptCache(options);
+            if (cachedPrompt is not null)
+                return cachedPrompt;
+
             // Tokenizer
             var promptTokens = await TokenizePromptAsync(options.Prompt, cancellationToken);
             var negativePromptTokens = await TokenizePromptAsync(options.NegativePrompt, cancellationToken);
@@ -217,7 +221,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
             negativePromptPooledEmbeds = negativePromptPooledEmbeds.Reshape([negativePromptPooledEmbeds.Dimensions[^2], negativePromptPooledEmbeds.Dimensions[^1]]).FirstBatch();
             negativePromptPooledEmbeds = negativePromptPooledEmbeds.Concatenate(negativePromptPooledEmbeds2, 1);
 
-            return new PromptResult(promptEmbeds, promptPooledEmbeds, negativePromptEmbeds, negativePromptPooledEmbeds);
+            return SetPromptCache(options, new PromptResult(promptEmbeds, promptPooledEmbeds, negativePromptEmbeds, negativePromptPooledEmbeds));
         }
 
 
@@ -338,16 +342,23 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
         /// <param name="options">The options.</param>
         /// <param name="image">The latents.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private async Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, ImageTensor image, CancellationToken cancellationToken = default)
+        private async Task<Tensor<float>> EncodeLatentsAsync(IPipelineOptions options, CancellationToken cancellationToken = default)
         {
             var timestamp = Logger.LogBegin(LogLevel.Debug, "[EncodeLatentsAsync] Begin AutoEncoder Encode");
-            var inputTensor = image.ResizeImage(options.Width, options.Height);
+            var cacheResult = GetEncoderCache(options);
+            if (cacheResult is not null)
+            {
+                Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodeLatentsAsync] AutoEncoder Encode Complete, Cached Result.");
+                return cacheResult;
+            }
+
+            var inputTensor = options.InputImage.ResizeImage(options.Width, options.Height);
             var encoderResult = await AutoEncoder.EncodeAsync(inputTensor, cancellationToken: cancellationToken);
             if (options.IsLowMemoryEnabled || options.IsLowMemoryEncoderEnabled)
                 await AutoEncoder.EncoderUnloadAsync();
 
             Logger.LogEnd(LogLevel.Debug, timestamp, "[EncodeLatentsAsync] AutoEncoder Encode Complete");
-            return encoderResult;
+            return SetEncoderCache(options, encoderResult);
         }
 
 
@@ -521,7 +532,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
             if (options.HasInputImage)
             {
                 var timestep = scheduler.GetStartTimestep();
-                var encoderResult = await EncodeLatentsAsync(options, options.InputImage, cancellationToken);
+                var encoderResult = await EncodeLatentsAsync(options, cancellationToken);
                 return scheduler.ScaleNoise(timestep, encoderResult, noiseTensor);
             }
             return noiseTensor;

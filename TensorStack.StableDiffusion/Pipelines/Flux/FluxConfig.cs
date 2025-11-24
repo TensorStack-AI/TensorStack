@@ -18,7 +18,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
         public FluxConfig()
         {
             Tokenizer = new TokenizerConfig();
-            Tokenizer2 = new TokenizerConfig{MaxLength = 512 };
+            Tokenizer2 = new TokenizerConfig { MaxLength = 512 };
             TextEncoder = new CLIPModelConfig();
             TextEncoder2 = new CLIPModelConfig
             {

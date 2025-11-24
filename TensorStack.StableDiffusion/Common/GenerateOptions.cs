@@ -45,7 +45,7 @@ namespace TensorStack.StableDiffusion.Common
         public bool IsLowMemoryEncoderEnabled { get; set; }
         public bool IsLowMemoryDecoderEnabled { get; set; }
         public bool IsLowMemoryTextEncoderEnabled { get; set; }
-
+        public bool IsPipelineCacheEnabled { get; set; } = true;
 
         public bool HasControlNet => ControlNet is not null;
         public bool HasInputImage => InputImage is not null;

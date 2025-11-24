@@ -12,7 +12,7 @@ namespace TensorStack.Audio
     /// </summary>
     public class AudioInput : AudioInputBase
     {
-        private readonly string _sourceFile;
+        private string _sourceFile;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AudioInput"/> class.
@@ -20,6 +20,13 @@ namespace TensorStack.Audio
         /// <param name="filename">The filename.</param>
         public AudioInput(string filename, string audioCodec = "pcm_s16le", int sampleRate = 16000, int channels = 1)
             : this(filename, AudioManager.LoadTensor(filename, audioCodec, sampleRate, channels)) { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AudioInput"/> class.
+        /// </summary>
+        /// <param name="audioTensor">The audio tensor.</param>
+        public AudioInput(AudioTensor audioTensor)
+            : base(audioTensor) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AudioInput"/> class.
@@ -44,6 +51,9 @@ namespace TensorStack.Audio
         /// <param name="filename">The filename.</param>
         public override void Save(string filename)
         {
+            if (string.IsNullOrEmpty(_sourceFile))
+                _sourceFile = filename;
+
             AudioManager.SaveAudio(filename, this);
         }
 
@@ -55,6 +65,9 @@ namespace TensorStack.Audio
         /// <param name="cancellationToken">The cancellation token.</param>
         public override async Task SaveAsync(string filename, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrEmpty(_sourceFile))
+                _sourceFile = filename;
+
             await AudioManager.SaveAudioAync(filename, this, cancellationToken);
         }
 
