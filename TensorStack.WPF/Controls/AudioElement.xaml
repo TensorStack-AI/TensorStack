@@ -48,7 +48,7 @@
                         Volume="{Binding Volume, Mode=TwoWay}"
                         LoadedBehavior="Manual" 
                         UnloadedBehavior="Close" 
-                        ScrubbingEnabled="True" 
+                        ScrubbingEnabled="False" 
                         Loaded="AudioControl_Loaded"
                         MediaOpened="AudioControl_MediaOpened"
                         MediaEnded="AudioControl_MediaEnded"

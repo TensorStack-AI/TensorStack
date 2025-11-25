@@ -10,6 +10,7 @@ using TensorStack.TextGeneration.Pipelines.Phi;
 using TensorStack.Providers;
 using TensorStack.TextGeneration.Pipelines.Whisper;
 using TensorStack.Common.Tensor;
+using TensorStack.TextGeneration.Pipelines.Supertonic;
 
 namespace TensorStack.Example.Services
 {
@@ -100,6 +101,10 @@ namespace TensorStack.Example.Services
                             throw new ArgumentException("Invalid Whisper Version");
 
                         _currentPipeline = WhisperPipeline.Create(provider, providerCPU, model.Path, whisperType);
+                    }
+                    else if (model.Type == TextModelType.Supertonic)
+                    {
+                        _currentPipeline = SupertonicPipeline.Create(model.Path, provider);
                     }
                     await Task.Run(() => _currentPipeline.LoadAsync(cancellationToken), cancellationToken);
 
@@ -221,6 +226,33 @@ namespace TensorStack.Example.Services
         }
 
 
+        public async Task<AudioTensor> ExecuteAsync(SupertonicRequest options)
+        {
+            try
+            {
+                IsExecuting = true;
+                using (_cancellationTokenSource = new CancellationTokenSource())
+                {
+                    var pipeline = _currentPipeline as IPipeline<AudioTensor, SupertonicOptions, GenerateProgress>;
+                    var pipelineOptions = new SupertonicOptions
+                    {
+                        TextInput = options.InputText,
+                        VoiceStyle = options.VoiceStyle,
+                        Steps = options.Steps,
+                        Speed = options.Speed,
+                        SilenceDuration = options.SilenceDuration,
+                        Seed = options.Seed,
+                    };
+
+                    return await pipeline.RunAsync(pipelineOptions, cancellationToken: _cancellationTokenSource.Token);
+                }
+            }
+            finally
+            {
+                IsExecuting = false;
+            }
+        }
+
 
         /// <summary>
         /// Cancel the running task (Load or Execute)
@@ -263,6 +295,7 @@ namespace TensorStack.Example.Services
         Task CancelAsync();
         Task<GenerateResult[]> ExecuteAsync(TextRequest options);
         Task<GenerateResult[]> ExecuteAsync(WhisperRequest options);
+        Task<AudioTensor> ExecuteAsync(SupertonicRequest options);
     }
 
 
@@ -282,6 +315,7 @@ namespace TensorStack.Example.Services
         public int DiversityLength { get; set; } = 5;
     }
 
+
     public record WhisperRequest : TextRequest
     {
         public AudioTensor AudioInput { get; set; }
@@ -289,4 +323,14 @@ namespace TensorStack.Example.Services
         public TaskType Task { get; set; } = TaskType.Transcribe;
     }
 
+
+    public record SupertonicRequest
+    {
+        public string InputText { get; set; }
+        public string VoiceStyle { get; set; }
+        public int Steps { get; set; } = 5;
+        public float Speed { get; set; } = 1f;
+        public float SilenceDuration { get; set; } = 0.3f;
+        public int Seed { get; set; }
+    }
 }

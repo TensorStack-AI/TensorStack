@@ -113,7 +113,7 @@
                         <!--Execute/Cancel-->
                         <UniformGrid DockPanel.Dock="Bottom" Columns="2" Height="30">
                             <Button Content="Cancel" Command="{Binding CancelCommand}" />
-                            <Button Content="Summarize" Command="{Binding ExecuteCommand}" />
+                            <Button Content="Execute" Command="{Binding ExecuteCommand}" />
                         </UniformGrid>
 
                     </DockPanel>

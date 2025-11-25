@@ -21,6 +21,7 @@ namespace TensorStack.Example.Common
     {
         Summary = 0,
         Phi3 = 1,
-        Whisper = 2
+        Whisper = 2,
+        Supertonic = 3
     }
 }

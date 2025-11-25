@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -46,7 +45,7 @@ namespace TensorStack.WPF.Controls
         public static readonly DependencyProperty IsAutoPlayEnabledProperty = DependencyProperty.Register(nameof(IsAutoPlayEnabled), typeof(bool), typeof(AudioElement), new PropertyMetadata(true));
         public static readonly DependencyProperty IsLoadEnabledProperty = DependencyProperty.Register(nameof(IsLoadEnabled), typeof(bool), typeof(AudioElement), new PropertyMetadata(true));
         public static readonly DependencyProperty IsSaveEnabledProperty = DependencyProperty.Register(nameof(IsSaveEnabled), typeof(bool), typeof(AudioElement), new PropertyMetadata(true));
-        public static readonly DependencyProperty VolumeProperty = DependencyProperty.Register(nameof(Volume), typeof(double), typeof(AudioElement));
+        public static readonly DependencyProperty VolumeProperty = DependencyProperty.Register(nameof(Volume), typeof(double), typeof(AudioElement), new PropertyMetadata(0.30));
 
         public IUIConfiguration Configuration
         {
@@ -60,13 +59,11 @@ namespace TensorStack.WPF.Controls
             set { SetValue(SourceProperty, value); }
         }
 
-
         public ProgressInfo Progress
         {
             get { return _progress; }
             set { SetProperty(ref _progress, value); }
         }
-
 
         public bool IsLoadEnabled
         {
@@ -80,13 +77,11 @@ namespace TensorStack.WPF.Controls
             set { SetValue(IsSaveEnabledProperty, value); }
         }
 
-
         public bool IsReplayEnabled
         {
             get { return (bool)GetValue(IsReplayEnabledProperty); }
             set { SetValue(IsReplayEnabledProperty, value); }
         }
-
 
         public bool IsAutoPlayEnabled
         {
@@ -99,7 +94,6 @@ namespace TensorStack.WPF.Controls
             get { return (double)GetValue(VolumeProperty); }
             set { SetValue(VolumeProperty, value); }
         }
-
 
         public AsyncRelayCommand ClearCommand { get; }
         public AsyncRelayCommand LoadCommand { get; }
@@ -160,6 +154,7 @@ namespace TensorStack.WPF.Controls
             return Task.CompletedTask;
         }
 
+
         private bool CanClear()
         {
             return HasAudio;
@@ -195,11 +190,13 @@ namespace TensorStack.WPF.Controls
             return IsSaveEnabled && HasAudio;
         }
 
+
         private Task CopyAsync()
         {
             Clipboard.SetFileDropList([Source.SourceFile]);
             return Task.CompletedTask;
         }
+
 
         private bool CanCopySource()
         {
@@ -257,9 +254,9 @@ namespace TensorStack.WPF.Controls
                 return Task.CompletedTask;
 
             Progress.Value = 0;
+            MediaState = MediaState.Stop;
             ProgressPosition = TimeSpan.Zero;
             AudioControl.Position = TimeSpan.Zero;
-            MediaState = MediaState.Stop;
             return Task.CompletedTask;
         }
 
@@ -272,7 +269,6 @@ namespace TensorStack.WPF.Controls
 
             return await AudioInput.CreateAsync(sourceFilename);
         }
-
 
 
         protected override void OnMouseEnter(MouseEventArgs e)
@@ -329,6 +325,9 @@ namespace TensorStack.WPF.Controls
                 _progressTimer.Start();
                 if (Progress is not null)
                     Progress.Maximum = (int)Source.Duration.TotalMilliseconds;
+
+                if (IsAutoPlayEnabled)
+                    MediaState = MediaState.Play;
             }
         }
 
