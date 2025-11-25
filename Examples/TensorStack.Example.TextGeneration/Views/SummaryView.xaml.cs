@@ -15,9 +15,9 @@ using TensorStack.WPF.Services;
 namespace TensorStack.Example.Views
 {
     /// <summary>
-    /// Interaction logic for TextSummaryView.xaml
+    /// Interaction logic for SummaryView.xaml
     /// </summary>
-    public partial class TextSummaryView : ViewBase
+    public partial class SummaryView : ViewBase
     {
         private Device _selectedDevice;
         private TextModel _selectedModel;
@@ -36,7 +36,7 @@ namespace TensorStack.Example.Views
         private bool _isMultipleResult;
         private int _selectedBeam;
 
-        public TextSummaryView(Settings settings, NavigationService navigationService, ITextService textService)
+        public SummaryView(Settings settings, NavigationService navigationService, ITextService textService)
             : base(settings, navigationService)
         {
             TextService = textService;
@@ -45,14 +45,14 @@ namespace TensorStack.Example.Views
             ExecuteCommand = new AsyncRelayCommand(ExecuteAsync, CanExecute);
             CancelCommand = new AsyncRelayCommand(CancelAsync, CanCancel);
             Progress = new ProgressInfo();
-            SelectedModel = settings.TextModels.First(x => x.IsDefault);
+            SelectedModel = settings.TextToTextModels.First(x => x.IsDefault);
             SelectedDevice = settings.DefaultDevice;
             Prefixes = new ObservableCollection<string>();
             SummaryResults = new ObservableCollection<SummaryResult>();
             InitializeComponent();
         }
 
-        public override int Id => (int)View.TextSummary;
+        public override int Id => (int)View.Summary;
         public ITextService TextService { get; }
         public AsyncRelayCommand LoadCommand { get; }
         public AsyncRelayCommand UnloadCommand { get; }

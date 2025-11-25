@@ -6,71 +6,91 @@
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls"
              xmlns:CommonConverters="clr-namespace:TensorStack.WPF.Converters"
-             x:Name="AudioElementUI" >
+             x:Name="AudioElementUI" VerticalAlignment="Top">
     <Border  DataContext="{Binding ElementName=AudioElementUI}" BorderThickness="1" BorderBrush="{StaticResource ComboBoxBorder}" Background="{StaticResource DefaultBackgroundColor}">
         <DockPanel>
 
-            <Grid>
-                <MediaElement x:Name="AudioControl"
-                    Source="{Binding FileSource, Converter={StaticResource StringToUriConverter}}" 
-                    Volume="{Binding Volume}"
-                    LoadedBehavior="Manual" 
-                    UnloadedBehavior="Close" 
-                    ScrubbingEnabled="True" 
-                    Loaded="AudioControl_Loaded"
-                    MediaOpened="AudioControl_MediaOpened"
-                    MediaEnded="AudioControl_MediaEnded"
-                    MouseLeftButtonDown="AudioControl_MouseDown" />
-                <Image DockPanel.Dock="Left" Source="{StaticResource PlaceholderVideo}" Stretch="Uniform" MinWidth="{Binding ActualHeight}"/>
-            </Grid>
+            <UniformGrid DockPanel.Dock="Bottom" Columns="2">
+                <UniformGrid Columns="5" DockPanel.Dock="Bottom">
+                    <Button Command="{Binding LoadCommand}" Visibility="{Binding IsLoadEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" >
+                        <CommonControls:FontAwesome Icon="&#xf0ee;" />
+                    </Button>
+                    <Button Command="{Binding SaveCommand}" Visibility="{Binding IsSaveEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <CommonControls:FontAwesome Icon="&#xf0c7;" />
+                    </Button>
+                    <Grid>
+                        <Button Command="{Binding PlayCommand}" >
+                            <CommonControls:FontAwesome Icon="&#xf04b;" Visibility="{Binding MediaState, Converter={StaticResource InverseEnumToVisibilityConverter}, ConverterParameter=Play}"/>
+                        </Button>
+                        <Button Command="{Binding PauseCommand}" Visibility="{Binding MediaState, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Play}">
+                            <CommonControls:FontAwesome Icon="&#xf04c;" />
+                        </Button>
+                    </Grid>
+                    <Button Command="{Binding StopCommand}">
+                        <CommonControls:FontAwesome Icon="&#xf04d;" />
+                    </Button>
+                    <CommonControls:ToggleButton
+                        IsChecked="{Binding IsMuted, ElementName=AudioControl, Mode=TwoWay}" 
+                        IconFalse="f028" 
+                        IconTrue="f6a9"
+                        ColorTrue="{StaticResource DefaultForeground}"
+                        ColorFalse="{StaticResource DefaultForeground}" >
+                    </CommonControls:ToggleButton>
+                </UniformGrid>
+                <CommonControls:SliderControl DockPanel.Dock="Bottom" Value="{Binding Volume, Mode=TwoWay}" Text="Volume" IsPercent="True" Minimum="0" Maximum="1" TickFrequency="0.01" Margin="4,-4,0,4"/>
+            </UniformGrid>
 
 
-
-
-            <DockPanel LastChildFill="False">
-                <TextBlock Text="{Binding FileSource}" DockPanel.Dock="Top"/>
-
-                <StackPanel DockPanel.Dock="Bottom">
-
+            <DockPanel>
+                <Grid DockPanel.Dock="Left" MaxWidth="{Binding ActualHeight, ElementName=StackPanelDetails}" MaxHeight="{Binding ActualHeight, ElementName=StackPanelDetails}">
+                    <MediaElement x:Name="AudioControl"
+                        Source="{Binding FileSource, Converter={StaticResource StringToUriConverter}}" 
+                        Volume="{Binding Volume, Mode=TwoWay}"
+                        LoadedBehavior="Manual" 
+                        UnloadedBehavior="Close" 
+                        ScrubbingEnabled="False" 
+                        Loaded="AudioControl_Loaded"
+                        MediaOpened="AudioControl_MediaOpened"
+                        MediaEnded="AudioControl_MediaEnded"
+                        MouseLeftButtonDown="AudioControl_MouseDown" />
+                    <Image DockPanel.Dock="Left" Source="{StaticResource PlaceholderAudio}" Stretch="Uniform" MinWidth="{Binding ActualHeight}"/>
+                </Grid>
+                <StackPanel x:Name="StackPanelDetails" DockPanel.Dock="Top" Margin="4,2,0,4">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Channels: " Style="{StaticResource FieldTextBlockStyle}" Margin="0"  VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Source.Channels, FallbackValue=0}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Duration: " Style="{StaticResource FieldTextBlockStyle}" Margin="0"  VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Source.Duration, FallbackValue=00:00:00, StringFormat={}mm\\:ss\\.ff}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="SampleRate: " Style="{StaticResource FieldTextBlockStyle}" Margin="0"  VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Source.SampleRate, FallbackValue=0}" />
+                        <TextBlock Text="hz" Style="{StaticResource FieldTextBlockStyle}" Margin="1,0,0,1" VerticalAlignment="Bottom" FontSize="9"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="FileName: " Style="{StaticResource FieldTextBlockStyle}" Margin="0"  VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding FileSource, FallbackValue=-, Converter={StaticResource FullPathToFileNameConverter}, Mode=OneWay}" />
+                    </StackPanel>
                     <ProgressBar 
                         Height="10"
-                        Margin="1"
                         Value="{Binding Progress.Value, Mode=OneWay}"
                         Maximum="{Binding Progress.Maximum, Mode=OneWay}" >
                         <ProgressBar.Style>
                             <Style TargetType="{x:Type ProgressBar}" BasedOn="{StaticResource {x:Type ProgressBar}}">
                                 <Setter Property="IsIndeterminate" Value="False"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Progress.Value, ElementName=VideoElementUI}" Value="-1">
+                                    <DataTrigger Binding="{Binding Progress.Value, ElementName=AudioElementUI}" Value="-1">
                                         <Setter Property="IsIndeterminate" Value="True"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </ProgressBar.Style>
                     </ProgressBar>
-
-                    <UniformGrid Columns="4" DockPanel.Dock="Bottom">
-                        <Button Command="{Binding LoadCommand}" Visibility="{Binding IsLoadEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" >
-                            <CommonControls:FontAwesome Icon="&#xf0ee;" />
-                        </Button>
-                        <Button Command="{Binding SaveCommand}" Visibility="{Binding IsSaveEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <CommonControls:FontAwesome Icon="&#xf0c7;" />
-                        </Button>
-                        <Grid>
-                            <Button Command="{Binding PlayCommand}" >
-                                <CommonControls:FontAwesome Icon="&#xf04b;" Visibility="{Binding MediaState, Converter={StaticResource InverseEnumToVisibilityConverter}, ConverterParameter=Play}"/>
-                            </Button>
-                            <Button Command="{Binding PauseCommand}" Visibility="{Binding MediaState, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Play}">
-                                <CommonControls:FontAwesome Icon="&#xf04c;" />
-                            </Button>
-                        </Grid>
-                        <Button Command="{Binding StopCommand}">
-                            <CommonControls:FontAwesome Icon="&#xf04d;" />
-                        </Button>
-                    </UniformGrid>
-
                 </StackPanel>
             </DockPanel>
+
         </DockPanel>
     </Border>
 </CommonControls:BaseControl>

@@ -20,6 +20,8 @@ namespace TensorStack.Example.Common
     public enum TextModelType
     {
         Summary = 0,
-        Phi3 = 1
+        Phi3 = 1,
+        Whisper = 2,
+        Supertonic = 3
     }
 }

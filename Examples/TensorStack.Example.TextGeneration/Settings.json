@@ -1,7 +1,6 @@
 {
   "DirectoryTemp": "Temp",
-  "TextModels": [
-    {
+  "TextToTextModels": [{
       "Id": 1,
       "Name": "Text Summary",
       "IsDefault": true,
@@ -9,13 +8,126 @@
       "MinLength": 20,
       "MaxLength": 512,
       "Prefixes": [ "summarize: ", "translate English to German: ", "translate English to French: ", "translate English to Romanian: " ],
-      "Path": "Models\\TextGeneration\\TextSummary",
+      "Path": "Models\\TextSummary",
       "UrlPaths": [
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/config.json?download=true",
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/decoder_model_merged.onnx?download=true",
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/encoder_model.onnx?download=true",
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/spiece.model?download=true",
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/tokenizer.json?download=true"
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/TextSummary/config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/TextSummary/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/TextSummary/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/TextSummary/spiece.model?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/TextSummary/tokenizer.json?download=true"
+      ]
+    }
+  ],
+  "AudioToTextModels":[{
+      "Id": 1,
+      "Name": "Whisper-Tiny",
+      "IsDefault": true,
+      "Type": "Whisper",
+      "Version": "Tiny",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\Whisper-Tiny",
+      "UrlPaths": [
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Whisper-Small",
+      "Type": "Whisper",
+      "Version": "Small",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\Whisper-Small",
+      "UrlPaths": [
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Whisper-Medium",
+      "Type": "Whisper",
+      "Version": "Medium",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\Whisper-Medium",
+      "UrlPaths": [
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Whisper-Base",
+      "Type": "Whisper",
+      "Version": "Base",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\Whisper-Base",
+      "UrlPaths": [
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "Whisper-Large",
+      "Type": "Whisper",
+      "Version": "Large",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\Whisper-Large",
+      "UrlPaths": [
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    }
+  ],
+  "TextToAudioModels": [{
+      "Id": 1,
+      "Name": "Supertonic",
+      "IsDefault": true,
+      "Type": "Supertonic",
+      "MaxLength": 512,
+      "Prefixes": [ "Female1","Male1", "Female2",  "Male2" ],
+      "Path": "Models\\Supertonic",
+      "UrlPaths": [
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/duration_predictor.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/text_encoder.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/unicode_indexer.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/vector_estimator.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/vocoder.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Female1.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Female2.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Male1.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Male2.json?download=true"
       ]
     }
   ]

@@ -16,15 +16,12 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
     /// </summary>
     public class SupertonicPipeline : IPipeline<AudioTensor, SupertonicOptions, GenerateProgress>
     {
-        private readonly Random _random;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="SupertonicPipeline"/> class.
         /// </summary>
         /// <param name="config">The configuration.</param>
         public SupertonicPipeline(SupertonicConfig configuration)
         {
-            _random = new Random();
             Configuration = configuration;
             Processor = new SupertonicProcessor(configuration.IndexerPath, configuration.VoiceStylePath);
             Prediction = new ModelSession(configuration.PredictorConfig);
@@ -86,7 +83,7 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
             // Process text
             foreach (var textIds in Processor.GetTextIds(options.TextInput))
             {
-                var result = await RunInferenceAsync(textIds, voiceStyle, options.Steps, options.Speed);
+                var result = await RunInferenceAsync(textIds, voiceStyle, options.Seed, options.Steps, options.Speed);
                 if (audioBuffer.Count == 0)
                 {
                     audioBuffer.AddRange(result.Audio.Memory.Span);
@@ -101,9 +98,8 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
             }
 
             var audioSpan = CollectionsMarshal.AsSpan(audioBuffer);
-            var audioLength = (int)(Configuration.SampleRate * totalDuration);
-            var audioTensor = new Tensor<float>([1, audioLength]);
-            audioSpan[..Math.Min(audioLength, audioSpan.Length)].CopyTo(audioTensor.Memory.Span);
+            var audioTensor = new Tensor<float>([1, audioSpan.Length]);
+            audioSpan.CopyTo(audioTensor.Memory.Span);
             return audioTensor.AsAudioTensor(Configuration.SampleRate);
         }
 
@@ -116,12 +112,12 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
         /// <param name="totalStep">The total step.</param>
         /// <param name="speed">The speed.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private async Task<InferenceResult> RunInferenceAsync(Tensor<long> textIds, VoiceStyle style, int totalStep, float speed = 1.05f, CancellationToken cancellationToken = default)
+        private async Task<InferenceResult> RunInferenceAsync(Tensor<long> textIds, VoiceStyle style, int seed, int totalStep, float speed = 1.05f, CancellationToken cancellationToken = default)
         {
             var predictionResult = await PredictAsync(textIds, style.Dropout, cancellationToken);
             var duration = predictionResult.Memory.Span[0] / speed;
             var encoderResult = await EncodeAsync(textIds, style.Global, cancellationToken);
-            var latents = PrepareLatents(duration);
+            var latents = PrepareLatents(seed, duration);
             for (int step = 0; step < totalStep; step++)
             {
                 latents = await EstimateAsync(latents, encoderResult, style.Global, step, totalStep, cancellationToken);
@@ -234,13 +230,14 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
         /// Prepares the latents.
         /// </summary>
         /// <param name="duration">The duration.</param>
-        private Tensor<float> PrepareLatents(float duration)
+        private Tensor<float> PrepareLatents(int seed, float duration)
         {
+            var random = seed > 0 ? new Random(seed) : new Random();
             var audioLength = duration * Configuration.SampleRate;
             var chunkSize = Configuration.BaseChunkSize * Configuration.ChunkCompressFactor;
             var latentLen = (int)((audioLength + chunkSize - 1) / chunkSize);
             var latentDim = Configuration.LatentDim * Configuration.ChunkCompressFactor;
-            var latents = _random.NextTensor([1, latentDim, latentLen]);
+            var latents = random.NextTensor([1, latentDim, latentLen]);
             return latents;
         }
 

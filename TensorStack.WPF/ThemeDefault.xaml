@@ -20,6 +20,7 @@
     <BitmapImage x:Key="ImageTensorstackCubeG" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/Tensorstack-720-Gray.png" />
     <BitmapImage x:Key="PlaceholderImage" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/PlaceholderImage.png" />
     <BitmapImage x:Key="PlaceholderVideo" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/PlaceholderVideo.png" />
+    <BitmapImage x:Key="PlaceholderAudio" UriSource="pack://application:,,,/TensorStack.WPF;component/Images/PlaceholderAudio.png" />
 
 
     <!--Fonts-->
@@ -66,7 +67,7 @@
     <CommonConverters:EmptyToVisibilityConverter x:Key="EmptyToVisibilityConverter" />
     <CommonConverters:InverseEmptyToVisibilityConverter x:Key="InverseEmptyToVisibilityConverter" />
     <CommonConverters:StringCaseConverter x:Key="StringCaseConverter" />
-
+    <CommonConverters:FullPathToFileNameConverter x:Key="FullPathToFileNameConverter" />
 
     <ObjectDataProvider x:Key="Stretch" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
         <ObjectDataProvider.MethodParameters>

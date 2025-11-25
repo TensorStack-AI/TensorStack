@@ -49,6 +49,7 @@
     <Resource Include="Images\Icon.ico" />
     <Resource Include="Images\Icon.png" />
     <Resource Include="Images\Icon-Large.png" />
+    <Resource Include="Images\PlaceholderAudio.png" />
     <Resource Include="Images\PlaceholderImage.png" />
     <Resource Include="Images\PlaceholderVideo.png" />
     <Resource Include="Images\Tensorstack-720-Gray.png" />

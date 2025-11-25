@@ -19,7 +19,9 @@ namespace TensorStack.Example
         public string VideoCodec { get; set; } = "mp4v";
         public string DirectoryTemp { get; set; }
         public IReadOnlyList<Device> Devices { get; set; }
-        public ObservableCollection<TextModel> TextModels { get; set; }
+        public ObservableCollection<TextModel> TextToTextModels { get; set; }
+        public ObservableCollection<TextModel> TextToAudioModels { get; set; }
+        public ObservableCollection<TextModel> AudioToTextModels { get; set; }
 
 
         public void Initialize()

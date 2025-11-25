@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\TensorStack.Common\TensorStack.Common.csproj" />
     <ProjectReference Include="..\..\TensorStack.Image.BitmapImage\TensorStack.Image.BitmapImage.csproj" />
     <ProjectReference Include="..\..\TensorStack.TextGeneration\TensorStack.TextGeneration.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Audio.Windows\TensorStack.Audio.Windows.csproj" />
     <ProjectReference Include="..\..\TensorStack.WPF\TensorStack.WPF.csproj" />
   </ItemGroup>
 
@@ -33,6 +34,7 @@
   <ItemGroup Condition="'$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release_CUDA'">
     <PackageReference Include="TensorStack.Image.BitmapImage" Version="$(Version)" />
     <PackageReference Include="TensorStack.TextGeneration" Version="$(Version)" />
+    <PackageReference Include="TensorStack.Audio.Windows" Version="$(Version)" />
     <PackageReference Include="TensorStack.WPF" Version="$(Version)" />
   </ItemGroup>
 
@@ -49,7 +51,7 @@
   <!--Common Packages-->
   <ItemGroup>
     <PackageReference Include="System.Linq.Async" Version="6.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
