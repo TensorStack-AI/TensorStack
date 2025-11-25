@@ -24,6 +24,25 @@
   ],
     "AudioToTextModels":[    {
       "Id": 1,
+      "Name": "Whisper-Tiny",
+      "IsDefault": true,
+      "Type": "Whisper",
+      "Version": "Tiny",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\TextGeneration\\Whisper-Tiny",
+      "UrlPaths": [
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    },
+    {
+      "Id": 2,
       "Name": "Whisper-Small",
       "IsDefault": true,
       "Type": "Whisper",
@@ -32,6 +51,63 @@
       "MaxLength": 512,
       "Prefixes": [ "Transcribe", "Translate" ],
       "Path": "Models\\TextGeneration\\Whisper-Small",
+      "UrlPaths": [
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Whisper-Medium",
+      "IsDefault": true,
+      "Type": "Whisper",
+      "Version": "Medium",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\TextGeneration\\Whisper-Medium",
+      "UrlPaths": [
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Whisper-Base",
+      "IsDefault": true,
+      "Type": "Whisper",
+      "Version": "Base",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\TextGeneration\\Whisper-Base",
+      "UrlPaths": [
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/mel_filters.npz?download=true"
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "Whisper-Large",
+      "IsDefault": true,
+      "Type": "Whisper",
+      "Version": "Large",
+      "MinLength": 20,
+      "MaxLength": 512,
+      "Prefixes": [ "Transcribe", "Translate" ],
+      "Path": "Models\\TextGeneration\\Whisper-Large",
       "UrlPaths": [
         "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/decoder_model_merged.onnx?download=true",
         "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/encoder_model.onnx?download=true",

@@ -23,9 +23,9 @@
                 </Grid>
 
                 <!--Views-->
-                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.TextToText}" Content="TextToText" />
-                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.AudioToText}" Content="AudioToText" />
-                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.TextToAudio}" Content="TextToAudio" />
+                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.Summary}" Content="Summary" />
+                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.Whisper}" Content="Whisper" />
+                <Button Command="{Binding NavigateCommand}" CommandParameter="{x:Static Views:View.Supertonic}" Content="Supertonic" />
 
                 <!--Window Options-->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

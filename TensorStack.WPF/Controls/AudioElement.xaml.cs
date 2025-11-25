@@ -266,7 +266,7 @@ namespace TensorStack.WPF.Controls
 
         private async Task<AudioInput> LoadAudioAsync(string initialFilename = null)
         {
-            var sourceFilename = initialFilename ?? await DialogService.OpenFileAsync("Load Audio", "Audio", filter: "wav files (*.wav)|*.wav", defualtExt: "wav");
+            var sourceFilename = initialFilename ?? await DialogService.OpenFileAsync("Load Audio", "Audio", filter: "Audio/Video files (*.mp3;*.wav;*.flac;*.m4a;*.aac;*.ogg;*.mp4;*.mov;*.mkv;*.webm)|*.mp3;*.wav;*.flac;*.m4a;*.aac;*.ogg;*.mp4;*.mov;*.mkv;*.webm", defualtExt: "wav");
             if (string.IsNullOrEmpty(sourceFilename))
                 return default;
 

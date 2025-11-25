@@ -16,8 +16,8 @@ namespace TensorStack.Example.Views
 
     public enum View
     {
-        TextToText = 0,
-        AudioToText = 1,
-        TextToAudio = 2
+        Summary = 0,
+        Whisper = 1,
+        Supertonic = 2
     }
 }

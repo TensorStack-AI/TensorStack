@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using TensorStack.Audio;
 using TensorStack.Common;
 using TensorStack.Common.Common;
 using TensorStack.Example.Common;
@@ -15,9 +16,9 @@ using TensorStack.WPF.Services;
 namespace TensorStack.Example.Views
 {
     /// <summary>
-    /// Interaction logic for TextToTextView.xaml
+    /// Interaction logic for WhisperView.xaml
     /// </summary>
-    public partial class TextToTextView : ViewBase
+    public partial class WhisperView : ViewBase
     {
         private Device _selectedDevice;
         private TextModel _selectedModel;
@@ -31,12 +32,12 @@ namespace TensorStack.Example.Views
         private int _minLength = 20;
         private int _maxLength = 512;
         private EarlyStopping _earlyStopping = EarlyStopping.None;
-        private string _promptText;
         private string _selectedPrefix;
         private bool _isMultipleResult;
         private int _selectedBeam;
+        private AudioInput _audioInput;
 
-        public TextToTextView(Settings settings, NavigationService navigationService, ITextService textService)
+        public WhisperView(Settings settings, NavigationService navigationService, ITextService textService)
             : base(settings, navigationService)
         {
             TextService = textService;
@@ -45,14 +46,14 @@ namespace TensorStack.Example.Views
             ExecuteCommand = new AsyncRelayCommand(ExecuteAsync, CanExecute);
             CancelCommand = new AsyncRelayCommand(CancelAsync, CanCancel);
             Progress = new ProgressInfo();
-            SelectedModel = settings.TextToTextModels.First(x => x.IsDefault);
+            SelectedModel = settings.AudioToTextModels.First(x => x.IsDefault);
             SelectedDevice = settings.DefaultDevice;
             Prefixes = new ObservableCollection<string>();
-            SummaryResults = new ObservableCollection<SummaryResult>();
+            TranscribeResults = new ObservableCollection<TranscribeResult>();
             InitializeComponent();
         }
 
-        public override int Id => (int)View.TextToText;
+        public override int Id => (int)View.Whisper;
         public ITextService TextService { get; }
         public AsyncRelayCommand LoadCommand { get; }
         public AsyncRelayCommand UnloadCommand { get; }
@@ -60,7 +61,7 @@ namespace TensorStack.Example.Views
         public AsyncRelayCommand CancelCommand { get; }
         public ProgressInfo Progress { get; set; }
         public ObservableCollection<string> Prefixes { get; }
-        public ObservableCollection<SummaryResult> SummaryResults { get; }
+        public ObservableCollection<TranscribeResult> TranscribeResults { get; }
 
         public Device SelectedDevice
         {
@@ -134,10 +135,10 @@ namespace TensorStack.Example.Views
             set { SetProperty(ref _earlyStopping, value); }
         }
 
-        public string PromptText
+        public AudioInput AudioInput
         {
-            get { return _promptText; }
-            set { SetProperty(ref _promptText, value); }
+            get { return _audioInput; }
+            set { SetProperty(ref _audioInput, value); }
         }
 
         public string SelectedPrefix
@@ -218,11 +219,10 @@ namespace TensorStack.Example.Views
             var timestamp = Stopwatch.GetTimestamp();
             Progress.Indeterminate("Generating Results...");
 
-            // Run Summary
-            var promptText = string.Concat(_selectedPrefix, _promptText);
-            var summaryResults = await TextService.ExecuteAsync(new TextRequest
+            // Run Transcribe
+            var transcribeResults = await TextService.ExecuteAsync(new WhisperRequest
             {
-                Prompt = promptText,
+                //Prompt = promptText,
                 Beams = _beams,
                 TopK = _topK,
                 Seed = _seed,
@@ -234,12 +234,13 @@ namespace TensorStack.Example.Views
                 NoRepeatNgramSize = 4,
                 DiversityLength = _diversityLength,
                 EarlyStopping = _earlyStopping,
+                AudioInput = _audioInput
             });
 
-            SummaryResults.Clear();
-            foreach (var summaryResult in summaryResults)
+            TranscribeResults.Clear();
+            foreach (var transcribeResult in transcribeResults)
             {
-                SummaryResults.Add(new SummaryResult($"Beam {summaryResult.Beam}", summaryResult.Result, summaryResult.PenaltyScore));
+                TranscribeResults.Add(new TranscribeResult($"Beam {transcribeResult.Beam}", transcribeResult.Result, transcribeResult.PenaltyScore));
             }
             SelectedBeam = 0;
 
@@ -250,7 +251,7 @@ namespace TensorStack.Example.Views
 
         private bool CanExecute()
         {
-            return !string.IsNullOrWhiteSpace(_promptText) && TextService.IsLoaded && !TextService.IsExecuting;
+            return AudioInput is not null && TextService.IsLoaded && !TextService.IsExecuting;
         }
 
 
@@ -276,5 +277,5 @@ namespace TensorStack.Example.Views
         }
     }
 
-    public record SummaryResult(string Header, string Content, float Score);
+    public record TranscribeResult(string Header, string Content, float Score);
 }
