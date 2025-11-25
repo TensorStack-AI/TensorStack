@@ -1,6 +1,6 @@
 {
   "DirectoryTemp": "Temp",
-  "TextModels": [
+  "TextToTextModels": [
     {
       "Id": 1,
       "Name": "Text Summary",
@@ -17,19 +17,28 @@
         "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/spiece.model?download=true",
         "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/TextSummary/tokenizer.json?download=true"
       ]
-    },
-     {
-      "Id": 2,
+    }
+  ],
+  "TextToAudioModels": [
+
+  ],
+    "AudioToTextModels":[    {
+      "Id": 1,
       "Name": "Whisper-Small",
+      "IsDefault": true,
       "Type": "Whisper",
+      "Version": "Small",
+      "MinLength": 20,
+      "MaxLength": 512,
       "Prefixes": [ "Transcribe", "Translate" ],
       "Path": "Models\\TextGeneration\\Whisper-Small",
       "UrlPaths": [
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/config.json?download=true",
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/decoder_model_merged.onnx?download=true",
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/encoder_model.onnx?download=true",
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/spiece.model?download=true",
-        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper/tokenizer.json?download=true"
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/encoder_model.onnx?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/merges.txt?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/tokenizer_config.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/vocab.json?download=true",
+        "https://huggingface.co/TensorStack/TensorStack/resolve/main/TextGeneration/Whisper-Small/mel_filters.npz?download=true"
       ]
     }
   ]

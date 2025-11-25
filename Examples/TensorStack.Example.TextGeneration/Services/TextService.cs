@@ -8,14 +8,15 @@ using TensorStack.TextGeneration.Common;
 using TensorStack.TextGeneration.Pipelines.Other;
 using TensorStack.TextGeneration.Pipelines.Phi;
 using TensorStack.Providers;
+using TensorStack.TextGeneration.Pipelines.Whisper;
+using TensorStack.Common.Tensor;
 
 namespace TensorStack.Example.Services
 {
     public class TextService : ServiceBase, ITextService
     {
         private readonly Settings _settings;
-        private IPipeline<GenerateResult, GenerateOptions, GenerateProgress> _greedyPipeline;
-        private IPipeline<GenerateResult[], SearchOptions, GenerateProgress> _beamSearchPipeline;
+        private IPipeline _currentPipeline;
         private CancellationTokenSource _cancellationTokenSource;
         private bool _isLoaded;
         private bool _isLoading;
@@ -77,34 +78,37 @@ namespace TensorStack.Example.Services
                 using (_cancellationTokenSource = new CancellationTokenSource())
                 {
                     var cancellationToken = _cancellationTokenSource.Token;
-                    if (_greedyPipeline != null)
-                        await _greedyPipeline.UnloadAsync(cancellationToken);
+                    if (_currentPipeline != null)
+                        await _currentPipeline.UnloadAsync(cancellationToken);
 
                     var provider = device.GetProvider();
                     var providerCPU = Provider.GetProvider(DeviceType.CPU); // TODO: DirectML not working with decoder
                     if (model.Type == TextModelType.Phi3)
                     {
                         if (!Enum.TryParse<PhiType>(model.Version, true, out var phiType))
-                            throw new ArgumentException("Invalid PhiType Version");
+                            throw new ArgumentException("Invalid Phi Version");
 
-                        var pipeline = Phi3Pipeline.Create(providerCPU, model.Path, phiType);
-                        _greedyPipeline = pipeline;
-                        _beamSearchPipeline = pipeline;
+                        _currentPipeline = Phi3Pipeline.Create(providerCPU, model.Path, phiType);
                     }
                     else if (model.Type == TextModelType.Summary)
                     {
-                        var pipeline = SummaryPipeline.Create(provider, providerCPU, model.Path);
-                        _greedyPipeline = pipeline;
-                        _beamSearchPipeline = pipeline;
+                        _currentPipeline = SummaryPipeline.Create(provider, providerCPU, model.Path);
                     }
-                    await Task.Run(() => _greedyPipeline.LoadAsync(cancellationToken), cancellationToken);
+                    else if (model.Type == TextModelType.Whisper)
+                    {
+                        if (!Enum.TryParse<WhisperType>(model.Version, true, out var whisperType))
+                            throw new ArgumentException("Invalid Whisper Version");
+
+                        _currentPipeline = WhisperPipeline.Create(provider, providerCPU, model.Path, whisperType);
+                    }
+                    await Task.Run(() => _currentPipeline.LoadAsync(cancellationToken), cancellationToken);
 
                 }
             }
             catch (OperationCanceledException)
             {
-                _greedyPipeline?.Dispose();
-                _greedyPipeline = null;
+                _currentPipeline?.Dispose();
+                _currentPipeline = null;
                 _currentConfig = null;
                 throw;
             }
@@ -148,11 +152,13 @@ namespace TensorStack.Example.Services
                         if (options.Beams == 0)
                         {
                             // Greedy Search
-                            return [await _greedyPipeline.RunAsync(pipelineOptions, cancellationToken: _cancellationTokenSource.Token)];
+                            var greedyPipeline = _currentPipeline as IPipeline<GenerateResult, GenerateOptions, GenerateProgress>;
+                            return [await greedyPipeline.RunAsync(pipelineOptions, cancellationToken: _cancellationTokenSource.Token)];
                         }
 
                         // Beam Search
-                        return await _beamSearchPipeline.RunAsync(new SearchOptions(pipelineOptions), cancellationToken: _cancellationTokenSource.Token);
+                        var beamSearchPipeline = _currentPipeline as IPipeline<GenerateResult[], SearchOptions, GenerateProgress>;
+                        return await beamSearchPipeline.RunAsync(new SearchOptions(pipelineOptions), cancellationToken: _cancellationTokenSource.Token);
                     });
 
                     return pipelineResult;
@@ -163,6 +169,57 @@ namespace TensorStack.Example.Services
                 IsExecuting = false;
             }
         }
+
+
+        public async Task<GenerateResult[]> ExecuteAsync(WhisperRequest options)
+        {
+            try
+            {
+                IsExecuting = true;
+                using (_cancellationTokenSource = new CancellationTokenSource())
+                {
+                    var pipelineOptions = new WhisperOptions
+                    {
+                        Prompt = options.Prompt,
+                        Seed = options.Seed,
+                        Beams = options.Beams,
+                        TopK = options.TopK,
+                        TopP = options.TopP,
+                        Temperature = options.Temperature,
+                        MaxLength = options.MaxLength,
+                        MinLength = options.MinLength,
+                        NoRepeatNgramSize = options.NoRepeatNgramSize,
+                        LengthPenalty = options.LengthPenalty,
+                        DiversityLength = options.DiversityLength,
+                        EarlyStopping = options.EarlyStopping,
+                        AudioInput = options.AudioInput,
+                        Language = options.Language,
+                        Task = options.Task
+                    };
+
+                    var pipelineResult = await Task.Run(async () =>
+                    {
+                        if (options.Beams == 0)
+                        {
+                            // Greedy Search
+                            var greedyPipeline = _currentPipeline as IPipeline<GenerateResult, WhisperOptions, GenerateProgress>;
+                            return [await greedyPipeline.RunAsync(pipelineOptions, cancellationToken: _cancellationTokenSource.Token)];
+                        }
+
+                        // Beam Search
+                        var beamSearchPipeline = _currentPipeline as IPipeline<GenerateResult[], WhisperSearchOptions, GenerateProgress>;
+                        return await beamSearchPipeline.RunAsync(new WhisperSearchOptions(pipelineOptions), cancellationToken: _cancellationTokenSource.Token);
+                    });
+
+                    return pipelineResult;
+                }
+            }
+            finally
+            {
+                IsExecuting = false;
+            }
+        }
+
 
 
         /// <summary>
@@ -179,12 +236,12 @@ namespace TensorStack.Example.Services
         /// </summary>
         public async Task UnloadAsync()
         {
-            if (_greedyPipeline != null)
+            if (_currentPipeline != null)
             {
                 await _cancellationTokenSource.SafeCancelAsync();
-                await _greedyPipeline.UnloadAsync();
-                _greedyPipeline.Dispose();
-                _greedyPipeline = null;
+                await _currentPipeline.UnloadAsync();
+                _currentPipeline.Dispose();
+                _currentPipeline = null;
                 _currentConfig = null;
             }
 
@@ -205,6 +262,7 @@ namespace TensorStack.Example.Services
         Task UnloadAsync();
         Task CancelAsync();
         Task<GenerateResult[]> ExecuteAsync(TextRequest options);
+        Task<GenerateResult[]> ExecuteAsync(WhisperRequest options);
     }
 
 
@@ -222,6 +280,13 @@ namespace TensorStack.Example.Services
         public float LengthPenalty { get; set; } = 1.0f;
         public EarlyStopping EarlyStopping { get; set; }
         public int DiversityLength { get; set; } = 5;
+    }
+
+    public record WhisperRequest : TextRequest
+    {
+        public AudioTensor AudioInput { get; set; }
+        public LanguageType Language { get; set; } = LanguageType.EN;
+        public TaskType Task { get; set; } = TaskType.Transcribe;
     }
 
 }

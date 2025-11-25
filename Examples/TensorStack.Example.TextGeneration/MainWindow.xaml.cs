@@ -17,7 +17,7 @@ namespace TensorStack.Example
             NavigateCommand = new AsyncRelayCommand<View>(NavigateAsync, CanNavigate);
             InitializeComponent();
 
-            NavigateCommand.Execute(View.Transcribe);
+            NavigateCommand.Execute(View.AudioToText);
         }
 
         public NavigationService Navigation { get; }
