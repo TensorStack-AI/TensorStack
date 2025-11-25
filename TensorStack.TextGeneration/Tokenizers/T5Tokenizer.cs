@@ -143,7 +143,7 @@ namespace TensorStack.TextGeneration.Tokenizers
             var specialTokens = GetSpecialTokens(_configuration.Path);
             using (var fileStream = File.OpenRead(_configuration.Path))
             {
-                return SentencePieceTokenizer.Create(fileStream, addBeginningOfSentence: false, addEndOfSentence: true, specialTokens);
+                return SentencePieceTokenizer.Create(fileStream, addBeginOfSentence: false, addEndOfSentence: true, specialTokens);
             }
         }
 
