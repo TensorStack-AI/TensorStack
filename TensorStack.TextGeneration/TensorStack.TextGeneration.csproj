@@ -1,8 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <PlatformTarget>x64</PlatformTarget>
+
+    <!--Microsoft.ML.Tokenizers prerelease dependency warning-->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <!--Projects-->
@@ -19,7 +22,7 @@
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0-preview.1.25125.4" />
-    <PackageReference Include="System.Linq.Async" Version="6.0.3" />
+    <PackageReference Include="System.Linq.Async" Version="7.0.0" />
   </ItemGroup>
 
   <!--Nuget Settings-->
@@ -37,7 +40,7 @@
     <None Remove="Icon.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <None Update="README.md">
+    <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

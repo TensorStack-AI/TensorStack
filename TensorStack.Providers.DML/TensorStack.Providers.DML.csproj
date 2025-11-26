@@ -1,8 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
+    <TargetFrameworks>net9.0-windows10.0.17763.0;net10.0-windows10.0.17763.0</TargetFrameworks>
     <PlatformTarget>x64</PlatformTarget>
+
+    <!--DirectML.dll content warning-->
+    <NoWarn>$(NoWarn);NU5100</NoWarn> 
   </PropertyGroup>
 
   <!--Projects-->
@@ -27,7 +30,12 @@
 
   <!--Binaries-->
   <ItemGroup>
-    <Content Include="DirectML.dll" Pack="true" PackagePath="lib\$(TargetFramework)\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <Content Include="DirectML.dll"
+             Pack="true"
+             PackagePath="contentFiles\any\any\"
+             CopyToOutputDirectory="Always"
+             PackageCopyToOutput="true" />
+    <None Include="DirectML.dll" Pack="false" />
   </ItemGroup>
 
 
@@ -45,7 +53,7 @@
     <None Remove="Icon.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <None Update="README.md">
+    <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

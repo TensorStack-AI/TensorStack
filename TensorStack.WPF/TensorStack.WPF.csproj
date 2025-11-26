@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
+    <TargetFrameworks>net9.0-windows10.0.17763.0;net10.0-windows10.0.17763.0</TargetFrameworks>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -66,11 +66,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ColorPicker.dll" PackagePath="lib\$(TargetFramework)">
+    <None Include="ColorPicker.dll" PackagePath="lib/net9.0-windows10.0.17763/">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <Pack>true</Pack>
-    </Content>
+    </None>
+    <None Include="ColorPicker.dll" PackagePath="lib/net10.0-windows10.0.17763/">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
+    </None>
   </ItemGroup>
 
   <!--Nuget Settings-->
@@ -86,7 +91,7 @@
     <None Remove="Icon.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <None Update="README.md">
+    <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
