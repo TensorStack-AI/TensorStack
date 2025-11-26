@@ -31,7 +31,7 @@ More information and examples can be found in the `TensorStack.Extractors` proje
 
 TextGeneration Windows demo application avaliable for testing  **[Text Demo](Examples/TensorStack.Example.TextGeneration)**
 
-<img width="2000" height="410" alt="Image" src="https://github.com/user-attachments/assets/b6fdebf9-0d8a-4d9b-abd8-3911519702ca" />
+<img width="2000" height="410" alt="Image" src="https://github.com/user-attachments/assets/dc7c99e1-cce0-4028-88a1-ced7e9a173ca" />
 
 More information and examples can be found in the `TensorStack.TextGeneration` project **[README](TensorStack.TextGeneration/README.md)**
 
