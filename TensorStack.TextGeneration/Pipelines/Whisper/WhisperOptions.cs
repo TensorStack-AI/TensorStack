@@ -23,7 +23,6 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
 
     public enum TaskType
     {
-        None = 0,
         Translate = 50358,
         Transcribe = 50359
     }

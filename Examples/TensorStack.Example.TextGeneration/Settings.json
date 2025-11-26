@@ -29,12 +29,12 @@
       "Prefixes": [ "Transcribe", "Translate" ],
       "Path": "Models\\Whisper-Tiny",
       "UrlPaths": [
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Tiny/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Tiny/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Tiny/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Tiny/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Tiny/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Tiny/mel_filters.npz?download=true"
       ]
     },
     {
@@ -65,12 +65,12 @@
       "Prefixes": [ "Transcribe", "Translate" ],
       "Path": "Models\\Whisper-Medium",
       "UrlPaths": [
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Medium/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Medium/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Medium/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Medium/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Medium/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Medium/mel_filters.npz?download=true"
       ]
     },
     {
@@ -83,12 +83,12 @@
       "Prefixes": [ "Transcribe", "Translate" ],
       "Path": "Models\\Whisper-Base",
       "UrlPaths": [
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Base/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Base/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Base/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Base/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Base/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Base/mel_filters.npz?download=true"
       ]
     },
     {
@@ -101,12 +101,12 @@
       "Prefixes": [ "Transcribe", "Translate" ],
       "Path": "Models\\Whisper-Large",
       "UrlPaths": [
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/decoder_model_merged.onnx?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/encoder_model.onnx?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/merges.txt?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/tokenizer_config.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/vocab.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Small/mel_filters.npz?download=true"
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Large/decoder_model_merged.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Large/encoder_model.onnx?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Large/merges.txt?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Large/tokenizer_config.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Large/vocab.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Whisper-Large/mel_filters.npz?download=true"
       ]
     }
   ],

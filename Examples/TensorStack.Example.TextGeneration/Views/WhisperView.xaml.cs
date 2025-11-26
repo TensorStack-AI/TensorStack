@@ -9,6 +9,7 @@ using TensorStack.Common.Common;
 using TensorStack.Example.Common;
 using TensorStack.Example.Services;
 using TensorStack.TextGeneration.Common;
+using TensorStack.TextGeneration.Pipelines.Whisper;
 using TensorStack.WPF;
 using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
@@ -32,15 +33,16 @@ namespace TensorStack.Example.Views
         private int _minLength = 20;
         private int _maxLength = 512;
         private EarlyStopping _earlyStopping = EarlyStopping.None;
-        private string _selectedPrefix;
         private bool _isMultipleResult;
         private int _selectedBeam;
         private AudioInput _audioInput;
+        private TaskType _selectedTask = TaskType.Transcribe;
+        private LanguageType _selectedLanguage = LanguageType.EN;
 
-        public WhisperView(Settings settings, NavigationService navigationService, ITextService textService)
+        public WhisperView(Settings settings, NavigationService navigationService, IWhisperService whisperService)
             : base(settings, navigationService)
         {
-            TextService = textService;
+            TextService = whisperService;
             LoadCommand = new AsyncRelayCommand(LoadAsync, CanLoad);
             UnloadCommand = new AsyncRelayCommand(UnloadAsync, CanUnload);
             ExecuteCommand = new AsyncRelayCommand(ExecuteAsync, CanExecute);
@@ -48,20 +50,19 @@ namespace TensorStack.Example.Views
             Progress = new ProgressInfo();
             SelectedModel = settings.AudioToTextModels.First(x => x.IsDefault);
             SelectedDevice = settings.DefaultDevice;
-            Prefixes = new ObservableCollection<string>();
-            TranscribeResults = new ObservableCollection<TranscribeResult>();
+            Results = new ObservableCollection<WhisperResult>();
             InitializeComponent();
         }
 
         public override int Id => (int)View.Whisper;
-        public ITextService TextService { get; }
+        public IWhisperService TextService { get; }
         public AsyncRelayCommand LoadCommand { get; }
         public AsyncRelayCommand UnloadCommand { get; }
         public AsyncRelayCommand ExecuteCommand { get; }
         public AsyncRelayCommand CancelCommand { get; }
         public ProgressInfo Progress { get; set; }
-        public ObservableCollection<string> Prefixes { get; }
-        public ObservableCollection<TranscribeResult> TranscribeResults { get; }
+        public ObservableCollection<WhisperResult> Results { get; }
+        public WhisperResult Result => Results.FirstOrDefault();
 
         public Device SelectedDevice
         {
@@ -141,12 +142,6 @@ namespace TensorStack.Example.Views
             set { SetProperty(ref _audioInput, value); }
         }
 
-        public string SelectedPrefix
-        {
-            get { return _selectedPrefix; }
-            set { SetProperty(ref _selectedPrefix, value); }
-        }
-
         public bool IsMultipleResult
         {
             get { return _isMultipleResult; }
@@ -157,6 +152,18 @@ namespace TensorStack.Example.Views
         {
             get { return _selectedBeam; }
             set { SetProperty(ref _selectedBeam, value); }
+        }
+
+        public TaskType SelectedTask
+        {
+            get { return _selectedTask; }
+            set { SetProperty(ref _selectedTask, value); }
+        }
+
+        public LanguageType SelectedLanguage
+        {
+            get { return _selectedLanguage; }
+            set { SetProperty(ref _selectedLanguage, value); }
         }
 
 
@@ -172,23 +179,12 @@ namespace TensorStack.Example.Views
             if (_selectedDevice is null)
                 device = Settings.DefaultDevice;
 
-            Prefixes.Clear();
-            SelectedPrefix = null;
-
             // Load Model
             await TextService.LoadAsync(_selectedModel, device);
 
             MinLength = SelectedModel.MinLength;
             MaxLength = SelectedModel.MaxLength;
             DiversityLength = SelectedModel.MinLength;
-            if (SelectedModel.Prefixes != null)
-            {
-                foreach (var prefix in SelectedModel.Prefixes)
-                {
-                    Prefixes.Add(prefix);
-                }
-                SelectedPrefix = Prefixes.FirstOrDefault();
-            }
 
             Progress.Clear();
             Debug.WriteLine($"[{GetType().Name}] [LoadAsync] - {Stopwatch.GetElapsedTime(timestamp)}");
@@ -219,10 +215,9 @@ namespace TensorStack.Example.Views
             var timestamp = Stopwatch.GetTimestamp();
             Progress.Indeterminate("Generating Results...");
 
-            // Run Transcribe
-            var transcribeResults = await TextService.ExecuteAsync(new WhisperRequest
+            // Run Whisper
+            var results = await TextService.ExecuteAsync(new WhisperRequest
             {
-                //Prompt = promptText,
                 Beams = _beams,
                 TopK = _topK,
                 Seed = _seed,
@@ -234,14 +229,17 @@ namespace TensorStack.Example.Views
                 NoRepeatNgramSize = 4,
                 DiversityLength = _diversityLength,
                 EarlyStopping = _earlyStopping,
-                AudioInput = _audioInput
+                AudioInput = _audioInput,
+                Language = _selectedLanguage,
+                Task = _selectedTask
             });
 
-            TranscribeResults.Clear();
-            foreach (var transcribeResult in transcribeResults)
+            Results.Clear();
+            foreach (var transcribeResult in results)
             {
-                TranscribeResults.Add(new TranscribeResult($"Beam {transcribeResult.Beam}", transcribeResult.Result, transcribeResult.PenaltyScore));
+                Results.Add(new WhisperResult($"Beam {transcribeResult.Beam}", transcribeResult.Result, transcribeResult.PenaltyScore));
             }
+            NotifyPropertyChanged(nameof(Result));
             SelectedBeam = 0;
 
             Progress.Clear();
@@ -275,7 +273,7 @@ namespace TensorStack.Example.Views
 
             return await DialogService.DownloadAsync($"Download '{SelectedModel.Name}' model?", SelectedModel.UrlPaths, SelectedModel.Path);
         }
-    }
 
-    public record TranscribeResult(string Header, string Content, float Score);
+        public record WhisperResult(string Header, string Content, float Score);
+    }
 }

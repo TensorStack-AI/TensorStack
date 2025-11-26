@@ -141,7 +141,7 @@
                             <CommonControls:ProgressElement  DockPanel.Dock="Bottom" Progress="{Binding Progress}" Margin="0,2,0,0"/>
 
                             <Grid  DockPanel.Dock="Bottom" Margin="0,8,0,0"  Height="240">
-                                <TabControl ItemsSource="{Binding SummaryResults}" SelectedIndex="{Binding SelectedBeam}" Visibility="{Binding IsMultipleResult, Converter={StaticResource BooleanToHiddenConverter}}">
+                                <TabControl ItemsSource="{Binding Results}" SelectedIndex="{Binding SelectedBeam}" Visibility="{Binding IsMultipleResult, Converter={StaticResource BooleanToHiddenConverter}}">
                                     <TabControl.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel>
@@ -159,7 +159,7 @@
 
                                 <DockPanel Margin="0,3,0,0" Visibility="{Binding IsMultipleResult, Converter={StaticResource InverseBooleanToHiddenConverter}}">
                                     <TextBlock DockPanel.Dock="Top" Text="Summary Result" Style="{StaticResource FieldTextBlockStyle}" />
-                                    <TextBox Text="{Binding SummaryResults[0].Content}" TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" />
+                                    <TextBox Text="{Binding Result[0].Content}" TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" />
                                 </DockPanel>
                             </Grid>
 

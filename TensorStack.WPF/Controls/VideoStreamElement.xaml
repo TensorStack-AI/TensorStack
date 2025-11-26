@@ -99,7 +99,7 @@
                         Volume="0"
                         Stretch="Uniform" 
                         LoadedBehavior="Manual" 
-                        UnloadedBehavior="Manual" 
+                        UnloadedBehavior="Close" 
                         ScrubbingEnabled="False" 
                         Loaded="VideoControl_Loaded"
                         MediaOpened="VideoControl_MediaOpened"
@@ -112,7 +112,7 @@
                         Volume="0"
                         Stretch="Uniform"
                         LoadedBehavior="Manual" 
-                        UnloadedBehavior="Manual" 
+                        UnloadedBehavior="Close" 
                         ScrubbingEnabled="False"
                         MouseLeftButtonDown="VideoControl_MouseDown">
                         <MediaElement.Clip>

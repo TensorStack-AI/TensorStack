@@ -3,13 +3,30 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+    xmlns:System="clr-namespace:System;assembly=mscorlib"
     xmlns:local="clr-namespace:TensorStack.Example.Views"
     xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls;assembly=TensorStack.WPF"
+    xmlns:Whisper="clr-namespace:TensorStack.TextGeneration.Pipelines.Whisper;assembly=TensorStack.TextGeneration"
     xmlns:Views="clr-namespace:TensorStack.Example.Views"
     mc:Ignorable="d" 
     d:DesignHeight="450"
     d:DesignWidth="800">
-    <Grid DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:WhisperView}}}">
+    <Views:ViewBase.Resources>
+
+        <ObjectDataProvider x:Key="TaskType" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="Whisper:TaskType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="LanguageType" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="Whisper:LanguageType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+    </Views:ViewBase.Resources>
+<Grid DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:WhisperView}}}">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="1*" />
@@ -54,17 +71,23 @@
 
                             <StackPanel>
                                 <TextBlock Text="Audio Input" Style="{StaticResource FieldTextBlockStyle}" />
-                                <CommonControls:AudioElement Source="{Binding AudioInput, Mode=TwoWay}" Configuration="{Binding Settings}"  />
+                                <CommonControls:AudioElement Source="{Binding AudioInput, Mode=TwoWay}" Configuration="{Binding Settings}" IsReplayEnabled="False" />
                             </StackPanel>
 
                         </StackPanel>
 
                         <!--Advanced-->
                         <StackPanel DockPanel.Dock="Top" IsEnabled="{Binding TextService.IsLoaded}">
-                            <StackPanel Margin="0,4,0,0" Visibility="{Binding Prefixes, Converter={StaticResource EmptyToVisibilityConverter}}">
-                                <TextBlock Text="Task" Style="{StaticResource FieldTextBlockStyle}" />
-                                <ComboBox ItemsSource="{Binding Prefixes}" SelectedItem="{Binding SelectedPrefix}" />
-                            </StackPanel>
+                            <UniformGrid Columns="2" Margin="0,4,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Task" Style="{StaticResource FieldTextBlockStyle}" />
+                                    <ComboBox ItemsSource="{Binding Source={StaticResource TaskType}}" SelectedItem="{Binding SelectedTask}" />
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Language" Style="{StaticResource FieldTextBlockStyle}" />
+                                    <ComboBox ItemsSource="{Binding Source={StaticResource LanguageType}}" SelectedItem="{Binding SelectedLanguage}" />
+                                </StackPanel>
+                            </UniformGrid>
                             <UniformGrid Columns="4" Margin="0,4,0,0">
                                 <StackPanel>
                                     <TextBlock Text="Min Length" Style="{StaticResource FieldTextBlockStyle}" />
@@ -146,7 +169,7 @@
                             <CommonControls:ProgressElement  DockPanel.Dock="Bottom" Progress="{Binding Progress}" Margin="0,2,0,0"/>
 
                             <Grid  DockPanel.Dock="Bottom" >
-                                <TabControl ItemsSource="{Binding TranscribeResults}" SelectedIndex="{Binding SelectedBeam}" Visibility="{Binding IsMultipleResult, Converter={StaticResource BooleanToHiddenConverter}}">
+                                <TabControl ItemsSource="{Binding Results}" SelectedIndex="{Binding SelectedBeam}" Visibility="{Binding IsMultipleResult, Converter={StaticResource BooleanToHiddenConverter}}">
                                     <TabControl.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel>
@@ -163,8 +186,8 @@
                                 </TabControl>
 
                                 <DockPanel Margin="0,3,0,0" Visibility="{Binding IsMultipleResult, Converter={StaticResource InverseBooleanToHiddenConverter}}">
-                                    <TextBlock DockPanel.Dock="Top" Text="Transcribe Result" Style="{StaticResource FieldTextBlockStyle}" />
-                                    <TextBox Text="{Binding TranscribeResults[0].Content}" TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" />
+                                    <TextBlock DockPanel.Dock="Top" Text="Result" Style="{StaticResource FieldTextBlockStyle}" />
+                                    <TextBox Text="{Binding Result.Content}" TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" />
                                 </DockPanel>
                             </Grid>
 

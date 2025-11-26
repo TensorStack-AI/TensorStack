@@ -28,8 +28,9 @@ namespace TensorStack.Example
             // Add WPFCommon
             builder.Services.AddWPFCommon<MainWindow, Settings>(configuration);
 
-         //   builder.Services.AddSingleton<IMediaService, MediaService>();
             builder.Services.AddSingleton<ITextService, TextService>();
+            builder.Services.AddSingleton<IWhisperService, WhisperService>();
+            builder.Services.AddSingleton<ISupertonicService, SupertonicService>();
 
             _appHost = builder.Build();
 

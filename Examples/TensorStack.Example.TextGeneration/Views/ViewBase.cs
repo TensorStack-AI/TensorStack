@@ -1,4 +1,6 @@
-﻿using TensorStack.WPF.Controls;
+﻿using System.Threading.Tasks;
+using TensorStack.Example.Services;
+using TensorStack.WPF.Controls;
 using TensorStack.WPF.Services;
 
 namespace TensorStack.Example.Views

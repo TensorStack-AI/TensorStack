@@ -114,7 +114,7 @@
                         Stretch="Uniform" 
                         LoadedBehavior="Manual" 
                         UnloadedBehavior="Close" 
-                        ScrubbingEnabled="True" 
+                        ScrubbingEnabled="False" 
                         Loaded="VideoControl_Loaded"
                         MediaOpened="VideoControl_MediaOpened"
                         MediaEnded="VideoControl_MediaEnded"
@@ -127,7 +127,7 @@
                         Stretch="Uniform"
                         LoadedBehavior="Manual" 
                         UnloadedBehavior="Close" 
-                        ScrubbingEnabled="True"
+                        ScrubbingEnabled="False"
                         MouseLeftButtonDown="VideoControl_MouseDown">
                         <MediaElement.Clip>
                             <RectangleGeometry Rect="0,0,0,0" />

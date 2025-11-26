@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using TensorStack.Audio;
 using TensorStack.Common;
 using TensorStack.Common.Common;
-using TensorStack.Common.Tensor;
 using TensorStack.Example.Common;
 using TensorStack.Example.Services;
 using TensorStack.WPF;
@@ -29,10 +28,10 @@ namespace TensorStack.Example.Views
         private string _inputText;
         private int _seed;
 
-        public SupertonicView(Settings settings, NavigationService navigationService, ITextService textService)
+        public SupertonicView(Settings settings, NavigationService navigationService, ISupertonicService supertonicService)
             : base(settings, navigationService)
         {
-            TextService = textService;
+            TextService = supertonicService;
             LoadCommand = new AsyncRelayCommand(LoadAsync, CanLoad);
             UnloadCommand = new AsyncRelayCommand(UnloadAsync, CanUnload);
             ExecuteCommand = new AsyncRelayCommand(ExecuteAsync, CanExecute);
@@ -45,7 +44,7 @@ namespace TensorStack.Example.Views
         }
 
         public override int Id => (int)View.Supertonic;
-        public ITextService TextService { get; }
+        public ISupertonicService TextService { get; }
         public AsyncRelayCommand LoadCommand { get; }
         public AsyncRelayCommand UnloadCommand { get; }
         public AsyncRelayCommand ExecuteCommand { get; }

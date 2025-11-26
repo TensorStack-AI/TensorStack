@@ -7,7 +7,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\BSRGAN-2x.onnx",
+      "Path": "Models\\BSRGAN-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/BSRGAN-2x/model.onnx?download=true"
     },
     {
@@ -16,7 +16,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\RealESRGAN-2x.onnx",
+      "Path": "Models\\RealESRGAN-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/RealESRGAN-2x/model.onnx?download=true"
     },
     {
@@ -25,7 +25,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\RealESRGAN-4x.onnx",
+      "Path": "Models\\RealESRGAN-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/RealESRGAN-4x/model.onnx?download=true"
     },
     {
@@ -35,7 +35,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\RealESR-General-4x.onnx",
+      "Path": "Models\\RealESR-General-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/RealESR-General-4x/model.onnx?download=true"
     },
     {
@@ -44,7 +44,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\Swin2SR-Classical-2x.onnx",
+      "Path": "Models\\Swin2SR-Classical-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/Swin2SR-Classical-2x/model.onnx?download=true"
     },
     {
@@ -53,7 +53,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\Swin2SR-Classical-4x.onnx",
+      "Path": "Models\\Swin2SR-Classical-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/Swin2SR-Classical-4x/model.onnx?download=true"
     },
     {
@@ -62,7 +62,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\SwinIR-BSRGAN-4x.onnx",
+      "Path": "Models\\SwinIR-BSRGAN-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/SwinIR-BSRGAN-4x/model.onnx?download=true"
     },
     {
@@ -71,7 +71,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\UltraMix-Smooth-4x.onnx",
+      "Path": "Models\\UltraMix-Smooth-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/UltraMix-Smooth-4x/model.onnx?download=true"
     },
     {
@@ -80,7 +80,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\UltraSharp-4x.onnx",
+      "Path": "Models\\UltraSharp-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/UltraSharp-4x/model.onnx?download=true"
     },
     {
@@ -89,7 +89,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\APISR-RRDB-GAN-2x.onnx",
+      "Path": "Models\\APISR-RRDB-GAN-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/APISR-RRDB-GAN-2x/model.onnx?download=true"
     },
     {
@@ -98,7 +98,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\APISR-GRL-GAN-4x.onnx",
+      "Path": "Models\\APISR-GRL-GAN-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/APISR-GRL-GAN-4x/model.onnx?download=true"
     },
     {
@@ -107,7 +107,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\RealWebPhoto-RGT-4x.onnx",
+      "Path": "Models\\RealWebPhoto-RGT-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/RealWebPhoto-RGT-4x/model.onnx?download=true"
     },
     {
@@ -116,7 +116,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\AnimeSharpV2-ESRGAN-Soft-2x.onnx",
+      "Path": "Models\\AnimeSharpV2-ESRGAN-Soft-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/AnimeSharpV2-ESRGAN-Soft-2x/model.onnx?download=true"
     },
     {
@@ -125,7 +125,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\AnimeSharpV2-MoSR-Sharp-2x.onnx",
+      "Path": "Models\\AnimeSharpV2-MoSR-Sharp-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/AnimeSharpV2-MoSR-Sharp-2x/model.onnx?download=true"
     },
     {
@@ -134,7 +134,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\AnimeSharpV2-MoSR-Soft-2x.onnx",
+      "Path": "Models\\AnimeSharpV2-MoSR-Soft-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/AnimeSharpV2-MoSR-Soft-2x/model.onnx?download=true"
     },
     {
@@ -143,7 +143,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\AnimeSharpV2-RPLKSR-Sharp-2x.onnx",
+      "Path": "Models\\AnimeSharpV2-RPLKSR-Sharp-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/AnimeSharpV2-RPLKSR-Sharp-2x/model.onnx?download=true"
     },
     {
@@ -152,7 +152,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\AnimeSharpV2-RPLKSR-Soft-2x.onnx",
+      "Path": "Models\\AnimeSharpV2-RPLKSR-Soft-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/AnimeSharpV2-RPLKSR-Soft-2x/model.onnx?download=true"
     },
     {
@@ -161,7 +161,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 2,
-      "Path": "Models\\AnimeSharpV3-2x.onnx",
+      "Path": "Models\\AnimeSharpV3-2x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/AnimeSharpV3-2x/model.onnx?download=true"
     },
     {
@@ -170,7 +170,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "ScaleFactor": 4,
-      "Path": "Models\\Swin2SR-RealWorld-BSRGAN-PSN-4x.onnx",
+      "Path": "Models\\Swin2SR-RealWorld-BSRGAN-PSN-4x\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Upscale/Swin2SR-RealWorld-BSRGAN-PSN-4x/model.onnx?download=true"
     }
   ]

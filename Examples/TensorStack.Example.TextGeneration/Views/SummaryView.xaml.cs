@@ -48,7 +48,7 @@ namespace TensorStack.Example.Views
             SelectedModel = settings.TextToTextModels.First(x => x.IsDefault);
             SelectedDevice = settings.DefaultDevice;
             Prefixes = new ObservableCollection<string>();
-            SummaryResults = new ObservableCollection<SummaryResult>();
+            Results = new ObservableCollection<SummaryResult>();
             InitializeComponent();
         }
 
@@ -60,7 +60,8 @@ namespace TensorStack.Example.Views
         public AsyncRelayCommand CancelCommand { get; }
         public ProgressInfo Progress { get; set; }
         public ObservableCollection<string> Prefixes { get; }
-        public ObservableCollection<SummaryResult> SummaryResults { get; }
+        public ObservableCollection<SummaryResult> Results { get; }
+        public SummaryResult Result => Results.FirstOrDefault();
 
         public Device SelectedDevice
         {
@@ -220,7 +221,7 @@ namespace TensorStack.Example.Views
 
             // Run Summary
             var promptText = string.Concat(_selectedPrefix, _promptText);
-            var summaryResults = await TextService.ExecuteAsync(new TextRequest
+            var results = await TextService.ExecuteAsync(new TextRequest
             {
                 Prompt = promptText,
                 Beams = _beams,
@@ -236,11 +237,12 @@ namespace TensorStack.Example.Views
                 EarlyStopping = _earlyStopping,
             });
 
-            SummaryResults.Clear();
-            foreach (var summaryResult in summaryResults)
+            Results.Clear();
+            foreach (var result in results)
             {
-                SummaryResults.Add(new SummaryResult($"Beam {summaryResult.Beam}", summaryResult.Result, summaryResult.PenaltyScore));
+                Results.Add(new SummaryResult($"Beam {result.Beam}", result.Result, result.PenaltyScore));
             }
+            NotifyPropertyChanged(nameof(Result));
             SelectedBeam = 0;
 
             Progress.Clear();
@@ -274,7 +276,7 @@ namespace TensorStack.Example.Views
 
             return await DialogService.DownloadAsync($"Download '{SelectedModel.Name}' model?", SelectedModel.UrlPaths, SelectedModel.Path);
         }
-    }
 
-    public record SummaryResult(string Header, string Content, float Score);
+        public record SummaryResult(string Header, string Content, float Score);
+    }
 }

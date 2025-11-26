@@ -8,7 +8,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "OutputChannels": 1,
-      "Path": "Models\\Canny.onnx",
+      "Path": "Models\\Canny\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/Canny/model.onnx?download=true"
     },
     {
@@ -19,7 +19,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "OutputChannels": 1,
-      "Path": "Models\\SoftEdge.onnx",
+      "Path": "Models\\SoftEdge\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/SoftEdge/model.onnx?download=true"
     },
     {
@@ -31,7 +31,7 @@
       "OutputChannels": 1,
       "OutputNormalization": "MinMaxOneToOne",
       "IsDynamicOutput": true,
-      "Path": "Models\\Depth.onnx",
+      "Path": "Models\\Depth\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/Depth/model.onnx?download=true"
     },
     {
@@ -41,7 +41,7 @@
       "Channels": 3,
       "SampleSize": 0,
       "OutputChannels": 1,
-      "Path": "Models\\LineDrawing.onnx",
+      "Path": "Models\\LineDrawing\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/LineDrawing/model.onnx?download=true"
     },
     {
@@ -53,7 +53,7 @@
       "OutputChannels": 1,
       "IsDynamicOutput": true,
       "OutputNormalization": "MinMaxOneToOne",
-      "Path": "Models\\DepthAnything-Small.onnx",
+      "Path": "Models\\DepthAnything-Small\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/DepthAnything-Small/model.onnx?download=true"
     },
     {
@@ -65,7 +65,7 @@
       "OutputChannels": 1,
       "IsDynamicOutput": true,
       "OutputNormalization": "MinMaxOneToOne",
-      "Path": "Models\\DepthAnything-Base.onnx",
+      "Path": "Models\\DepthAnything-Base\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/DepthAnything-Base/model.onnx?download=true"
     },
     {
@@ -77,7 +77,7 @@
       "OutputChannels": 1,
       "IsDynamicOutput": true,
       "OutputNormalization": "MinMaxOneToOne",
-      "Path": "Models\\DepthAnything-Large.onnx",
+      "Path": "Models\\DepthAnything-Large\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/DepthAnything-Large/model.onnx?download=true"
     },
     {
@@ -87,7 +87,7 @@
       "Channels": 3,
       "SampleSize": 1024,
       "OutputChannels": 1,
-      "Path": "Models\\BiRefNet.onnx",
+      "Path": "Models\\BiRefNet\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/BiRefNet/model.onnx?download=true"
     },
     {
@@ -98,7 +98,7 @@
       "Channels": 3,
       "SampleSize": 1024,
       "OutputChannels": 1,
-      "Path": "Models\\RMBGv1.4.onnx",
+      "Path": "Models\\RMBGv1.4\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/RMBGv1.4/model.onnx?download=true"
     },
     {
@@ -108,7 +108,7 @@
       "Channels": 3,
       "SampleSize": 1024,
       "OutputChannels": 1,
-      "Path": "Models\\RMBGv2.0.onnx",
+      "Path": "Models\\RMBGv2.0\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/RMBGv2.0/model.onnx?download=true"
     },
     {
@@ -118,7 +118,7 @@
       "IsDefault": true,
       "Channels": 3,
       "SampleSize": 640,
-      "Path": "Models\\Pose-Body7.onnx",
+      "Path": "Models\\Pose-Body7\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/Pose-Body7/model.onnx?download=true"
     },
     {
@@ -127,7 +127,7 @@
       "Type": "Pose",
       "Channels": 3,
       "SampleSize": 640,
-      "Path": "Models\\Pose-Coco.onnx",
+      "Path": "Models\\Pose-Coco\\model.onnx",
       "UrlPath": "https://huggingface.co/saddam213/DemoApp/resolve/main/Extractor/Pose-Coco/model.onnx?download=true"
     }
   ]

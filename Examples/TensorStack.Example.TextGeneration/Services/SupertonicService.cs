@@ -3,15 +3,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
 using TensorStack.Common.Pipeline;
+using TensorStack.Common.Tensor;
 using TensorStack.Example.Common;
 using TensorStack.Providers;
 using TensorStack.TextGeneration.Common;
-using TensorStack.TextGeneration.Pipelines.Other;
-using TensorStack.TextGeneration.Pipelines.Phi;
+using TensorStack.TextGeneration.Pipelines.Supertonic;
 
 namespace TensorStack.Example.Services
 {
-    public class TextService : ServiceBase, ITextService
+    public class SupertonicService : ServiceBase, ISupertonicService
     {
         private readonly Settings _settings;
         private IPipeline _currentPipeline;
@@ -21,10 +21,10 @@ namespace TensorStack.Example.Services
         private bool _isExecuting;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TextService"/> class.
+        /// Initializes a new instance of the <see cref="SupertonicService"/> class.
         /// </summary>
         /// <param name="settings">The settings.</param>
-        public TextService(Settings settings)
+        public SupertonicService(Settings settings)
         {
             _settings = settings;
         }
@@ -62,6 +62,10 @@ namespace TensorStack.Example.Services
         public bool CanCancel => _isLoading || _isExecuting;
 
 
+        /// <summary>
+        /// Load the upscale pipeline
+        /// </summary>
+        /// <param name="config">The configuration.</param>
         public async Task LoadAsync(TextModel model, Device device)
         {
             try
@@ -75,19 +79,9 @@ namespace TensorStack.Example.Services
                         await _currentPipeline.UnloadAsync(cancellationToken);
 
                     var provider = device.GetProvider();
-                    var providerCPU = Provider.GetProvider(DeviceType.CPU); // TODO: DirectML not working with decoder
-                    if (model.Type == TextModelType.Phi3)
-                    {
-                        if (!Enum.TryParse<PhiType>(model.Version, true, out var phiType))
-                            throw new ArgumentException("Invalid Phi Version");
-
-                        _currentPipeline = Phi3Pipeline.Create(providerCPU, model.Path, phiType);
-                    }
-                    else if (model.Type == TextModelType.Summary)
-                    {
-                        _currentPipeline = SummaryPipeline.Create(provider, providerCPU, model.Path);
-                    }
+                    _currentPipeline = SupertonicPipeline.Create(model.Path, provider);
                     await Task.Run(() => _currentPipeline.LoadAsync(cancellationToken), cancellationToken);
+
                 }
             }
             catch (OperationCanceledException)
@@ -108,44 +102,25 @@ namespace TensorStack.Example.Services
         /// Execute the pipeline.
         /// </summary>
         /// <param name="options">The options.</param>
-        public async Task<GenerateResult[]> ExecuteAsync(TextRequest options)
+        public async Task<AudioTensor> ExecuteAsync(SupertonicRequest options)
         {
             try
             {
                 IsExecuting = true;
                 using (_cancellationTokenSource = new CancellationTokenSource())
                 {
-                    var pipelineOptions = new GenerateOptions
+                    var pipeline = _currentPipeline as IPipeline<AudioTensor, SupertonicOptions, GenerateProgress>;
+                    var pipelineOptions = new SupertonicOptions
                     {
-                        Prompt = options.Prompt,
+                        TextInput = options.InputText,
+                        VoiceStyle = options.VoiceStyle,
+                        Steps = options.Steps,
+                        Speed = options.Speed,
+                        SilenceDuration = options.SilenceDuration,
                         Seed = options.Seed,
-                        Beams = options.Beams,
-                        TopK = options.TopK,
-                        TopP = options.TopP,
-                        Temperature = options.Temperature,
-                        MaxLength = options.MaxLength,
-                        MinLength = options.MinLength,
-                        NoRepeatNgramSize = options.NoRepeatNgramSize,
-                        LengthPenalty = options.LengthPenalty,
-                        DiversityLength = options.DiversityLength,
-                        EarlyStopping = options.EarlyStopping
                     };
 
-                    var pipelineResult = await Task.Run(async () =>
-                    {
-                        if (options.Beams == 0)
-                        {
-                            // Greedy Search
-                            var greedyPipeline = _currentPipeline as IPipeline<GenerateResult, GenerateOptions, GenerateProgress>;
-                            return [await greedyPipeline.RunAsync(pipelineOptions, cancellationToken: _cancellationTokenSource.Token)];
-                        }
-
-                        // Beam Search
-                        var beamSearchPipeline = _currentPipeline as IPipeline<GenerateResult[], SearchOptions, GenerateProgress>;
-                        return await beamSearchPipeline.RunAsync(new SearchOptions(pipelineOptions), cancellationToken: _cancellationTokenSource.Token);
-                    });
-
-                    return pipelineResult;
+                    return await pipeline.RunAsync(pipelineOptions, cancellationToken: _cancellationTokenSource.Token);
                 }
             }
             finally
@@ -184,7 +159,7 @@ namespace TensorStack.Example.Services
     }
 
 
-    public interface ITextService
+    public interface ISupertonicService
     {
         bool IsLoaded { get; }
         bool IsLoading { get; }
@@ -193,24 +168,18 @@ namespace TensorStack.Example.Services
         Task LoadAsync(TextModel model, Device device);
         Task UnloadAsync();
         Task CancelAsync();
-        Task<GenerateResult[]> ExecuteAsync(TextRequest options);
+        Task<AudioTensor> ExecuteAsync(SupertonicRequest options);
     }
 
 
-    public record TextRequest : ITransformerRequest
+    public record SupertonicRequest
     {
-        public string Prompt { get; set; }
-        public int MinLength { get; set; } = 20;
-        public int MaxLength { get; set; } = 200;
-        public int NoRepeatNgramSize { get; set; } = 3;
+        public string InputText { get; set; }
+        public string VoiceStyle { get; set; }
+        public int Steps { get; set; } = 5;
+        public float Speed { get; set; } = 1f;
+        public float SilenceDuration { get; set; } = 0.3f;
         public int Seed { get; set; }
-        public int Beams { get; set; } = 1;
-        public int TopK { get; set; } = 1;
-        public float TopP { get; set; } = 0.9f;
-        public float Temperature { get; set; } = 1.0f;
-        public float LengthPenalty { get; set; } = 1.0f;
-        public EarlyStopping EarlyStopping { get; set; }
-        public int DiversityLength { get; set; } = 5;
     }
 
 }
