@@ -1,18 +1,18 @@
-# Upscaler Demo
-TensorStack Upscale Demo, a simple WPF application showcasing the capabilities of [TensorStack.Upscaler](https://github.com/TensorStack-AI/TensorStack/tree/master/TensorStack.Upscaler) project.
+# Text Demo
+TensorStack Text Demo, a simple WPF application showcasing the capabilities of [TensorStack.TextGeneration](https://github.com/TensorStack-AI/TensorStack/tree/master/TensorStack.TextGeneration) project.
 
 ## Download
-[Upscaler Demo v0.1.17 (DirectML)](https://github.com/TensorStack-AI/TensorStack/releases/download/v0.1.17/UpscaleDemo_DirectML.zip)
+[Text Demo v0.1.84 (DirectML)](https://github.com/TensorStack-AI/TensorStack/releases/download/v0.1.84/TextDemo_v0.1.84.zip)
 
-## Upscale Image
-<img src="../../Assets/Examples/UpscaleImage.PNG"/> 
-
----
-
-## Upscale Video
-<img src="../../Assets/Examples/UpscaleVideo.PNG"/> 
+## Text Summary
+<img src="../../Assets/Examples/Summary.PNG"/> 
 
 ---
 
-## Video Interpolation
-<img src="../../Assets/Examples/UpscaleInterpolation.PNG"/> 
+## Whisper STT
+<img src="../../Assets/Examples/Whisper.PNG"/> 
+
+---
+
+## Supertonic TTS
+<img src="../../Assets/Examples/Supertonic.PNG"/> 

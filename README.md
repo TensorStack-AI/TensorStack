@@ -25,7 +25,17 @@ More information and examples can be found in the `TensorStack.Extractors` proje
 
 ---
 
+### TensorStack.TextGeneration
+[![TextGeneration Badge](https://img.shields.io/nuget/v/TensorStack.TextGeneration?color=4bc51e&label=TensorStack.TextGeneration)](https://www.nuget.org/packages/TensorStack.TextGeneration)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.TextGeneration?label=Nuget%20Downloads)
 
+TextGeneration Windows demo application avaliable for testing  **[Text Demo](Examples/TensorStack.Example.TextGeneration)**
+
+<img width="2000" height="410" alt="Image" src="https://github.com/user-attachments/assets/b6fdebf9-0d8a-4d9b-abd8-3911519702ca" />
+
+More information and examples can be found in the `TensorStack.TextGeneration` project **[README](TensorStack.TextGeneration/README.md)**
+
+---
 
 
 
@@ -117,13 +127,7 @@ More information and examples can be found in the `TensorStack.StableDiffusion` 
 
 ---
 
-### TensorStack.TextGeneration
-[![TextGeneration Badge](https://img.shields.io/nuget/v/TensorStack.TextGeneration?color=4bc51e&label=TensorStack.TextGeneration)](https://www.nuget.org/packages/TensorStack.TextGeneration)
-![Nuget](https://img.shields.io/nuget/dt/TensorStack.TextGeneration?label=Nuget%20Downloads)
 
-More information and examples can be found in the `TensorStack.TextGeneration` project **[README](TensorStack.TextGeneration/README.md)**
-
----
 
 ### TensorStack.Video
 [![Video Badge](https://img.shields.io/nuget/v/TensorStack.Video?color=4bc51e&label=TensorStack.Video)](https://www.nuget.org/packages/TensorStack.Video)
