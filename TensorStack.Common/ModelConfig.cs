@@ -1,5 +1,6 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace TensorStack.Common
@@ -13,6 +14,9 @@ namespace TensorStack.Common
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool IsOptimizationSupported { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public Dictionary<string, string> SessionOptions { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ExecutionProvider ExecutionProvider
