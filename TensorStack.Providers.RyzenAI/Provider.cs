@@ -1,4 +1,4 @@
-﻿// Copyright (c) TensorStack. All rights reserved.
+﻿// Copyright (c) TensorStack, Advanced Micro Devices. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
 using System.Collections.Generic;
@@ -8,11 +8,13 @@ using TensorStack.Common;
 
 namespace TensorStack.Providers
 {
+    /// <summary>
+    /// RyzenAI NPU provider with DirectML GPU fallback
+    /// </summary>
     public static class Provider
     {
         private static bool _isInitialized;
-        private const string _providerName = "DMLExecutionProvider";
-
+        private const string _providerName = "RyzenAIExecutionProvider";
 
         /// <summary>
         /// Initializes the Provider 
@@ -23,7 +25,7 @@ namespace TensorStack.Providers
                 return;
 
             _isInitialized = true;
-            DeviceManager.Initialize(_providerName);
+            DeviceManager.Initialize("DMLExecutionProvider");
         }
 
 
@@ -37,7 +39,7 @@ namespace TensorStack.Providers
                 return;
 
             _isInitialized = true;
-            DeviceManager.Initialize(environmentOptions, _providerName);
+            DeviceManager.Initialize(environmentOptions, "DMLExecutionProvider");
         }
 
 
@@ -73,6 +75,9 @@ namespace TensorStack.Providers
         /// <param name="deviceType">Type of the device.</param>
         public static Device GetDevice(DeviceType deviceType)
         {
+            if (deviceType == DeviceType.NPU)
+                return GetDevices().FirstOrDefault(x => x.Type == DeviceType.GPU);
+
             return GetDevices().FirstOrDefault(x => x.Type == deviceType);
         }
 
@@ -84,12 +89,15 @@ namespace TensorStack.Providers
         /// <param name="deviceId">The device identifier.</param>
         public static Device GetDevice(DeviceType deviceType, int deviceId)
         {
+            if (deviceType == DeviceType.NPU)
+                return GetDevices().FirstOrDefault(x => x.Type == DeviceType.GPU && x.DeviceId == deviceId);
+
             return GetDevices().FirstOrDefault(x => x.Type == deviceType && x.DeviceId == deviceId);
         }
 
 
         /// <summary>
-        /// Gets the DirectML provider this DeviceType.
+        /// Gets the RyzenAI provider this DeviceType.
         /// </summary>
         /// <param name="optimizationLevel">The optimization level.</param>
         public static ExecutionProvider GetProvider(GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
@@ -99,7 +107,7 @@ namespace TensorStack.Providers
 
 
         /// <summary>
-        /// Gets the DirectML provider this DeviceType.
+        /// Gets the RyzenAI provider this DeviceType.
         /// </summary>
         /// <param name="deviceType">Type of the device.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
@@ -110,7 +118,7 @@ namespace TensorStack.Providers
 
 
         /// <summary>
-        /// Gets the DirectML provider this DeviceType, DeviceId.
+        /// Gets the RyzenAI provider this DeviceType, DeviceId.
         /// </summary>
         /// <param name="deviceType">Type of the device.</param>
         /// <param name="deviceId">The device identifier.</param>
@@ -122,7 +130,7 @@ namespace TensorStack.Providers
 
 
         /// <summary>
-        /// Gets the DirectML provider for this Device.
+        /// Gets the RyzenAI provider for this Device.
         /// </summary>
         /// <param name="device">The device.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
@@ -130,17 +138,15 @@ namespace TensorStack.Providers
         {
             if (device == null)
                 return default;
-            else if (device.Type == DeviceType.NPU)
-                return CreateRyzenProvider(device.DeviceId, optimizationLevel);
             else if (device.Type == DeviceType.CPU)
                 return CreateCPUProvider(optimizationLevel);
 
-            return CreateDMLProvider(device.DeviceId, optimizationLevel);
+            return CreateRyzenProvider(device.DeviceId, optimizationLevel);
         }
 
 
         /// <summary>
-        /// Gets the DirectML provider for this DeviceId.
+        /// Gets the RyzenAI provider for this DeviceId.
         /// </summary>
         /// <param name="deviceId">The device identifier.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
@@ -160,29 +166,6 @@ namespace TensorStack.Providers
 
                 sessionOptions.AddSessionConfigEntries(configuration.SessionOptions);
                 sessionOptions.RegisterCustomOpLibrary("onnx_custom_ops.dll");
-                sessionOptions.AppendExecutionProvider_CPU();
-                return sessionOptions;
-            });
-        }
-
-
-        /// <summary>
-        /// Gets the DirectML provider for this DeviceId.
-        /// </summary>
-        /// <param name="deviceId">The device identifier.</param>
-        /// <param name="optimizationLevel">The optimization level.</param>
-        private static ExecutionProvider CreateDMLProvider(int deviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
-        {
-            var memoryInfo = new OrtMemoryInfo(OrtMemoryInfo.allocatorCPU, OrtAllocatorType.DeviceAllocator, deviceId, OrtMemType.Default);
-            return new ExecutionProvider(_providerName, memoryInfo, configuration =>
-            {
-                var sessionOptions = new SessionOptions
-                {
-                    GraphOptimizationLevel = optimizationLevel
-                };
-
-                sessionOptions.AddSessionConfigEntries(configuration.SessionOptions);
-                sessionOptions.AppendExecutionProvider_DML(deviceId);
                 sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
             });
