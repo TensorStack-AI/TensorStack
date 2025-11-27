@@ -18,6 +18,7 @@
     <Product>$(AssemblyName)</Product>
     <Description></Description>
     <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Description>Core library for .NET handling tensors, pipelines, and ONNX model/session management.</Description>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">

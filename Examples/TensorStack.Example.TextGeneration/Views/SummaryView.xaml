@@ -159,7 +159,7 @@
 
                                 <DockPanel Margin="0,3,0,0" Visibility="{Binding IsMultipleResult, Converter={StaticResource InverseBooleanToHiddenConverter}}">
                                     <TextBlock DockPanel.Dock="Top" Text="Summary Result" Style="{StaticResource FieldTextBlockStyle}" />
-                                    <TextBox Text="{Binding Result[0].Content}" TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" />
+                                    <TextBox Text="{Binding Result.Content}" TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" />
                                 </DockPanel>
                             </Grid>
 
