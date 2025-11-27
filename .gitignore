@@ -351,6 +351,10 @@ TensorStack.Diffusers/*
 TensorStudio/*
 /TensorStackFull.sln
 
+TensorStack.Providers.RyzenAI/ryzen_mm.dll
+TensorStack.Providers.RyzenAI/ryzenai_onnx_utils.dll
+TensorStack.Providers.RyzenAI/onnx_custom_ops.dll
+
 Examples/TensorStack.Example.Upscaler/Models/*.onnx
 Examples/TensorStack.Example.Extractors/Models/*.onnx
 

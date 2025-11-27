@@ -34,6 +34,9 @@ dotnet pack TensorStack.Providers.CUDA/TensorStack.Providers.CUDA.csproj -c Rele
 dotnet build TensorStack.Providers.DML/TensorStack.Providers.DML.csproj -c Release
 dotnet pack TensorStack.Providers.DML/TensorStack.Providers.DML.csproj -c Release
 
+dotnet build TensorStack.Providers.RyzenAI/TensorStack.Providers.RyzenAI.csproj -c Release
+dotnet pack TensorStack.Providers.RyzenAI/TensorStack.Providers.RyzenAI.csproj -c Release
+
 dotnet build TensorStack.Extractors/TensorStack.Extractors.csproj -c Release
 dotnet pack TensorStack.Extractors/TensorStack.Extractors.csproj -c Release
 

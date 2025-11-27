@@ -152,6 +152,8 @@ namespace TensorStack.Providers
                     EnableMemoryPattern = true,
                     GraphOptimizationLevel = optimizationLevel
                 };
+
+                sessionOptions.AddSessionConfigEntries(configuration.SessionOptions);
                 sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
             });

@@ -158,14 +158,7 @@ namespace TensorStack.Providers
                 if (Directory.Exists(modelCache))
                     sessionOptions.AddSessionConfigEntry("dd_cache", modelCache);
 
-                if (!configuration.SessionOptions.IsNullOrEmpty())
-                {
-                    foreach (var sessionOption in configuration.SessionOptions)
-                    {
-                        sessionOptions.AddSessionConfigEntry(sessionOption.Key, sessionOption.Value);
-                    }
-                }
-
+                sessionOptions.AddSessionConfigEntries(configuration.SessionOptions);
                 sessionOptions.RegisterCustomOpLibrary("onnx_custom_ops.dll");
                 sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
@@ -188,6 +181,7 @@ namespace TensorStack.Providers
                     GraphOptimizationLevel = optimizationLevel
                 };
 
+                sessionOptions.AddSessionConfigEntries(configuration.SessionOptions);
                 sessionOptions.AppendExecutionProvider_DML(deviceId);
                 sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
@@ -210,6 +204,8 @@ namespace TensorStack.Providers
                     EnableMemoryPattern = true,
                     GraphOptimizationLevel = optimizationLevel
                 };
+
+                sessionOptions.AddSessionConfigEntries(configuration.SessionOptions);
                 sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
             });

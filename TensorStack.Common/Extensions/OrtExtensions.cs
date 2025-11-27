@@ -2,6 +2,7 @@
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using TensorStack.Common.Tensor;
 using OrtType = Microsoft.ML.OnnxRuntime.Tensors.TensorElementType;
@@ -494,6 +495,18 @@ namespace TensorStack.Common
             catch (Exception)
             {
                 throw new OperationCanceledException();
+            }
+        }
+
+
+        public static void AddSessionConfigEntries(this SessionOptions options, IDictionary<string, string> sessionOptions)
+        {
+            if (sessionOptions.IsNullOrEmpty())
+                return;
+
+            foreach (var sessionOption in sessionOptions)
+            {
+                options.AddSessionConfigEntry(sessionOption.Key, sessionOption.Value);
             }
         }
     }
