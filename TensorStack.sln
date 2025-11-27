@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.TextGeneration"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject
+		BuildDemos.bat = BuildDemos.bat
+		BuildRelease.bat = BuildRelease.bat
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
@@ -49,6 +51,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Example.Extractors", "Examples\TensorStack.Example.Extractors\TensorStack.Example.Extractors.csproj", "{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Example.TextGeneration", "Examples\TensorStack.Example.TextGeneration\TensorStack.Example.TextGeneration.csproj", "{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.RyzenAI", "TensorStack.Providers.RyzenAI\TensorStack.Providers.RyzenAI.csproj", "{93621B62-037D-44FA-9FA5-7A9A5566F7FE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -218,6 +222,14 @@ Global
 		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
 		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Debug_CUDA|Any CPU.ActiveCfg = Debug|Any CPU
+		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Debug_CUDA|Any CPU.Build.0 = Debug|Any CPU
+		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Release_CUDA|Any CPU.ActiveCfg = Release|Any CPU
+		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
+		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

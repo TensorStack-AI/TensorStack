@@ -118,14 +118,14 @@ namespace TensorStack.Providers
 
 
         /// <summary>
-        /// Gets the RyzenAI provider this DeviceType, DeviceId.
+        /// Gets the RyzenAI provider for NPU if supported, else DirectML GPU fallback.
         /// </summary>
         /// <param name="deviceType">Type of the device.</param>
         /// <param name="deviceId">The device identifier.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
-        public static ExecutionProvider GetProvider(DeviceType deviceType, int deviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
+        public static ExecutionProvider GetProvider(DeviceType deviceType, int fallbackDeviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
         {
-            return GetDevice(deviceType, deviceId).GetProvider(optimizationLevel);
+            return GetDevice(deviceType, fallbackDeviceId).GetProvider(optimizationLevel);
         }
 
 
@@ -146,13 +146,13 @@ namespace TensorStack.Providers
 
 
         /// <summary>
-        /// Gets the RyzenAI provider for this DeviceId.
+        /// Gets the RyzenAI provider for NPU if supported, else DirectML fallback.
         /// </summary>
-        /// <param name="deviceId">The device identifier.</param>
+        /// <param name="fallbackDeviceId">The fallback device identifier.</param>
         /// <param name="optimizationLevel">The optimization level.</param>
-        private static ExecutionProvider CreateRyzenProvider(int deviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
+        private static ExecutionProvider CreateRyzenProvider(int fallbackDeviceId, GraphOptimizationLevel optimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL)
         {
-            var memoryInfo = new OrtMemoryInfo(OrtMemoryInfo.allocatorCPU, OrtAllocatorType.DeviceAllocator, deviceId, OrtMemType.Default);
+            var memoryInfo = new OrtMemoryInfo(OrtMemoryInfo.allocatorCPU, OrtAllocatorType.DeviceAllocator, fallbackDeviceId, OrtMemType.Default);
             return new ExecutionProvider(_providerName, memoryInfo, configuration =>
             {
                 var sessionOptions = new SessionOptions
@@ -166,6 +166,7 @@ namespace TensorStack.Providers
 
                 sessionOptions.AddSessionConfigEntries(configuration.SessionOptions);
                 sessionOptions.RegisterCustomOpLibrary("onnx_custom_ops.dll");
+                sessionOptions.AppendExecutionProvider_DML();
                 sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
             });
