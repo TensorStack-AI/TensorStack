@@ -168,7 +168,6 @@ namespace TensorStack.Providers
 
                 sessionOptions.RegisterCustomOpLibrary("onnx_custom_ops.dll");
                 sessionOptions.AppendExecutionProvider_CPU();
-                sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
             });
         }
