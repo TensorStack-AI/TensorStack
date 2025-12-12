@@ -116,7 +116,7 @@
       "IsDefault": true,
       "Type": "Supertonic",
       "MaxLength": 512,
-      "Prefixes": [ "Female1","Male1", "Female2",  "Male2" ],
+      "Prefixes": [ "Female1", "Female2", "Female3", "Female4", "Female5", "Male1", "Male2", "Male3", "Male4", "Male5" ],
       "Path": "Models\\Supertonic",
       "UrlPaths": [
         "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/duration_predictor.onnx?download=true",
@@ -126,8 +126,14 @@
         "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/vocoder.onnx?download=true",
         "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Female1.json?download=true",
         "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Female2.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Female3.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Female4.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Female5.json?download=true",
         "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Male1.json?download=true",
-        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Male2.json?download=true"
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Male2.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Male3.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Male4.json?download=true",
+        "https://huggingface.co/saddam213/DemoApp/resolve/main/Text/Supertonic/voice_styles/Male5.json?download=true"
       ]
     }
   ]
