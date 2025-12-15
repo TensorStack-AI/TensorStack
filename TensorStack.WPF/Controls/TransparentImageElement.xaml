@@ -14,6 +14,6 @@
             Width="{Binding ActualWidth, ElementName=ImageControl}"
             Height="{Binding ActualHeight, ElementName=ImageControl}"
             Fill="{StaticResource CheckerBrush}" Visibility="{Binding Source, Converter={StaticResource NullVisibilityConverter}}" />
-        <Image x:Name="ImageControl" Source="{Binding Source}" Stretch="{Binding Stretch}" />
+        <Image x:Name="ImageControl" Stretch="{Binding Stretch}" />
     </Grid>
 </CommonControls:BaseControl>

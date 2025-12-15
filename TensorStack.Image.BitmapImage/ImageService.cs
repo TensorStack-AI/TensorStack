@@ -8,15 +8,15 @@ namespace TensorStack.Image
     public static class ImageService
     {
         const string RotationQuery = "System.Photo.Orientation";
-   
+
         /// <summary>
         /// Loads image from file.
         /// </summary>
         /// <param name="fileName">Name of the file.</param>
         /// <returns>BitmapSource.</returns>
-        public static BitmapSource LoadFromFile(string fileName)
+        public static BitmapSource LoadFromFile(string fileName, int decodePixelWidth = 0, int decodePixelHeight = 0)
         {
-            return Load(fileName);
+            return Load(fileName, decodePixelWidth, decodePixelHeight);
         }
 
 
@@ -24,9 +24,9 @@ namespace TensorStack.Image
         /// Load as an asynchronous operation.
         /// </summary>
         /// <param name="filePath">The file path.</param>
-        public static async Task<WriteableBitmap> LoadFromFileAsync(string filePath)
+        public static async Task<WriteableBitmap> LoadFromFileAsync(string filePath, int decodePixelWidth = 0, int decodePixelHeight = 0)
         {
-            return await Task.Run(() => Load(filePath));
+            return await Task.Run(() => Load(filePath, decodePixelWidth, decodePixelHeight));
         }
 
 
@@ -37,7 +37,7 @@ namespace TensorStack.Image
         /// <returns>WriteableBitmap.</returns>
         /// <exception cref="System.ArgumentNullException">filePath</exception>
         /// <exception cref="System.IO.FileNotFoundException">The file '{filePath}' does not exist.</exception>
-        internal static WriteableBitmap Load(string filePath)
+        internal static WriteableBitmap Load(string filePath, int decodePixelWidth = 0, int decodePixelHeight = 0)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(nameof(filePath));
@@ -48,6 +48,10 @@ namespace TensorStack.Image
             var rotation = GetRotation(imageUri);
             var bitmapSource = new BitmapImage();
             bitmapSource.BeginInit();
+            if (decodePixelWidth > 0)
+                bitmapSource.DecodePixelWidth = decodePixelWidth;
+            if (decodePixelHeight > 0)
+                bitmapSource.DecodePixelHeight = decodePixelHeight;
             bitmapSource.Rotation = rotation;
             bitmapSource.UriSource = new Uri(filePath);
             bitmapSource.CacheOption = BitmapCacheOption.OnLoad;

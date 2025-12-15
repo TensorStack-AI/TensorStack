@@ -80,10 +80,10 @@
                     <Image Source="{Binding Placeholder, TargetNullValue={StaticResource PlaceholderImage}}" Visibility="{Binding Source, Converter={StaticResource InverseNullVisibilityConverter}}" Stretch="Uniform" IsHitTestVisible="False"/>
 
                     <!--Source-->
-                    <CommonControls:TransparentImageElement x:Name="ImageControl" Source="{Binding Source.Image}" Stretch="Uniform" />
+                    <CommonControls:TransparentImageElement x:Name="ImageControl" BitmapSource="{Binding Source.Image}" Stretch="Uniform" />
 
                     <!--Overlay-->
-                    <CommonControls:TransparentImageElement x:Name="ImageOverlayControl" Source="{Binding OverlaySource.Image}" Stretch="Uniform" >
+                    <CommonControls:TransparentImageElement x:Name="ImageOverlayControl" BitmapSource="{Binding OverlaySource.Image}" Stretch="Uniform" >
                         <CommonControls:TransparentImageElement.Clip>
                             <RectangleGeometry Rect="0,0,0,0" />
                         </CommonControls:TransparentImageElement.Clip>
