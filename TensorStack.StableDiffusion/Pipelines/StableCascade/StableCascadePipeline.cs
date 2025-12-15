@@ -32,6 +32,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableCascade
         public async Task<ImageTensor> RunAsync(GenerateOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             ValidateOptions(options);
+            await CheckPipelineState(options);
 
             var prompt = await CreatePromptAsync(options, cancellationToken);
 
