@@ -5,10 +5,6 @@
 [![Upscaler Badge](https://img.shields.io/nuget/v/TensorStack.Upscaler?color=4bc51e&label=TensorStack.Upscaler)](https://www.nuget.org/packages/TensorStack.Upscaler)
 ![Nuget](https://img.shields.io/nuget/dt/TensorStack.Upscaler?label=Nuget%20Downloads)
 
-Upscaler Windows demo application avaliable for testing  **[Upscaler Demo](Examples/TensorStack.Example.Upscaler)**
-
-<img width="2000" height="439" alt="Image" src="https://github.com/user-attachments/assets/04481a95-cbfd-40a5-8595-3c469e669ecc" />
-
 More information and examples can be found in the `TensorStack.Upscaler` project **[README](TensorStack.Upscaler/README.md)**
 
 ---
@@ -17,10 +13,6 @@ More information and examples can be found in the `TensorStack.Upscaler` project
 [![Upscaler Badge](https://img.shields.io/nuget/v/TensorStack.Extractors?color=4bc51e&label=TensorStack.Extractors)](https://www.nuget.org/packages/TensorStack.Extractors)
 ![Nuget](https://img.shields.io/nuget/dt/TensorStack.Extractors?label=Nuget%20Downloads)
 
-Extractor Windows demo application avaliable for testing  **[Extractor Demo](Examples/TensorStack.Example.Extractors)**
-
-<img width="2000" height="983" alt="Image" src="https://github.com/user-attachments/assets/880654eb-e811-4739-a11c-0f87458718c0" />
-
 More information and examples can be found in the `TensorStack.Extractors` project **[README](TensorStack.Extractors/README.md)**
 
 ---
@@ -28,10 +20,6 @@ More information and examples can be found in the `TensorStack.Extractors` proje
 ### TensorStack.TextGeneration
 [![TextGeneration Badge](https://img.shields.io/nuget/v/TensorStack.TextGeneration?color=4bc51e&label=TensorStack.TextGeneration)](https://www.nuget.org/packages/TensorStack.TextGeneration)
 ![Nuget](https://img.shields.io/nuget/dt/TensorStack.TextGeneration?label=Nuget%20Downloads)
-
-TextGeneration Windows demo application avaliable for testing  **[Text Demo](Examples/TensorStack.Example.TextGeneration)**
-
-<img width="2000" height="410" alt="Image" src="https://github.com/user-attachments/assets/dc7c99e1-cce0-4028-88a1-ced7e9a173ca" />
 
 More information and examples can be found in the `TensorStack.TextGeneration` project **[README](TensorStack.TextGeneration/README.md)**
 

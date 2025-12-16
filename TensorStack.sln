@@ -19,17 +19,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Upscaler", "Ten
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Extractors", "TensorStack.Extractors\TensorStack.Extractors.csproj", "{2D4CFD8B-DCA3-4231-838E-EA0B4CAC8D73}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{F602C332-00D7-41C8-92C3-D22AFA722A41}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.WPF", "TensorStack.WPF\TensorStack.WPF.csproj", "{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Common", "TensorStack.Common\TensorStack.Common.csproj", "{5B6FD5FC-8D38-4453-A17A-7038FC717328}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.TextGeneration", "TensorStack.TextGeneration\TensorStack.TextGeneration.csproj", "{F15D8B39-0CD0-446E-80A5-145214860368}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject
-		BuildDemos.bat = BuildDemos.bat
 		BuildRelease.bat = BuildRelease.bat
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
@@ -45,14 +40,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.CUDA", "TensorStack.Providers.CUDA\TensorStack.Providers.CUDA.csproj", "{1D836ABF-9249-4ABB-ADC5-3E657DF8386C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.CPU", "TensorStack.Providers.CPU\TensorStack.Providers.CPU.csproj", "{EC5602DD-9237-460C-8681-64A619293D59}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Example.Upscaler", "Examples\TensorStack.Example.Upscaler\TensorStack.Example.Upscaler.csproj", "{B87F1EA1-C920-43A9-850C-816F979639F0}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Example.Extractors", "Examples\TensorStack.Example.Extractors\TensorStack.Example.Extractors.csproj", "{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Example.TextGeneration", "Examples\TensorStack.Example.TextGeneration\TensorStack.Example.TextGeneration.csproj", "{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.RyzenAI", "TensorStack.Providers.RyzenAI\TensorStack.Providers.RyzenAI.csproj", "{93621B62-037D-44FA-9FA5-7A9A5566F7FE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -126,14 +113,6 @@ Global
 		{2D4CFD8B-DCA3-4231-838E-EA0B4CAC8D73}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
 		{2D4CFD8B-DCA3-4231-838E-EA0B4CAC8D73}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D4CFD8B-DCA3-4231-838E-EA0B4CAC8D73}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Debug_CUDA|Any CPU.ActiveCfg = Debug|Any CPU
-		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Debug_CUDA|Any CPU.Build.0 = Debug|Any CPU
-		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Release_CUDA|Any CPU.ActiveCfg = Release|Any CPU
-		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
-		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4B70C1C3-8814-45A0-8D03-4C82BC0DE3CF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5B6FD5FC-8D38-4453-A17A-7038FC717328}.Debug_CUDA|Any CPU.ActiveCfg = Debug|Any CPU
 		{5B6FD5FC-8D38-4453-A17A-7038FC717328}.Debug_CUDA|Any CPU.Build.0 = Debug|Any CPU
 		{5B6FD5FC-8D38-4453-A17A-7038FC717328}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -198,46 +177,9 @@ Global
 		{EC5602DD-9237-460C-8681-64A619293D59}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
 		{EC5602DD-9237-460C-8681-64A619293D59}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC5602DD-9237-460C-8681-64A619293D59}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B87F1EA1-C920-43A9-850C-816F979639F0}.Debug_CUDA|Any CPU.ActiveCfg = Debug_CUDA|Any CPU
-		{B87F1EA1-C920-43A9-850C-816F979639F0}.Debug_CUDA|Any CPU.Build.0 = Debug_CUDA|Any CPU
-		{B87F1EA1-C920-43A9-850C-816F979639F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B87F1EA1-C920-43A9-850C-816F979639F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B87F1EA1-C920-43A9-850C-816F979639F0}.Release_CUDA|Any CPU.ActiveCfg = Release_CUDA|Any CPU
-		{B87F1EA1-C920-43A9-850C-816F979639F0}.Release_CUDA|Any CPU.Build.0 = Release_CUDA|Any CPU
-		{B87F1EA1-C920-43A9-850C-816F979639F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B87F1EA1-C920-43A9-850C-816F979639F0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}.Debug_CUDA|Any CPU.ActiveCfg = Debug_CUDA|Any CPU
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}.Debug_CUDA|Any CPU.Build.0 = Debug_CUDA|Any CPU
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}.Release_CUDA|Any CPU.ActiveCfg = Release_CUDA|Any CPU
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}.Release_CUDA|Any CPU.Build.0 = Release_CUDA|Any CPU
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Debug_CUDA|Any CPU.ActiveCfg = Debug|Any CPU
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Debug_CUDA|Any CPU.Build.0 = Debug|Any CPU
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Release_CUDA|Any CPU.ActiveCfg = Release|Any CPU
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88}.Release|Any CPU.Build.0 = Release|Any CPU
-		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Debug_CUDA|Any CPU.ActiveCfg = Debug|Any CPU
-		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Debug_CUDA|Any CPU.Build.0 = Debug|Any CPU
-		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Release_CUDA|Any CPU.ActiveCfg = Release|Any CPU
-		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
-		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{93621B62-037D-44FA-9FA5-7A9A5566F7FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{B87F1EA1-C920-43A9-850C-816F979639F0} = {F602C332-00D7-41C8-92C3-D22AFA722A41}
-		{39290C93-F6FE-E325-9C13-B4AFFE7BD2C7} = {F602C332-00D7-41C8-92C3-D22AFA722A41}
-		{0B9E97D9-76FA-43BF-8217-7DBE5536EB88} = {F602C332-00D7-41C8-92C3-D22AFA722A41}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5044065A-9313-45F6-B931-A7B7DBD9E91B}
