@@ -45,3 +45,6 @@ dotnet pack TensorStack.TextGeneration/TensorStack.TextGeneration.csproj -c Rele
 
 dotnet build TensorStack.StableDiffusion/TensorStack.StableDiffusion.csproj -c Release
 dotnet pack TensorStack.StableDiffusion/TensorStack.StableDiffusion.csproj -c Release
+
+dotnet build TensorStack.Python/TensorStack.Python.csproj -c Release
+dotnet pack TensorStack.Python/TensorStack.Python.csproj -c Release

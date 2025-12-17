@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.CUDA"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Providers.CPU", "TensorStack.Providers.CPU\TensorStack.Providers.CPU.csproj", "{EC5602DD-9237-460C-8681-64A619293D59}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TensorStack.Python", "TensorStack.Python\TensorStack.Python.csproj", "{A8E54E85-1A1C-7E88-F163-4B89715D12F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_CUDA|Any CPU = Debug_CUDA|Any CPU
@@ -177,6 +179,14 @@ Global
 		{EC5602DD-9237-460C-8681-64A619293D59}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
 		{EC5602DD-9237-460C-8681-64A619293D59}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC5602DD-9237-460C-8681-64A619293D59}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8E54E85-1A1C-7E88-F163-4B89715D12F2}.Debug_CUDA|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8E54E85-1A1C-7E88-F163-4B89715D12F2}.Debug_CUDA|Any CPU.Build.0 = Debug|Any CPU
+		{A8E54E85-1A1C-7E88-F163-4B89715D12F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8E54E85-1A1C-7E88-F163-4B89715D12F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8E54E85-1A1C-7E88-F163-4B89715D12F2}.Release_CUDA|Any CPU.ActiveCfg = Release|Any CPU
+		{A8E54E85-1A1C-7E88-F163-4B89715D12F2}.Release_CUDA|Any CPU.Build.0 = Release|Any CPU
+		{A8E54E85-1A1C-7E88-F163-4B89715D12F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8E54E85-1A1C-7E88-F163-4B89715D12F2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
