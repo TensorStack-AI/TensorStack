@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>net9.0-windows10.0.17763.0;net10.0-windows10.0.17763.0</TargetFrameworks>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <PlatformTarget>x64</PlatformTarget>
     <NoWarn>PRTEXP001,PRTEXP002</NoWarn>
     <DisableCSnakesRuntimeSourceGenerator>true</DisableCSnakesRuntimeSourceGenerator>
@@ -20,21 +20,86 @@
 
   <!--Common-->
   <ItemGroup>
-    <PackageReference Include="CSnakes.Runtime" Version="2.0.0-dev.251218-1221" />
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7"/>
+    <PackageReference Include="ZstdSharp.Port" Version="0.8.6"/>
   </ItemGroup>
 
+  <!--Binaries-->
   <ItemGroup>
-    <None Update="Pipelines\ZImagePipeline.py">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Python\lib\tensorstack\utils.py">
+    <Reference Include="CSnakes.Runtime">
+      <HintPath>CSnakes.Runtime.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CSnakes.Runtime.dll" PackagePath="lib/net9.0/">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
     </None>
-    <None Update="Python\lib\tensorstack\__init__.py">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Include="CSnakes.Runtime.dll" PackagePath="lib/net10.0/">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
     </None>
-    <None Update="Pipelines\WanPipeline.py">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </ItemGroup>
+
+  <!--Content Files-->
+  <ItemGroup>
+    <Content Include="Python\lib\tensorstack\utils.py"
+             Pack="true"
+             PackagePath="contentFiles\any\any\Python\lib\tensorstack\"
+             CopyToOutputDirectory="Always"
+             PackageCopyToOutput="true" />
+    <None Include="Python\lib\tensorstack\utils.py" Pack="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Python\lib\tensorstack\__init__.py"
+             Pack="true"
+             PackagePath="contentFiles\any\any\Python\lib\tensorstack\"
+             CopyToOutputDirectory="Always"
+             PackageCopyToOutput="true" />
+    <None Include="Python\lib\tensorstack\__init__.py" Pack="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Pipelines\ZImagePipeline.py"
+             Pack="true"
+             PackagePath="contentFiles\any\any\Pipelines\"
+             CopyToOutputDirectory="Always"
+             PackageCopyToOutput="true" />
+    <None Include="Pipelines\ZImagePipeline.py" Pack="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Pipelines\WanPipeline.py"
+             Pack="true"
+             PackagePath="contentFiles\any\any\Pipelines\"
+             CopyToOutputDirectory="Always"
+             PackageCopyToOutput="true" />
+    <None Include="Pipelines\WanPipeline.py" Pack="false" />
+  </ItemGroup>
+
+
+  <!--Nuget Settings-->
+  <PropertyGroup>
+    <Title>$(AssemblyName)</Title>
+    <PackageId>$(AssemblyName)</PackageId>
+    <Product>$(AssemblyName)</Product>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>C# -> Python interface for Diffusers StableDiffusion</Description>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <None Remove="README.md" />
+    <None Remove="Icon.png" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\Assets\Icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 

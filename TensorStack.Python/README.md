@@ -2,9 +2,6 @@
 
 C# => Python inferface
 
-## External Packages
-`CSnakes.Runtime` - `v2.0.0-dev.251218-1221` (TensorStack.Python\Packages)
-
 ## Virtual Environment 
 The `PythonService` can be used to download and install Python and create virtual environments
 ```csharp
