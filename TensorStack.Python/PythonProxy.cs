@@ -2,12 +2,13 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
 using TensorStack.Common.Tensor;
 using TensorStack.Python.Config;
-using TensorStack.Python.Options;
+using TensorStack.Python.Common;
 
 namespace TensorStack.Python
 {
@@ -74,7 +75,10 @@ namespace TensorStack.Python
                 {
                     _logger?.LogDebug("Invoking Python function: {FunctionName}", "load");
 
-                    using (var modelName = PyObject.From(configuration.Path)) 
+                    var loraConfig = configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
+
+                    using (var modelName = PyObject.From(configuration.Path))
+                    using (var processType = PyObject.From(configuration.ProcessType.ToString()))
                     using (var isModelOffloadEnabled = PyObject.From(configuration.IsModelOffloadEnabled))
                     using (var isFullOffloadEnabled = PyObject.From(configuration.IsFullOffloadEnabled))
                     using (var isVaeSlicingEnabled = PyObject.From(configuration.IsVaeSlicingEnabled))
@@ -83,7 +87,10 @@ namespace TensorStack.Python
                     using (var deviceId = PyObject.From(configuration.DeviceId))
                     using (var dataType = PyObject.From(configuration.DataType.ToString().ToLower()))
                     using (var variant = PyObject.From(configuration.Variant))
-                    using (var pythonResult = _functionLoad.Call(modelName, isModelOffloadEnabled, isFullOffloadEnabled, isVaeSlicingEnabled, isVaeTilingEnabled, device, deviceId, dataType, variant))
+                    using (var cacheDir = PyObject.From(configuration.CacheDirectory))
+                    using (var secureToken = PyObject.From(configuration.SecureToken))
+                    using (var loraAdapters = PyObject.From(loraConfig))
+                    using (var pythonResult = _functionLoad.Call(modelName, processType, device, deviceId, dataType, variant, cacheDir, secureToken, isModelOffloadEnabled, isFullOffloadEnabled, isVaeSlicingEnabled, isVaeTilingEnabled, loraAdapters))
                     {
                         return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
                     }
@@ -117,16 +124,17 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public Task<Tensor<float>> GenerateAsync(PythonOptions options, CancellationToken cancellationToken = default)
+        public Task<Tensor<float>> GenerateAsync(PythonOptions options, List<Tensor<float>> inputTensors, CancellationToken cancellationToken = default)
         {
             return Task.Run(() =>
             {
                 using (GIL.Acquire())
                 {
                     _logger?.LogDebug("Invoking Python function: {FunctionName}", "generate");
-
                     cancellationToken.Register(() => GenerateCancelAsync(), true);
 
+                    var inputTensor = inputTensors?.FirstOrDefault();
+                    var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
                     using (var prompt = PyObject.From(options.Prompt))
                     using (var negativePrompt = PyObject.From(options.NegativePrompt))
                     using (var guidanceScale = PyObject.From(options.GuidanceScale))
@@ -138,7 +146,11 @@ namespace TensorStack.Python
                     using (var numFrames = PyObject.From(options.Frames))
                     using (var shift = PyObject.From(options.Shift))
                     using (var flowShift = PyObject.From(options.FlowShift))
-                    using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidanceScale, steps, height, width, seed, scheduler, numFrames, shift, flowShift))
+                    using (var strength = PyObject.From(options.Strength))
+                    using (var loraOptions = PyObject.From(loraConfig))
+                    using (var inputData = PyObject.From(inputTensor?.Memory.ToArray()))
+                    using (var inputShape = PyObject.From(inputTensor?.Dimensions.ToArray()))
+                    using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidanceScale, steps, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
                     {
                         var result = pythonResult
                              .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()

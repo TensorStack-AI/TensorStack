@@ -12,13 +12,13 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common.Tensor;
-using TensorStack.Python.Options;
+using TensorStack.Python.Common;
 
 namespace TensorStack.Python
 {
-    public static class Extensions
+    public static partial class Extensions
     {
-        private static readonly Regex _ansiRegex = new Regex(@"\x1B[@-_][0-?]*[ -/]*[@-~]", RegexOptions.Compiled);
+        private static readonly Regex _ansiRegex = AnsiRegex();
 
         /// <summary>
         /// Read JSON from file or JJSON string
@@ -152,14 +152,14 @@ namespace TensorStack.Python
         /// <typeparam name="T">The object type</typeparam>
         /// <param name="pipe">The pipe.</param>
         /// <param name="dataObject">The object to send.</param>
-        public static async Task SendObject<T>(this PipeStream pipe, T dataObject)
+        public static async Task SendObject<T>(this PipeStream pipe, T dataObject, CancellationToken cancellationToken)
         {
             var json = JsonSerializer.Serialize(dataObject);
             var jsonBytes = Encoding.UTF8.GetBytes(json);
             var lengthBytes = BitConverter.GetBytes(jsonBytes.Length);
-            await pipe.WriteAsync(lengthBytes, 0, lengthBytes.Length);
-            await pipe.WriteAsync(jsonBytes, 0, jsonBytes.Length);
-            await pipe.FlushAsync();
+            await pipe.WriteAsync(lengthBytes, cancellationToken);
+            await pipe.WriteAsync(jsonBytes, cancellationToken);
+            await pipe.FlushAsync(cancellationToken);
         }
 
 
@@ -168,24 +168,31 @@ namespace TensorStack.Python
         /// </summary>
         /// <typeparam name="T">The object type</typeparam>
         /// <param name="pipe">The pipe.</param>
-        public static async Task<T> ReceiveObject<T>(this PipeStream pipe)
+        public static async Task<T> ReceiveObject<T>(this PipeStream pipe, CancellationToken cancellationToken)
         {
             var lengthBytes = new byte[4];
-            await pipe.ReadExactlyAsync(lengthBytes, 0, lengthBytes.Length);
+            await pipe.ReadExactlyAsync(lengthBytes, 0, lengthBytes.Length, cancellationToken);
             int jsonLength = BitConverter.ToInt32(lengthBytes);
 
             byte[] jsonData = new byte[jsonLength];
-            await pipe.ReadExactlyAsync(jsonData, 0, jsonLength);
+            await pipe.ReadExactlyAsync(jsonData, 0, jsonLength, cancellationToken);
 
             string jsonString = Encoding.UTF8.GetString(jsonData);
             return JsonSerializer.Deserialize<T>(jsonString);
         }
 
 
+        /// <summary>
+        /// Sends an empty response.
+        /// </summary>
+        /// <param name="pipe">The pipe.</param>
+        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <returns>Task.</returns>
         public static Task SendResponse(this PipeStream pipe, CancellationToken cancellationToken = default)
         {
             return pipe.SendMessage(new PythonResponseMessage { Tensors = [] }, cancellationToken);
         }
+
 
         /// <summary>
         /// Read exactly n bytes
@@ -279,7 +286,7 @@ namespace TensorStack.Python
                 if (string.IsNullOrWhiteSpace(message))
                     continue;
 
-                pythonProxy.Logger.LogDebug(message);
+                pythonProxy.Logger?.LogDebug("[PythonRuntime] {message}", message);
 
                 var diffusionProgress = ParsePythonLog(message);
                 if (message == null)
@@ -288,7 +295,7 @@ namespace TensorStack.Python
                 progressCallback?.Report(diffusionProgress);
             }
         }
-
+  
 
         /// <summary>
         /// Parses the python log.
@@ -322,7 +329,7 @@ namespace TensorStack.Python
                             {
                                 if (float.TryParse(stepsSection[0].Replace('G', default), out megabytesDownloaded))
                                 {
-                                    megabytesDownloaded = megabytesDownloaded * 1000;
+                                    megabytesDownloaded *= 1000;
                                 }
                             }
                         }
@@ -333,7 +340,7 @@ namespace TensorStack.Python
                             {
                                 if (float.TryParse(stepsSection[1].Replace('G', default), out megabytesTotal))
                                 {
-                                    megabytesTotal = megabytesTotal * 1000;
+                                    megabytesTotal *= 1000;
                                 }
                             }
                         }
@@ -390,5 +397,8 @@ namespace TensorStack.Python
             catch { }
         }
 
+
+        [GeneratedRegex(@"\x1B[@-_][0-?]*[ -/]*[@-~]", RegexOptions.Compiled)]
+        private static partial Regex AnsiRegex();
     }
 }

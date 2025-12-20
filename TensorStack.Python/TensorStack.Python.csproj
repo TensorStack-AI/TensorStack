@@ -20,14 +20,11 @@
 
   <!--Common-->
   <ItemGroup>
-    <PackageReference Include="CSnakes.Runtime" Version="2.0.0-dev.251202-0856" />
+    <PackageReference Include="CSnakes.Runtime" Version="2.0.0-dev.251218-1221" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Pipelines\ZImageTurboPipeline.py">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Pipelines\StableDiffusionXLPipeline.py">
+    <None Update="Pipelines\ZImagePipeline.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Python\lib\tensorstack\utils.py">
@@ -36,7 +33,7 @@
     <None Update="Python\lib\tensorstack\__init__.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Pipelines\WanVideoPipeline.py">
+    <None Update="Pipelines\WanPipeline.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -1,3 +1,6 @@
+import torch
+from typing import Sequence, Optional
+import numpy as np
 import threading
 from diffusers import (
     LMSDiscreteScheduler,
@@ -16,6 +19,7 @@ from diffusers import (
     UniPCMultistepScheduler,
     DPMSolverMultistepScheduler,
     DPMSolverSinglestepScheduler,
+    DPMSolverSDEScheduler
 )
 
 _SCHEDULER_MAP = {
@@ -36,6 +40,7 @@ _SCHEDULER_MAP = {
     "unipc": UniPCMultistepScheduler,
     "dpmm": DPMSolverMultistepScheduler,
     "dpms": DPMSolverSinglestepScheduler,
+    "dpmsde": DPMSolverSDEScheduler,
 }
 
 
@@ -61,6 +66,50 @@ def create_scheduler(name: str, *,config=None, **kwargs,):
 
     return scheduler_cls(**kwargs)
 
+
+
+def getDataType(dtype: str):
+    if dtype == "float8_e5m2":
+        return torch.float8_e5m2
+    if dtype == "float8_e4m3fn":
+        return torch.float8_e4m3fn
+    if dtype == "float16":
+        return torch.float16
+    if dtype == "bfloat16":
+        return torch.bfloat16
+    return torch.float
+
+
+def createTensor(
+    inputData: Optional[Sequence[float]],
+    inputShape: Optional[Sequence[int]],
+    *,
+    device: str | torch.device = "cuda",
+    dtype: torch.dtype = torch.float32,
+) -> Optional[torch.Tensor]:
+    """
+    Create a torch.Tensor from a flat float sequence + shape.
+
+    Returns None if inputData or inputShape is None or empty.
+    """
+
+    if not inputData or not inputShape:
+        return None
+
+    shape = tuple(int(x) for x in inputShape)
+
+    expected = 1
+    for d in shape:
+        expected *= d
+
+    if len(inputData) != expected:
+        raise ValueError(
+            f"inputData length ({len(inputData)}) "
+            f"does not match shape {shape} (expected {expected})"
+        )
+
+    np_array = np.asarray(inputData, dtype=np.float32).reshape(shape)
+    return torch.from_numpy(np_array).to(device=device, dtype=dtype)
 
 
 class MemoryStdout:

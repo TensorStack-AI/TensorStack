@@ -3,8 +3,9 @@ using System;
 using System.IO.Pipes;
 using System.Threading;
 using System.Threading.Tasks;
+using TensorStack.Common;
 using TensorStack.Python.Config;
-using TensorStack.Python.Options;
+using TensorStack.Python.Common;
 
 namespace TensorStack.Python
 {
@@ -19,7 +20,7 @@ namespace TensorStack.Python
         /// Initializes a new instance of the <see cref="PythonClient"/> class.
         /// </summary>
         /// <param name="logger">The logger.</param>
-        public PythonClient(ILogger logger = default) 
+        public PythonClient(ILogger logger = default)
         {
             _logger = logger;
             _objectPipe = new NamedPipeClientStream(".", ServerConfig.ObjectPipeName, PipeDirection.In, PipeOptions.Asynchronous);
@@ -32,7 +33,7 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public async Task StartAsync(IProgress<PythonProgress> progressCallback, CancellationToken cancellationToken = default)
+        public async Task StartAsync(IProgress<PythonProgress> progressCallback, CancellationToken cancellationToken)
         {
             // Connect Pipes
             await Task.WhenAll
@@ -47,17 +48,33 @@ namespace TensorStack.Python
 
 
         /// <summary>
+        /// Stop client and server.
+        /// </summary>
+        public async Task StopAsync()
+        {
+            await _cancellationTokenSource.SafeCancelAsync();
+            try
+            {
+                await SendAsync(new PythonRequestMessage(PythonMessageType.Stop), CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[] [] An exception occurred sending stop message.");
+            }
+        }
+
+
+        /// <summary>
         /// Send as request to the Server
         /// </summary>
         /// <param name="request">The request.</param>
-        public async Task<PythonResponseMessage> SendAsync(PythonRequestMessage request)
+        public async Task<PythonResponseMessage> SendAsync(PythonRequestMessage request, CancellationToken cancellationToken)
         {
             // Send Request
-            await _messagePipe.SendMessage(request);
+            await _messagePipe.SendMessage(request, cancellationToken);
 
             // Receive Response
-            var result = await _messagePipe.ReceiveMessage<PythonResponseMessage>();
-            return result;
+            return await _messagePipe.ReceiveMessage<PythonResponseMessage>(cancellationToken);
         }
 
 
@@ -72,7 +89,15 @@ namespace TensorStack.Python
             {
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
-                    progressCallback?.Report(await _objectPipe.ReceiveObject<PythonProgress>());
+                    try
+                    {
+                        progressCallback?.Report(await _objectPipe.ReceiveObject<PythonProgress>(_cancellationTokenSource.Token));
+                    }
+                    catch (OperationCanceledException){ }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, $"[PythonClient] [ProcessProgressQueueAsync] - An exception occurred processing progress");
+                    }
                 }
             }
         }

@@ -1,6 +1,6 @@
 ﻿using TensorStack.Common.Pipeline;
 
-namespace TensorStack.Python.Options
+namespace TensorStack.Python.Common
 {
     public record PythonProgress : IRunProgress
     {
@@ -13,5 +13,6 @@ namespace TensorStack.Python.Options
         public float Downloaded { get; set; }
         public float DownloadTotal { get; set; }
         public float DownloadSpeed { get; set; }
+        public bool IsDownloading => DownloadTotal > 0 || Downloaded > 0 || DownloadSpeed > 0;
     }
 }

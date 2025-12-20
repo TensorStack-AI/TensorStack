@@ -6,7 +6,7 @@ using System.IO.Compression;
 using System.Net.Http;
 using System.Threading.Tasks;
 using TensorStack.Python.Config;
-using TensorStack.Python.Options;
+using TensorStack.Python.Common;
 
 namespace TensorStack.Python
 {

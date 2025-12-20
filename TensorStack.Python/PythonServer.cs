@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.IO.Pipes;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using TensorStack.Python.Config;
-using TensorStack.Python.Options;
+using TensorStack.Python.Common;
 
 namespace TensorStack.Python
 {
@@ -19,8 +20,9 @@ namespace TensorStack.Python
         private readonly PipelineConfig _pipelineConfig;
         private readonly ServerConfig _serverConfig;
         private readonly PythonService _pythonService;
-        private readonly int _statusRefresh = 250;
+        private readonly int _statusRefresh = 500;
         private CancellationTokenSource _cancellationTokenSource;
+        private bool _isRunning;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PythonServer"/> class.
@@ -51,13 +53,13 @@ namespace TensorStack.Python
         public async Task StartAsync(bool isRebuild, bool isReinstall, CancellationToken cancellationToken = default)
         {
             CallbackMessage("Starting Server...", "Initialize");
-            _logger?.LogInformation($"[StartAsync] Waiting for connection");
+            _logger?.LogInformation($"[PythonServer][StartAsync] Waiting for connection");
 
             // Progress Loop
             await _objectPipe.WaitForConnectionAsync(cancellationToken);
             _ = ProcessProgressQueueAsync();
 
-            _logger?.LogInformation($"[StartAsync] Client connected.");
+            _logger?.LogInformation($"[PythonServer] [StartAsync] Client connected.");
 
             // Create Envrironment
             await _pythonService.CreateEnvironmentAsync(isRebuild, isReinstall);
@@ -74,50 +76,67 @@ namespace TensorStack.Python
                 await _messagePipe.WaitForConnectionAsync(cancellationToken);
 
                 // Generate Loop
-                _logger?.LogInformation($"[StartAsync] Start generate loop.");
+                _logger?.LogInformation($"[PythonServer] [StartAsync] Start generate loop.");
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
                         // Read Request
                         var message = await _messagePipe.ReceiveMessage<PythonRequestMessage>();
-                        _logger?.LogInformation($"[StartAsync] Message received.");
-                        if (message.IsStartRequest)
+                        _logger?.LogInformation($"[PythonServer] [StartAsync] {message.Type} message received.");
+
+                        // Start Server
+                        if (message.Type == PythonMessageType.Start)
                         {
-                            _logger?.LogInformation($"[StartAsync] Start Requested.");
+                            _isRunning = true;
                             await _messagePipe.SendResponse(cancellationToken);
+                            _logger?.LogInformation($"[PythonServer] [StartAsync] Server started.");
                             continue;
                         }
 
-                        if (message.IsStopRequest)
+                        // Stop Server
+                        if (message.Type == PythonMessageType.Stop)
                         {
-                            _logger?.LogInformation($"[StartAsync] Stop Requested.");
+                            _isRunning = false;
+                            _cancellationTokenSource?.SafeCancel();
                             await _messagePipe.SendResponse(cancellationToken);
                             return;
+                        }
+
+                        if (!_isRunning)
+                        {
+                            _logger?.LogError($"[PythonServer] [StartAsync] Server not started...");
+                            continue;
                         }
 
                         // Generate Response
                         CallbackMessage("Generating...");
                         var response = await pythonProxy
-                            .GenerateAsync(message.Options, cancellationToken)
+                            .GenerateAsync(message.Options, message.Tensors, cancellationToken)
                             .WithPythonLogging(pythonProxy, _progressCallback, _statusRefresh);
 
-                        _logger?.LogInformation($"[StartAsync] Response generated.");
+                        _logger?.LogInformation($"[PythonServer] [StartAsync] Response generated.");
 
                         // Send Response
                         await _messagePipe.SendMessage(new PythonResponseMessage
                         {
                             Tensors = [response]
                         });
-                        _logger?.LogInformation($"[StartAsync] Response sent.");
+
                         CallbackMessage("Generation Complete.");
+                        _logger?.LogInformation($"[PythonServer] [StartAsync] Response sent.");
+                    }
+                    catch (EndOfStreamException)
+                    { 
+                        break;
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogError(ex, "[StartAsync] An exception occurred");
+                        _logger?.LogError(ex, "[PythonServer] [StartAsync] An exception occurred");
                         throw;
                     }
                 }
+                _logger?.LogInformation($"[PythonServer] [StartAsync] Generate loop stopped.");
             }
         }
 
@@ -132,7 +151,15 @@ namespace TensorStack.Python
             {
                 await foreach (var progress in _progressQueue.Reader.ReadAllAsync(_cancellationTokenSource.Token))
                 {
-                    await _objectPipe.SendObject(progress);
+                    try
+                    {
+                        await _objectPipe.SendObject(progress, _cancellationTokenSource.Token);
+                    }
+                    catch (OperationCanceledException) { }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, $"[PythonServer] [ProcessProgressQueueAsync] - An exception occurred processing progress");
+                    }
                 }
             }
         }
