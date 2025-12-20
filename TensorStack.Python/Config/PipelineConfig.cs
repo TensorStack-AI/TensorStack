@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using TensorStack.Python.Common;
 
 namespace TensorStack.Python.Config
@@ -20,7 +19,5 @@ namespace TensorStack.Python.Config
         public string CacheDirectory { get; set; }
         public string SecureToken { get; set; }
         public List<LoraConfig> LoraAdapters { get; set; }
-
-        public static Task<PipelineConfig> FromFileAsync(string path) => Extensions.ReadJsonAsync<PipelineConfig>(path);
     }
 }

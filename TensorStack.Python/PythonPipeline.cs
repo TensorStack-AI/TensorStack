@@ -15,11 +15,14 @@ namespace TensorStack.Python
     /// <summary>
     /// PipelineProxy: Proxy between Python and C#
     /// </summary>
-    public sealed class PipelineProxy : IDisposable
+    public sealed class PythonPipeline : IDisposable
     {
         private readonly ILogger _logger;
-        private readonly string _moduleName;
+        private readonly string _pipelineName;
         private readonly PipelineConfig _configuration;
+        private readonly int _progressRefresh;
+        private readonly IProgress<PipelineProgress> _progressCallback;
+        private readonly CancellationTokenSource _progressCancellation;
         private PyObject _module;
         private PyObject _functionLoad;
         private PyObject _functionUnload;
@@ -28,26 +31,28 @@ namespace TensorStack.Python
         private PyObject _functionGetStepLatent;
         private PyObject _functionGetLogs;
 
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="PipelineProxy"/> class.
+        /// Initializes a new instance of the <see cref="PythonPipeline"/> class.
         /// </summary>
         /// <param name="moduleName">Name of the module.</param>
         /// <param name="logger">The logger.</param>
-        public PipelineProxy(PipelineConfig configuration, ILogger logger = default)
+        public PythonPipeline(PipelineConfig configuration, IProgress<PipelineProgress> progressCallback = default, ILogger logger = default)
         {
             _logger = logger;
             _configuration = configuration;
-            _moduleName = _configuration.Pipeline;
+            _progressRefresh = 250;
+            _progressCallback = progressCallback;
+            _progressCancellation = new CancellationTokenSource();
+            _pipelineName = _configuration.Pipeline;
             using (GIL.Acquire())
             {
-                _logger?.LogDebug("Importing module {ModuleName}", _moduleName);
-                _module = Import.ImportModule(_moduleName);
+                _logger?.LogInformation("Importing module {ModuleName}", _pipelineName);
+                _module = Import.ImportModule(_pipelineName);
                 BindFunctions();
             }
+            _ = LoggingLoop(_progressRefresh);
         }
-
-        public string Name => _moduleName;
-        public ILogger Logger => _logger;
 
 
         /// <summary>
@@ -55,15 +60,16 @@ namespace TensorStack.Python
         /// </summary>
         public void ReloadModule()
         {
-            _logger?.LogDebug("Reloading module {ModuleName}", _moduleName);
-
             using (GIL.Acquire())
             {
+                _logger?.LogInformation("Reloading module {ModuleName}", _pipelineName);
+
                 Import.ReloadModule(ref _module);
                 UnbindFunctions();
                 BindFunctions();
             }
         }
+
 
         /// <summary>
         /// Loads the proxy
@@ -75,10 +81,9 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogDebug("Invoking Python function: {FunctionName}", "load");
+                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "load");
 
                     var loraConfig = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
-
                     using (var modelName = PyObject.From(_configuration.Path))
                     using (var processType = PyObject.From(_configuration.ProcessType.ToString()))
                     using (var isModelOffloadEnabled = PyObject.From(_configuration.IsModelOffloadEnabled))
@@ -110,7 +115,7 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogDebug("Invoking Python function: {FunctionName}", "unload");
+                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "unload");
 
                     using (var pythonResult = _functionUnload.Call())
                     {
@@ -132,14 +137,14 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogDebug("Invoking Python function: {FunctionName}", "generate");
-                    cancellationToken.Register(() => GenerateCancelAsync(), true);
+                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "generate");
 
+                    cancellationToken.Register(() => GenerateCancelAsync(), true);
                     var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
                     using (var prompt = PyObject.From(options.Prompt))
                     using (var negativePrompt = PyObject.From(options.NegativePrompt))
-                    using (var guidanceScale = PyObject.From(options.GuidanceScale))
-                    using (var guidanceScale2 = PyObject.From(options.GuidanceScale2))
+                    using (var guidance = PyObject.From(options.GuidanceScale))
+                    using (var guidance2 = PyObject.From(options.GuidanceScale2))
                     using (var steps = PyObject.From(options.Steps))
                     using (var steps2 = PyObject.From(options.Steps2))
                     using (var height = PyObject.From(options.Height))
@@ -153,7 +158,7 @@ namespace TensorStack.Python
                     using (var loraOptions = PyObject.From(loraConfig))
                     using (var inputData = PyObject.From(inputTensor?.Memory.ToArray()))
                     using (var inputShape = PyObject.From(inputTensor?.Dimensions.ToArray()))
-                    using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidanceScale, guidanceScale2, steps, steps2, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
+                    using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
                     {
                         var result = pythonResult
                              .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
@@ -175,8 +180,6 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    //_logger?.LogDebug("Invoking Python function: {FunctionName}", "get_pipeline_status");
-
                     using (var pythonResult = _functionGetLogs.Call())
                     {
                         return pythonResult.BareImportAs<IReadOnlyList<string>, PyObjectImporters.List<string, PyObjectImporters.String>>();
@@ -195,7 +198,7 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogDebug("Invoking Python function: {FunctionName}", "get_step_latent");
+                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "get_step_latent");
 
                     using (var pythonResult = _functionGetStepLatent.Call())
                     {
@@ -218,7 +221,7 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogDebug("Invoking Python function: {FunctionName}", "cancel");
+                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "cancel");
 
                     using (var pythonResult = _functionCancel.Call())
                     {
@@ -234,8 +237,9 @@ namespace TensorStack.Python
         /// </summary>
         public void Dispose()
         {
-            _logger?.LogDebug("Disposing module {ModuleName}", _moduleName);
-
+            _logger?.LogInformation("Disposing module {ModuleName}", _pipelineName);
+            _progressCancellation.SafeCancel();
+            _progressCancellation.Dispose();
             UnbindFunctions();
             _module.Dispose();
             GC.SuppressFinalize(this);
@@ -267,6 +271,21 @@ namespace TensorStack.Python
             _functionGenerate.Dispose();
             _functionGetStepLatent.Dispose();
             _functionGetLogs.Dispose();
+        }
+
+
+        private async Task LoggingLoop(int refreshRate)
+        {
+            while (!_progressCancellation.IsCancellationRequested)
+            {
+                var logs = await GetLogsAsync();
+                foreach (var progress in LogParser.ParseLogs(logs))
+                {
+                    _logger?.LogInformation("[PythonRuntime] {message}", progress.Message);
+                    _progressCallback?.Report(progress);
+                }
+                await Task.Delay(refreshRate, _progressCancellation.Token);
+            }
         }
     }
 

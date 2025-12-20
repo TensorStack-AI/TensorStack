@@ -48,12 +48,10 @@ var pipelineConfig = new PipelineConfig
 };
 
 // Create Pipeline Proxy
-using (var pythonPipeline = new PipelineProxy(pipelineConfig))
+using (var pythonPipeline = new PipelineProxy(pipelineConfig, PipelineProgress.ConsoleCallback))
 {
     // Download/Load Model
-    await pythonPipeline
-        .LoadAsync()
-        .WithPythonLogging(pythonPipeline, PipelineProgress.ConsoleCallback); 
+    await pythonPipeline.LoadAsync();
 
     // Generate Option
     var options = new PipelineOptions
@@ -67,9 +65,7 @@ using (var pythonPipeline = new PipelineProxy(pipelineConfig))
     };
 
     // Generate
-    var response = await pythonPipeline
-        .GenerateAsync(options)
-        .WithPythonLogging(pythonPipeline, PipelineProgress.ConsoleCallback);
+    var response = await pythonPipeline.GenerateAsync(options);
 
     // Save Image
     await response

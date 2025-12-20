@@ -170,6 +170,16 @@ namespace TensorStack.Common
         }
 
 
+        public static void SafeCancel(this CancellationTokenSource cancellationTokenSource)
+        {
+            try
+            {
+                cancellationTokenSource.Cancel();
+            }
+            catch { }
+        }
+
+
         public static async Task SafeCancelAsync(this CancellationTokenSource cancellationTokenSource)
         {
             try
