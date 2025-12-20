@@ -1,7 +1,15 @@
 # TensorStack
 
 
-## TensorStack.Upscaler
+### TensorStack.Common
+[![Common Badge](https://img.shields.io/nuget/v/TensorStack.Common?color=4bc51e&label=TensorStack.Common)](https://www.nuget.org/packages/TensorStack.Common)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.Common?label=Nuget%20Downloads)
+
+More information and examples can be found in the `TensorStack.Common` project **[README](TensorStack.Common/README.md)**
+
+---
+
+### TensorStack.Upscaler
 [![Upscaler Badge](https://img.shields.io/nuget/v/TensorStack.Upscaler?color=4bc51e&label=TensorStack.Upscaler)](https://www.nuget.org/packages/TensorStack.Upscaler)
 ![Nuget](https://img.shields.io/nuget/dt/TensorStack.Upscaler?label=Nuget%20Downloads)
 
@@ -9,7 +17,7 @@ More information and examples can be found in the `TensorStack.Upscaler` project
 
 ---
 
-## TensorStack.Extractors
+### TensorStack.Extractors
 [![Upscaler Badge](https://img.shields.io/nuget/v/TensorStack.Extractors?color=4bc51e&label=TensorStack.Extractors)](https://www.nuget.org/packages/TensorStack.Extractors)
 ![Nuget](https://img.shields.io/nuget/dt/TensorStack.Extractors?label=Nuget%20Downloads)
 
@@ -25,31 +33,51 @@ More information and examples can be found in the `TensorStack.TextGeneration` p
 
 ---
 
+### TensorStack.StableDiffusion
+[![StableDiffusion Badge](https://img.shields.io/nuget/v/TensorStack.StableDiffusion?color=4bc51e&label=TensorStack.StableDiffusion)](https://www.nuget.org/packages/TensorStack.StableDiffusion)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.StableDiffusion?label=Nuget%20Downloads)
 
-
-### TensorStack.Audio
-[![Audio Badge](https://img.shields.io/nuget/v/TensorStack.Audio?color=4bc51e&label=TensorStack.Audio)](https://www.nuget.org/packages/TensorStack.Audio)
-![Nuget](https://img.shields.io/nuget/dt/TensorStack.Audio?label=Nuget%20Downloads)
-
-More information and examples can be found in the `TensorStack.Audio` project **[README](TensorStack.Audio/README.md)**
+More information and examples can be found in the `TensorStack.StableDiffusion` project **[README](TensorStack.StableDiffusion/README.md)**
 
 ---
 
-### TensorStack.Audio.Windows
-[![Audio.Windows Badge](https://img.shields.io/nuget/v/TensorStack.Audio.Windows?color=4bc51e&label=TensorStack.Audio.Windows)](https://www.nuget.org/packages/TensorStack.Audio.Windows)
-![Nuget](https://img.shields.io/nuget/dt/TensorStack.Audio.Windows?label=Nuget%20Downloads)
+### TensorStack.Python
+[![Python Badge](https://img.shields.io/nuget/v/TensorStack.Python?color=4bc51e&label=TensorStack.Python)](https://www.nuget.org/packages/TensorStack.Python)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.Python?label=Nuget%20Downloads)
 
-More information and examples can be found in the `TensorStack.Audio.Windows` project **[README](TensorStack.Audio.Windows/README.md)**
+More information and examples can be found in the `TensorStack.Python` project **[README](TensorStack.Python/README.md)**
+
+---
+
+## Inference Providers
+
+### TensorStack.Providers.CPU
+[![CPU Badge](https://img.shields.io/nuget/v/TensorStack.Providers.CPU?color=4bc51e&label=TensorStack.Providers.CPU)](https://www.nuget.org/packages/TensorStack.Providers.CPU)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.Providers.CPU?label=Nuget%20Downloads)
+
+More information and examples can be found in the `TensorStack.Providers.CPU` project **[README](TensorStack.Providers.CPU/README.md)**
 
 ---
 
-### TensorStack.Common
-[![Common Badge](https://img.shields.io/nuget/v/TensorStack.Common?color=4bc51e&label=TensorStack.Common)](https://www.nuget.org/packages/TensorStack.Common)
-![Nuget](https://img.shields.io/nuget/dt/TensorStack.Common?label=Nuget%20Downloads)
+### TensorStack.Providers.CUDA
+[![CUDA Badge](https://img.shields.io/nuget/v/TensorStack.Providers.CUDA?color=4bc51e&label=TensorStack.Providers.CUDA)](https://www.nuget.org/packages/TensorStack.Providers.CUDA)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.Providers.CUDA?label=Nuget%20Downloads)
 
-More information and examples can be found in the `TensorStack.Common` project **[README](TensorStack.Common/README.md)**
+More information and examples can be found in the `TensorStack.Providers.CUDA` project **[README](TensorStack.Providers.CUDA/README.md)**
 
 ---
+
+### TensorStack.Providers.DML
+[![DML Badge](https://img.shields.io/nuget/v/TensorStack.Providers.DML?color=4bc51e&label=TensorStack.Providers.DML)](https://www.nuget.org/packages/TensorStack.Providers.DML)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.Providers.DML?label=Nuget%20Downloads)
+
+More information and examples can be found in the `TensorStack.Providers.DML` project **[README](TensorStack.Providers.DML/README.md)**
+
+---
+
+
+
+## Media
 
 ### TensorStack.Image
 [![Image Badge](https://img.shields.io/nuget/v/TensorStack.Image?color=4bc51e&label=TensorStack.Image)](https://www.nuget.org/packages/TensorStack.Image)
@@ -83,40 +111,6 @@ More information and examples can be found in the `TensorStack.Image.ImageSharp`
 
 ---
 
-### TensorStack.Providers.CPU
-[![CPU Badge](https://img.shields.io/nuget/v/TensorStack.Providers.CPU?color=4bc51e&label=TensorStack.Providers.CPU)](https://www.nuget.org/packages/TensorStack.Providers.CPU)
-![Nuget](https://img.shields.io/nuget/dt/TensorStack.Providers.CPU?label=Nuget%20Downloads)
-
-More information and examples can be found in the `TensorStack.Providers.CPU` project **[README](TensorStack.Providers.CPU/README.md)**
-
----
-
-### TensorStack.Providers.CUDA
-[![CUDA Badge](https://img.shields.io/nuget/v/TensorStack.Providers.CUDA?color=4bc51e&label=TensorStack.Providers.CUDA)](https://www.nuget.org/packages/TensorStack.Providers.CUDA)
-![Nuget](https://img.shields.io/nuget/dt/TensorStack.Providers.CUDA?label=Nuget%20Downloads)
-
-More information and examples can be found in the `TensorStack.Providers.CUDA` project **[README](TensorStack.Providers.CUDA/README.md)**
-
----
-
-### TensorStack.Providers.DML
-[![DML Badge](https://img.shields.io/nuget/v/TensorStack.Providers.DML?color=4bc51e&label=TensorStack.Providers.DML)](https://www.nuget.org/packages/TensorStack.Providers.DML)
-![Nuget](https://img.shields.io/nuget/dt/TensorStack.Providers.DML?label=Nuget%20Downloads)
-
-More information and examples can be found in the `TensorStack.Providers.DML` project **[README](TensorStack.Providers.DML/README.md)**
-
----
-
-### TensorStack.StableDiffusion
-[![StableDiffusion Badge](https://img.shields.io/nuget/v/TensorStack.StableDiffusion?color=4bc51e&label=TensorStack.StableDiffusion)](https://www.nuget.org/packages/TensorStack.StableDiffusion)
-![Nuget](https://img.shields.io/nuget/dt/TensorStack.StableDiffusion?label=Nuget%20Downloads)
-
-More information and examples can be found in the `TensorStack.StableDiffusion` project **[README](TensorStack.StableDiffusion/README.md)**
-
----
-
-
-
 ### TensorStack.Video
 [![Video Badge](https://img.shields.io/nuget/v/TensorStack.Video?color=4bc51e&label=TensorStack.Video)](https://www.nuget.org/packages/TensorStack.Video)
 ![Nuget](https://img.shields.io/nuget/dt/TensorStack.Video?label=Nuget%20Downloads)
@@ -130,5 +124,23 @@ More information and examples can be found in the `TensorStack.Video` project **
 ![Nuget](https://img.shields.io/nuget/dt/TensorStack.Video.Windows?label=Nuget%20Downloads)
 
 More information and examples can be found in the `TensorStack.Video.Windows` project **[README](TensorStack.Video.Windows/README.md)**
+
+---
+
+### TensorStack.Audio
+[![Audio Badge](https://img.shields.io/nuget/v/TensorStack.Audio?color=4bc51e&label=TensorStack.Audio)](https://www.nuget.org/packages/TensorStack.Audio)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.Audio?label=Nuget%20Downloads)
+
+More information and examples can be found in the `TensorStack.Audio` project **[README](TensorStack.Audio/README.md)**
+
+---
+
+### TensorStack.Audio.Windows
+[![Audio.Windows Badge](https://img.shields.io/nuget/v/TensorStack.Audio.Windows?color=4bc51e&label=TensorStack.Audio.Windows)](https://www.nuget.org/packages/TensorStack.Audio.Windows)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.Audio.Windows?label=Nuget%20Downloads)
+
+More information and examples can be found in the `TensorStack.Audio.Windows` project **[README](TensorStack.Audio.Windows/README.md)**
+
+---
 
 
