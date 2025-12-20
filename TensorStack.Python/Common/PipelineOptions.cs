@@ -2,7 +2,7 @@
 
 namespace TensorStack.Python.Common
 {
-    public record PythonOptions
+    public record PipelineOptions
     {
         public int Seed { get; set; }
         public string Prompt { get; set; }

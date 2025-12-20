@@ -7,18 +7,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
 using TensorStack.Common.Tensor;
-using TensorStack.Python.Config;
 using TensorStack.Python.Common;
+using TensorStack.Python.Config;
 
 namespace TensorStack.Python
 {
     /// <summary>
-    /// PythonProxy = Proxy between Python and C#
+    /// PipelineProxy: Proxy between Python and C#
     /// </summary>
-    public sealed class PythonProxy : IDisposable
+    public sealed class PipelineProxy : IDisposable
     {
         private readonly ILogger _logger;
         private readonly string _moduleName;
+        private readonly PipelineConfig _configuration;
         private PyObject _module;
         private PyObject _functionLoad;
         private PyObject _functionUnload;
@@ -28,14 +29,15 @@ namespace TensorStack.Python
         private PyObject _functionGetLogs;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PythonProxy"/> class.
+        /// Initializes a new instance of the <see cref="PipelineProxy"/> class.
         /// </summary>
         /// <param name="moduleName">Name of the module.</param>
         /// <param name="logger">The logger.</param>
-        public PythonProxy(string moduleName, ILogger logger = default)
+        public PipelineProxy(PipelineConfig configuration, ILogger logger = default)
         {
             _logger = logger;
-            _moduleName = moduleName;
+            _configuration = configuration;
+            _moduleName = _configuration.Pipeline;
             using (GIL.Acquire())
             {
                 _logger?.LogDebug("Importing module {ModuleName}", _moduleName);
@@ -67,7 +69,7 @@ namespace TensorStack.Python
         /// Loads the proxy
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        public Task<bool> LoadAsync(PipelineConfig configuration)
+        public Task<bool> LoadAsync()
         {
             return Task.Run(() =>
             {
@@ -75,20 +77,20 @@ namespace TensorStack.Python
                 {
                     _logger?.LogDebug("Invoking Python function: {FunctionName}", "load");
 
-                    var loraConfig = configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
+                    var loraConfig = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
 
-                    using (var modelName = PyObject.From(configuration.Path))
-                    using (var processType = PyObject.From(configuration.ProcessType.ToString()))
-                    using (var isModelOffloadEnabled = PyObject.From(configuration.IsModelOffloadEnabled))
-                    using (var isFullOffloadEnabled = PyObject.From(configuration.IsFullOffloadEnabled))
-                    using (var isVaeSlicingEnabled = PyObject.From(configuration.IsVaeSlicingEnabled))
-                    using (var isVaeTilingEnabled = PyObject.From(configuration.IsVaeTilingEnabled))
-                    using (var device = PyObject.From(configuration.Device))
-                    using (var deviceId = PyObject.From(configuration.DeviceId))
-                    using (var dataType = PyObject.From(configuration.DataType.ToString().ToLower()))
-                    using (var variant = PyObject.From(configuration.Variant))
-                    using (var cacheDir = PyObject.From(configuration.CacheDirectory))
-                    using (var secureToken = PyObject.From(configuration.SecureToken))
+                    using (var modelName = PyObject.From(_configuration.Path))
+                    using (var processType = PyObject.From(_configuration.ProcessType.ToString()))
+                    using (var isModelOffloadEnabled = PyObject.From(_configuration.IsModelOffloadEnabled))
+                    using (var isFullOffloadEnabled = PyObject.From(_configuration.IsFullOffloadEnabled))
+                    using (var isVaeSlicingEnabled = PyObject.From(_configuration.IsVaeSlicingEnabled))
+                    using (var isVaeTilingEnabled = PyObject.From(_configuration.IsVaeTilingEnabled))
+                    using (var device = PyObject.From(_configuration.Device))
+                    using (var deviceId = PyObject.From(_configuration.DeviceId))
+                    using (var dataType = PyObject.From(_configuration.DataType.ToString().ToLower()))
+                    using (var variant = PyObject.From(_configuration.Variant))
+                    using (var cacheDir = PyObject.From(_configuration.CacheDirectory))
+                    using (var secureToken = PyObject.From(_configuration.SecureToken))
                     using (var loraAdapters = PyObject.From(loraConfig))
                     using (var pythonResult = _functionLoad.Call(modelName, processType, device, deviceId, dataType, variant, cacheDir, secureToken, isModelOffloadEnabled, isFullOffloadEnabled, isVaeSlicingEnabled, isVaeTilingEnabled, loraAdapters))
                     {
@@ -124,7 +126,7 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public Task<Tensor<float>> GenerateAsync(PythonOptions options, List<Tensor<float>> inputTensors, CancellationToken cancellationToken = default)
+        public Task<Tensor<float>> GenerateAsync(PipelineOptions options, Tensor<float> inputTensor = default, CancellationToken cancellationToken = default)
         {
             return Task.Run(() =>
             {
@@ -133,7 +135,6 @@ namespace TensorStack.Python
                     _logger?.LogDebug("Invoking Python function: {FunctionName}", "generate");
                     cancellationToken.Register(() => GenerateCancelAsync(), true);
 
-                    var inputTensor = inputTensors?.FirstOrDefault();
                     var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
                     using (var prompt = PyObject.From(options.Prompt))
                     using (var negativePrompt = PyObject.From(options.NegativePrompt))

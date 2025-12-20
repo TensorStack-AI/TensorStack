@@ -5,45 +5,46 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Threading.Tasks;
-using TensorStack.Python.Config;
 using TensorStack.Python.Common;
+using TensorStack.Python.Config;
 
 namespace TensorStack.Python
 {
     /// <summary>
-    /// PythonService - Manage Python portable installation and virtual environment creation
+    /// PythonManager - Manage Python portable installation and virtual environment creation
     /// </summary>
-    public class PythonService
+    public class PythonManager
     {
         private readonly ILogger _logger;
-        private readonly ServerConfig _config;
+        private readonly EnvironmentConfig _config;
         private readonly string _pythonPath;
         private readonly string _pipelinePath;
         private readonly string _pythonVersion = "3.12.10";
-        private readonly IProgress<PythonProgress> _progressCallback;
+        private readonly IProgress<PipelineProgress> _progressCallback;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PythonService"/> class.
+        /// Initializes a new instance of the <see cref="PythonManager"/> class.
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="logger">The logger.</param>
-        public PythonService(ServerConfig config, IProgress<PythonProgress> progressCallback, ILogger logger = default)
+        public PythonManager(EnvironmentConfig config, IProgress<PipelineProgress> progressCallback = null, ILogger logger = default)
         {
             _logger = logger;
             _config = config;
             _progressCallback = progressCallback;
-            _pythonPath = Path.Join(_config.Directory, "Python");
-            _pipelinePath = Path.Join(_config.Directory, "Pipelines");
+            _pythonPath = Path.GetFullPath(Path.Join(_config.Directory, "Python"));
+            _pipelinePath = Path.GetFullPath(Path.Join(_config.Directory, "Pipelines"));
             CopyInternalPipelineFiles();
         }
+
 
         /// <summary>
         /// Creates the Python Virtual Environment.
         /// </summary>
         /// <param name="isRebuild">Delete and rebuild the environment</param>
         /// <param name="isReinstall">Delete and rebuild the environment and base Python installation</param>
-        public Task<IPythonEnvironment> CreateEnvironmentAsync(bool isRebuild, bool isReinstall)
+        public Task<IPythonEnvironment> CreateEnvironmentAsync(bool isRebuild = false, bool isReinstall = false)
         {
             return Task.Run(async () =>
             {
@@ -54,6 +55,7 @@ namespace TensorStack.Python
                 return await CreateAsync();
             });
         }
+
 
         /// <summary>
         /// Delete an environment
@@ -173,7 +175,7 @@ namespace TensorStack.Python
         /// <param name="message">The message.</param>
         private void CallbackMessage(string message)
         {
-            _progressCallback?.Report(new PythonProgress
+            _progressCallback?.Report(new PipelineProgress
             {
                 Message = message,
                 Process = "Initialize"

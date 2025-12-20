@@ -1,8 +1,9 @@
-﻿using TensorStack.Common.Pipeline;
+﻿using System;
+using TensorStack.Common.Pipeline;
 
 namespace TensorStack.Python.Common
 {
-    public record PythonProgress : IRunProgress
+    public record PipelineProgress : IRunProgress
     {
         public string Process { get; set; }
         public string Message { get; set; }
@@ -14,5 +15,7 @@ namespace TensorStack.Python.Common
         public float DownloadTotal { get; set; }
         public float DownloadSpeed { get; set; }
         public bool IsDownloading => DownloadTotal > 0 || Downloaded > 0 || DownloadSpeed > 0;
+
+        public readonly static IProgress<PipelineProgress> ConsoleCallback = new Progress<PipelineProgress>(Console.WriteLine);
     }
 }
