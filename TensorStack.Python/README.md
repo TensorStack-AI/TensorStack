@@ -51,7 +51,9 @@ var pipelineConfig = new PipelineConfig
 using (var pythonPipeline = new PipelineProxy(pipelineConfig))
 {
     // Download/Load Model
-    await pythonPipeline.LoadAsync();
+    await pythonPipeline
+        .LoadAsync()
+        .WithPythonLogging(pythonPipeline, PipelineProgress.ConsoleCallback); 
 
     // Generate Option
     var options = new PipelineOptions

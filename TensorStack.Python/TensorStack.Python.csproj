@@ -20,9 +20,9 @@
 
   <!--Common-->
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0"/>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7"/>
-    <PackageReference Include="ZstdSharp.Port" Version="0.8.6"/>
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
+    <PackageReference Include="ZstdSharp.Port" Version="0.8.6" />
   </ItemGroup>
 
   <!--Binaries-->
@@ -44,40 +44,37 @@
     </None>
   </ItemGroup>
 
-  <!--Content Files-->
+  <!--Python Lib-->
   <ItemGroup>
-    <Content Include="Python\lib\tensorstack\utils.py"
-             Pack="true"
-             PackagePath="contentFiles\any\any\Python\lib\tensorstack\"
-             CopyToOutputDirectory="Always"
-             PackageCopyToOutput="true" />
+    <Content Include="Python\lib\tensorstack\utils.py" Pack="true" PackagePath="contentFiles\any\any\Python\lib\tensorstack\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <Content Include="Python\lib\tensorstack\__init__.py" Pack="true" PackagePath="contentFiles\any\any\Python\lib\tensorstack\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Python\lib\tensorstack\__init__.py" Pack="false" />
     <None Include="Python\lib\tensorstack\utils.py" Pack="false" />
   </ItemGroup>
+
+  <!--ChromaPipeline-->
   <ItemGroup>
-    <Content Include="Python\lib\tensorstack\__init__.py"
-             Pack="true"
-             PackagePath="contentFiles\any\any\Python\lib\tensorstack\"
-             CopyToOutputDirectory="Always"
-             PackageCopyToOutput="true" />
-    <None Include="Python\lib\tensorstack\__init__.py" Pack="false" />
+    <Content Include="Pipelines\ChromaPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Pipelines\ChromaPipeline.py" Pack="false" />
   </ItemGroup>
+
+  <!--QwenImagePipeline-->
   <ItemGroup>
-    <Content Include="Pipelines\ZImagePipeline.py"
-             Pack="true"
-             PackagePath="contentFiles\any\any\Pipelines\"
-             CopyToOutputDirectory="Always"
-             PackageCopyToOutput="true" />
-    <None Include="Pipelines\ZImagePipeline.py" Pack="false" />
+    <Content Include="Pipelines\QwenImagePipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Pipelines\QwenImagePipeline.py" Pack="false" />
   </ItemGroup>
+
+  <!--WanPipeline-->
   <ItemGroup>
-    <Content Include="Pipelines\WanPipeline.py"
-             Pack="true"
-             PackagePath="contentFiles\any\any\Pipelines\"
-             CopyToOutputDirectory="Always"
-             PackageCopyToOutput="true" />
+    <Content Include="Pipelines\WanPipeline.py" Pack="true" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
     <None Include="Pipelines\WanPipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--ZImagePipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\ZImagePipeline.py" Pack="true" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Pipelines\ZImagePipeline.py" Pack="false" />
+  </ItemGroup>
 
   <!--Nuget Settings-->
   <PropertyGroup>
@@ -86,7 +83,7 @@
     <Product>$(AssemblyName)</Product>
     <PackageIcon>Icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Description>C# -> Python interface for Diffusers StableDiffusion</Description>
+    <Description>C# -&gt; Python interface for Diffusers StableDiffusion</Description>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <None Remove="README.md" />

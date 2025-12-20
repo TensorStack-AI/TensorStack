@@ -6,7 +6,7 @@ import numpy as np
 from threading import Event
 from collections.abc import Buffer
 from typing import Coroutine, Dict, Sequence, List, Tuple, Optional
-from diffusers import ZImagePipeline, ZImageImg2ImgPipeline
+from diffusers import ChromaPipeline, ChromaImg2ImgPipeline
 from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, createTensor
 sys.stderr = MemoryStdout()
 
@@ -41,7 +41,7 @@ def load(
     torch_dtype = getDataType(dataType)
     _processType = processType;
     if _processType == "TextToImage":
-        _pipeline = ZImagePipeline.from_pretrained(
+        _pipeline = ChromaPipeline.from_pretrained(
             modelName, 
             torch_dtype=torch_dtype,
             cache_dir = cacheDir,
@@ -49,7 +49,7 @@ def load(
             variant=variant
         )
     elif _processType == "ImageToImage":
-        _pipeline = ZImageImg2ImgPipeline.from_pretrained(
+        _pipeline = ChromaImg2ImgPipeline.from_pretrained(
             modelName, 
             torch_dtype=torch_dtype,
             cache_dir = cacheDir,
@@ -137,12 +137,12 @@ def generate(
     # Run Pipeline
     if _processType == "TextToImage":
         output = _pipeline(
-            prompt = prompt, 
+            prompt = prompt,
             negative_prompt = negativePrompt,
             height = height,
             width = width,
             generator = _generator.manual_seed(seed),
-            guidance_scale = guidanceScale, 
+            guidance_scale = guidanceScale,
             num_inference_steps = steps,
             output_type = "np",
             callback_on_step_end = _progress_callback,
@@ -152,12 +152,12 @@ def generate(
         output = _pipeline(
             image = createTensor(inputData, inputShape, device=_pipeline.device, dtype=_pipeline.dtype),
             strength = strength,
-            prompt = prompt, 
+            prompt = prompt,
             negative_prompt = negativePrompt,
             height = height,
             width = width,
             generator = _generator.manual_seed(seed),
-            guidance_scale = guidanceScale, 
+            guidance_scale = guidanceScale,
             num_inference_steps = steps,
             output_type = "np",
             callback_on_step_end = _progress_callback,

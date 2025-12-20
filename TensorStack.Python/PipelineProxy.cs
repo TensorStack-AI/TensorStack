@@ -139,7 +139,9 @@ namespace TensorStack.Python
                     using (var prompt = PyObject.From(options.Prompt))
                     using (var negativePrompt = PyObject.From(options.NegativePrompt))
                     using (var guidanceScale = PyObject.From(options.GuidanceScale))
+                    using (var guidanceScale2 = PyObject.From(options.GuidanceScale2))
                     using (var steps = PyObject.From(options.Steps))
+                    using (var steps2 = PyObject.From(options.Steps2))
                     using (var height = PyObject.From(options.Height))
                     using (var width = PyObject.From(options.Width))
                     using (var seed = PyObject.From(options.Seed))
@@ -151,7 +153,7 @@ namespace TensorStack.Python
                     using (var loraOptions = PyObject.From(loraConfig))
                     using (var inputData = PyObject.From(inputTensor?.Memory.ToArray()))
                     using (var inputShape = PyObject.From(inputTensor?.Dimensions.ToArray()))
-                    using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidanceScale, steps, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
+                    using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidanceScale, guidanceScale2, steps, steps2, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
                     {
                         var result = pythonResult
                              .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()

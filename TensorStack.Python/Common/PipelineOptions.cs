@@ -8,7 +8,9 @@ namespace TensorStack.Python.Common
         public string Prompt { get; set; }
         public string NegativePrompt { get; set; }
         public float GuidanceScale { get; set; }
+        public float GuidanceScale2 { get; set; }
         public int Steps { get; set; }
+        public int Steps2 { get; set; }
         public int Height { get; set; }
         public int Width { get; set; }
         public int Frames { get; set; }
@@ -19,5 +21,6 @@ namespace TensorStack.Python.Common
         public SchedulerType Scheduler { get; set; }
         public SchedulerType[] Schedulers { get; set; }
         public List<LoraOptions> LoraOptions { get; set; }
+       
     }
 }
