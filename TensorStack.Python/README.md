@@ -1,8 +1,21 @@
 # TensorStack.Python
+C# => Python Diffusers Inferface
 
-C# => Python inferface
+## Supported Diffusers Pipelines
+### Chroma
+- ChromaPipeline
+- ChromaImg2ImgPipeline
+### Qwen Image
+- QwenImagePipeline
+- QwenImageImg2ImgPipeline
+### Wan Video
+- WanPipeline
+- WanImageToVideoPipeline
+### Z-Image
+- ZImagePipeline
+- ZImageImg2ImgPipeline
 
-## Virtual Environment 
+## Python Virtual Environment 
 The `PythonService` can be used to download and install Python and create virtual environments
 ```csharp
 // Virtual Environment Config
@@ -48,7 +61,7 @@ var pipelineConfig = new PipelineConfig
 };
 
 // Create Pipeline Proxy
-using (var pythonPipeline = new PipelineProxy(pipelineConfig, PipelineProgress.ConsoleCallback))
+using (var pythonPipeline = new PythonPipeline(pipelineConfig, PipelineProgress.ConsoleCallback))
 {
     // Download/Load Model
     await pythonPipeline.LoadAsync();
