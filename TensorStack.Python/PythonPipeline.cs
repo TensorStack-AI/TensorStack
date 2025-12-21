@@ -1,4 +1,5 @@
-﻿using CSnakes.Runtime.Python;
+﻿using CSnakes.Runtime;
+using CSnakes.Runtime.Python;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -81,25 +82,32 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "load");
-
-                    var loraConfig = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
-                    using (var modelName = PyObject.From(_configuration.Path))
-                    using (var processType = PyObject.From(_configuration.ProcessType.ToString()))
-                    using (var isModelOffloadEnabled = PyObject.From(_configuration.IsModelOffloadEnabled))
-                    using (var isFullOffloadEnabled = PyObject.From(_configuration.IsFullOffloadEnabled))
-                    using (var isVaeSlicingEnabled = PyObject.From(_configuration.IsVaeSlicingEnabled))
-                    using (var isVaeTilingEnabled = PyObject.From(_configuration.IsVaeTilingEnabled))
-                    using (var device = PyObject.From(_configuration.Device))
-                    using (var deviceId = PyObject.From(_configuration.DeviceId))
-                    using (var dataType = PyObject.From(_configuration.DataType.ToString().ToLower()))
-                    using (var variant = PyObject.From(_configuration.Variant))
-                    using (var cacheDir = PyObject.From(_configuration.CacheDirectory))
-                    using (var secureToken = PyObject.From(_configuration.SecureToken))
-                    using (var loraAdapters = PyObject.From(loraConfig))
-                    using (var pythonResult = _functionLoad.Call(modelName, processType, device, deviceId, dataType, variant, cacheDir, secureToken, isModelOffloadEnabled, isFullOffloadEnabled, isVaeSlicingEnabled, isVaeTilingEnabled, loraAdapters))
+                    try
                     {
-                        return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
+                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "load");
+
+                        var loraConfig = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
+                        using (var modelName = PyObject.From(_configuration.Path))
+                        using (var processType = PyObject.From(_configuration.ProcessType.ToString()))
+                        using (var isModelOffloadEnabled = PyObject.From(_configuration.IsModelOffloadEnabled))
+                        using (var isFullOffloadEnabled = PyObject.From(_configuration.IsFullOffloadEnabled))
+                        using (var isVaeSlicingEnabled = PyObject.From(_configuration.IsVaeSlicingEnabled))
+                        using (var isVaeTilingEnabled = PyObject.From(_configuration.IsVaeTilingEnabled))
+                        using (var device = PyObject.From(_configuration.Device))
+                        using (var deviceId = PyObject.From(_configuration.DeviceId))
+                        using (var dataType = PyObject.From(_configuration.DataType.ToString().ToLower()))
+                        using (var variant = PyObject.From(_configuration.Variant))
+                        using (var cacheDir = PyObject.From(_configuration.CacheDirectory))
+                        using (var secureToken = PyObject.From(_configuration.SecureToken))
+                        using (var loraAdapters = PyObject.From(loraConfig))
+                        using (var pythonResult = _functionLoad.Call(modelName, processType, device, deviceId, dataType, variant, cacheDir, secureToken, isModelOffloadEnabled, isFullOffloadEnabled, isVaeSlicingEnabled, isVaeTilingEnabled, loraAdapters))
+                        {
+                            return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
+                        }
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        throw HandlePythonException(ex);
                     }
                 }
             });
@@ -115,11 +123,18 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "unload");
-
-                    using (var pythonResult = _functionUnload.Call())
+                    try
                     {
-                        return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
+                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "unload");
+
+                        using (var pythonResult = _functionUnload.Call())
+                        {
+                            return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
+                        }
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        throw HandlePythonException(ex);
                     }
                 }
             });
@@ -131,40 +146,49 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public Task<Tensor<float>> GenerateAsync(PipelineOptions options, Tensor<float> inputTensor = default, CancellationToken cancellationToken = default)
+        public Task<Tensor<float>> GenerateAsync(PipelineOptions options, CancellationToken cancellationToken = default)
         {
             return Task.Run(() =>
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "generate");
-
-                    cancellationToken.Register(() => GenerateCancelAsync(), true);
-                    var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
-                    using (var prompt = PyObject.From(options.Prompt))
-                    using (var negativePrompt = PyObject.From(options.NegativePrompt))
-                    using (var guidance = PyObject.From(options.GuidanceScale))
-                    using (var guidance2 = PyObject.From(options.GuidanceScale2))
-                    using (var steps = PyObject.From(options.Steps))
-                    using (var steps2 = PyObject.From(options.Steps2))
-                    using (var height = PyObject.From(options.Height))
-                    using (var width = PyObject.From(options.Width))
-                    using (var seed = PyObject.From(options.Seed))
-                    using (var scheduler = PyObject.From(options.Scheduler.ToString()))
-                    using (var numFrames = PyObject.From(options.Frames))
-                    using (var shift = PyObject.From(options.Shift))
-                    using (var flowShift = PyObject.From(options.FlowShift))
-                    using (var strength = PyObject.From(options.Strength))
-                    using (var loraOptions = PyObject.From(loraConfig))
-                    using (var inputData = PyObject.From(inputTensor?.Memory.ToArray()))
-                    using (var inputShape = PyObject.From(inputTensor?.Dimensions.ToArray()))
-                    using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
+                    try
                     {
-                        var result = pythonResult
-                             .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
-                             .ToTensor()
-                             .Normalize(Normalization.OneToOne);
-                        return result;
+                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "generate");
+
+                        cancellationToken.Register(() => GenerateCancelAsync(), true);
+
+                        var imageInput = options.ImageInput?.GetChannels(3).ToTensor();
+                        var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
+                        using (var prompt = PyObject.From(options.Prompt))
+                        using (var negativePrompt = PyObject.From(options.NegativePrompt))
+                        using (var guidance = PyObject.From(options.GuidanceScale))
+                        using (var guidance2 = PyObject.From(options.GuidanceScale2))
+                        using (var steps = PyObject.From(options.Steps))
+                        using (var steps2 = PyObject.From(options.Steps2))
+                        using (var height = PyObject.From(options.Height))
+                        using (var width = PyObject.From(options.Width))
+                        using (var seed = PyObject.From(options.Seed))
+                        using (var scheduler = PyObject.From(options.Scheduler.ToString()))
+                        using (var numFrames = PyObject.From(options.Frames))
+                        using (var shift = PyObject.From(options.Shift))
+                        using (var flowShift = PyObject.From(options.FlowShift))
+                        using (var strength = PyObject.From(options.Strength))
+                        using (var loraOptions = PyObject.From(loraConfig))
+                        using (var inputData = PyObject.From(imageInput?.Memory.ToArray()))
+                        using (var inputShape = PyObject.From(imageInput.Dimensions.ToArray()))
+                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
+                        {
+                            var result = pythonResult
+                                 .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
+                                 .ToTensor()
+                                 .Normalize(Normalization.OneToOne);
+                            return result;
+                        }
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        throw HandlePythonException(ex);
                     }
                 }
             });
@@ -180,9 +204,16 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    using (var pythonResult = _functionGetLogs.Call())
+                    try
                     {
-                        return pythonResult.BareImportAs<IReadOnlyList<string>, PyObjectImporters.List<string, PyObjectImporters.String>>();
+                        using (var pythonResult = _functionGetLogs.Call())
+                        {
+                            return pythonResult.BareImportAs<IReadOnlyList<string>, PyObjectImporters.List<string, PyObjectImporters.String>>();
+                        }
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        throw HandlePythonException(ex);
                     }
                 }
             });
@@ -198,13 +229,20 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "get_step_latent");
-
-                    using (var pythonResult = _functionGetStepLatent.Call())
+                    try
                     {
-                        return pythonResult
-                            .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
-                            .ToTensor();
+                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "get_step_latent");
+
+                        using (var pythonResult = _functionGetStepLatent.Call())
+                        {
+                            return pythonResult
+                                .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
+                                .ToTensor();
+                        }
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        throw HandlePythonException(ex);
                     }
                 }
             });
@@ -221,11 +259,18 @@ namespace TensorStack.Python
             {
                 using (GIL.Acquire())
                 {
-                    _logger?.LogInformation("Invoking Python function: {FunctionName}", "cancel");
-
-                    using (var pythonResult = _functionCancel.Call())
+                    try
                     {
-                        return;
+                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "cancel");
+
+                        using (var pythonResult = _functionCancel.Call())
+                        {
+                            return;
+                        }
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        throw HandlePythonException(ex);
                     }
                 }
             });
@@ -274,6 +319,10 @@ namespace TensorStack.Python
         }
 
 
+        /// <summary>
+        /// Logging loop.
+        /// </summary>
+        /// <param name="refreshRate">The refresh rate.</param>
         private async Task LoggingLoop(int refreshRate)
         {
             while (!_progressCancellation.IsCancellationRequested)
@@ -287,6 +336,27 @@ namespace TensorStack.Python
                 await Task.Delay(refreshRate, _progressCancellation.Token);
             }
         }
-    }
 
+
+        /// <summary>
+        /// Handles the python exception.
+        /// </summary>
+        /// <param name="ex">The ex.</param>
+        /// <returns>Exception.</returns>
+        private Exception HandlePythonException(PythonInvocationException ex)
+        {
+            if (ex.InnerException is PythonRuntimeException pyex)
+            {
+                _logger?.LogError(pyex, "{PythonExceptionType} exception occured", ex.PythonExceptionType);
+                if (!pyex.PythonStackTrace.IsNullOrEmpty())
+                    _logger?.LogError(string.Join(Environment.NewLine, pyex.PythonStackTrace));
+
+                return new Exception(pyex.Message, pyex);
+            }
+
+            _logger?.LogError(ex, "{PythonExceptionType} exception occured", ex.PythonExceptionType);
+            return new Exception(ex.Message, ex);
+        }
+    }
 }
+

@@ -54,9 +54,10 @@ Once you have created a virtual environment you can now load a pipeline
 // Pipeline Config
 var pipelineConfig = new PipelineConfig
 {
-    Path = "Tongyi-MAI/Z-Image-Turbo",
-    Pipeline = "ZImagePipeline",
-    IsModelOffloadEnabled = true,
+    Path = "Qwen/Qwen-Image-Edit",
+    Pipeline = "QwenImagePipeline",
+    ProcessType = ProcessType.ImageEdit,
+    IsFullOffloadEnabled = true,
     DataType = DataType.Bfloat16
 };
 
@@ -69,12 +70,13 @@ using (var pythonPipeline = new PythonPipeline(pipelineConfig, PipelineProgress.
     // Generate Option
     var options = new PipelineOptions
     {
-        Prompt = "cute cat",
-        Steps = 10,
+        Prompt = "Yarn art style",
+        Steps = 30,
         Width = 1024,
         Height = 1024,
-        GuidanceScale = 0,
+        GuidanceScale = 4f,
         Scheduler = SchedulerType.FlowMatchEulerDiscrete,
+        ImageInput = new ImageInput("Image.png")
     };
 
     // Generate

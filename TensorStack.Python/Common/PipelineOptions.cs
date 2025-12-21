@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using TensorStack.Common.Tensor;
 
 namespace TensorStack.Python.Common
 {
@@ -21,6 +22,6 @@ namespace TensorStack.Python.Common
         public SchedulerType Scheduler { get; set; }
         public SchedulerType[] Schedulers { get; set; }
         public List<LoraOptions> LoraOptions { get; set; }
-       
+        public ImageTensor ImageInput { get; set; }
     }
 }

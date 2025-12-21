@@ -3,6 +3,7 @@
     public enum ProcessType
     {
         TextToImage = 0,
-        ImageToImage = 1
+        ImageToImage = 1,
+        ImageEdit = 2
     }
 }

@@ -6,8 +6,8 @@ import numpy as np
 from threading import Event
 from collections.abc import Buffer
 from typing import Coroutine, Dict, Sequence, List, Tuple, Optional
-from diffusers import QwenImagePipeline, QwenImageImg2ImgPipeline
-from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, createTensor
+from diffusers import QwenImagePipeline, QwenImageImg2ImgPipeline, QwenImageEditPipeline
+from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, imageFromInput
 sys.stderr = MemoryStdout()
 
 # Globals
@@ -50,6 +50,14 @@ def load(
         )
     elif _processType == "ImageToImage":
         _pipeline = QwenImageImg2ImgPipeline.from_pretrained(
+            modelName, 
+            torch_dtype=torch_dtype,
+            cache_dir = cacheDir,
+            token = secureToken,
+            variant=variant
+        )
+    elif _processType == "ImageEdit":
+        _pipeline = QwenImageEditPipeline.from_pretrained(
             modelName, 
             torch_dtype=torch_dtype,
             cache_dir = cacheDir,
@@ -151,8 +159,23 @@ def generate(
         )[0]
     elif _processType == "ImageToImage":
         output = _pipeline(
-            image = createTensor(inputData, inputShape, device=_pipeline.device, dtype=_pipeline.dtype),
+            image = imageFromInput(inputData, inputShape),
             strength = strength,
+            prompt = prompt,
+            negative_prompt = negativePrompt,
+            height = height,
+            width = width,
+            generator = _generator.manual_seed(seed),
+            true_cfg_scale = guidanceScale,
+            guidance_scale = guidanceScale2,
+            num_inference_steps = steps,
+            output_type = "np",
+            callback_on_step_end = _progress_callback,
+            callback_on_step_end_tensor_inputs = ["latents"]
+        )[0]
+    elif _processType == "ImageEdit":
+        output = _pipeline(
+            image = imageFromInput(inputData, inputShape),
             prompt = prompt,
             negative_prompt = negativePrompt,
             height = height,

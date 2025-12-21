@@ -7,7 +7,7 @@ from threading import Event
 from collections.abc import Buffer
 from typing import Coroutine, Dict, Sequence, List, Tuple, Optional
 from diffusers import ZImagePipeline, ZImageImg2ImgPipeline
-from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, createTensor
+from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, imageFromInput
 sys.stderr = MemoryStdout()
 
 # Globals
@@ -150,7 +150,7 @@ def generate(
         )[0]
     elif _processType == "ImageToImage":
         output = _pipeline(
-            image = createTensor(inputData, inputShape, device=_pipeline.device, dtype=_pipeline.dtype),
+            image = imageFromInput(inputData, inputShape),
             strength = strength,
             prompt = prompt, 
             negative_prompt = negativePrompt,

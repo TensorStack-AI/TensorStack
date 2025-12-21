@@ -7,7 +7,7 @@ from threading import Event
 from collections.abc import Buffer
 from typing import Coroutine, Dict, Sequence, List, Tuple, Optional
 from diffusers import WanPipeline, WanImageToVideoPipeline, UniPCMultistepScheduler
-from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, createTensor
+from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, tensorFromInput
 sys.stderr = MemoryStdout()
 
 # Globals
@@ -152,7 +152,7 @@ def generate(
         )[0]
     elif _processType == "ImageToImage":
         max_area = height * width
-        image = createTensor(inputData, inputShape, device=_pipeline.device, dtype=_pipeline.dtype)
+        image = tensorFromInput(inputData, inputShape, device=_pipeline.device, dtype=_pipeline.dtype)
         image = resize_tensor(image, max_area, _pipeline)
         output = _pipeline(
             image = image,

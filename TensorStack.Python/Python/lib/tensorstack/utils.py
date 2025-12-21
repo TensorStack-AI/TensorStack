@@ -1,4 +1,5 @@
 import torch
+from PIL import Image
 from typing import Sequence, Optional
 import numpy as np
 import threading
@@ -80,7 +81,7 @@ def getDataType(dtype: str):
     return torch.float
 
 
-def createTensor(
+def tensorFromInput(
     inputData: Optional[Sequence[float]],
     inputShape: Optional[Sequence[int]],
     *,
@@ -110,6 +111,23 @@ def createTensor(
 
     np_array = np.asarray(inputData, dtype=np.float32).reshape(shape)
     return torch.from_numpy(np_array).to(device=device, dtype=dtype)
+
+
+def imageFromInput(
+    inputData: Optional[Sequence[float]],
+    inputShape: Optional[Sequence[int]],
+) -> Optional[Image.Image]:
+
+    if not inputData or not inputShape:
+        return None
+
+    t = torch.tensor(inputData, dtype=torch.float32)
+    t = t.view(*inputShape)
+    t = t[0]
+    t = (t + 1) / 2
+    t = t.permute(1, 2, 0)
+    t = (t.clamp(0, 1) * 255).to(torch.uint8)
+    return Image.fromarray(t.numpy())
 
 
 class MemoryStdout:
