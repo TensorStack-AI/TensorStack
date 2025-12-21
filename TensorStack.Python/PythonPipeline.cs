@@ -176,7 +176,7 @@ namespace TensorStack.Python
                         using (var strength = PyObject.From(options.Strength))
                         using (var loraOptions = PyObject.From(loraConfig))
                         using (var inputData = PyObject.From(imageInput?.Memory.ToArray()))
-                        using (var inputShape = PyObject.From(imageInput.Dimensions.ToArray()))
+                        using (var inputShape = PyObject.From(imageInput?.Dimensions.ToArray()))
                         using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
                         {
                             var result = pythonResult

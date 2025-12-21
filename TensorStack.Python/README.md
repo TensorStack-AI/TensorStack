@@ -8,6 +8,7 @@ C# => Python Diffusers Inferface
 ### Qwen Image
 - QwenImagePipeline
 - QwenImageImg2ImgPipeline
+- QwenImageEditPipeline
 ### Wan Video
 - WanPipeline
 - WanImageToVideoPipeline
@@ -42,10 +43,10 @@ var serverConfig = new EnvironmentConfig
 };
 
 // PythonManager
-var pythonService = new PythonManager(serverConfig, PipelineProgress.ConsoleCallback);
+var pythonService = new PythonManager(serverConfig);
 
 // Create/Load Virtual Environment
-await pythonService.CreateEnvironmentAsync();
+await pythonService.CreateEnvironmentAsync(PipelineProgress.ConsoleCallback);
 ```
 
 ## Python Pipelines

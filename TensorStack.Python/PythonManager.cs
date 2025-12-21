@@ -20,7 +20,6 @@ namespace TensorStack.Python
         private readonly string _pythonPath;
         private readonly string _pipelinePath;
         private readonly string _pythonVersion = "3.12.10";
-        private readonly IProgress<PipelineProgress> _progressCallback;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PythonManager"/> class.
@@ -28,11 +27,10 @@ namespace TensorStack.Python
         /// <param name="config">The configuration.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="logger">The logger.</param>
-        public PythonManager(EnvironmentConfig config, IProgress<PipelineProgress> progressCallback = null, ILogger logger = default)
+        public PythonManager(EnvironmentConfig config, ILogger logger = default)
         {
             _logger = logger;
             _config = config;
-            _progressCallback = progressCallback;
             _pythonPath = Path.GetFullPath(Path.Join(_config.Directory, "Python"));
             _pipelinePath = Path.GetFullPath(Path.Join(_config.Directory, "Pipelines"));
             CopyInternalPipelineFiles();
@@ -44,15 +42,15 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="isRebuild">Delete and rebuild the environment</param>
         /// <param name="isReinstall">Delete and rebuild the environment and base Python installation</param>
-        public Task<IPythonEnvironment> CreateEnvironmentAsync(bool isRebuild = false, bool isReinstall = false)
+        public Task<IPythonEnvironment> CreateEnvironmentAsync(bool isRebuild = false, bool isReinstall = false, IProgress<PipelineProgress> progressCallback = null)
         {
             return Task.Run(async () =>
             {
-                await DownloadAsync(isReinstall);
+                await DownloadAsync(isReinstall, progressCallback);
                 if (isReinstall || isRebuild)
                     await DeleteAsync();
 
-                return await CreateAsync();
+                return await CreateAsync(progressCallback);
             });
         }
 
@@ -75,7 +73,7 @@ namespace TensorStack.Python
         /// Checks if a environment exists
         /// </summary>
         /// <param name="name">The name.</param>
-        private bool Exists(string name)
+        public bool Exists(string name)
         {
             var path = Path.Combine(_pipelinePath, $".{name}");
             return Directory.Exists(path);
@@ -85,14 +83,14 @@ namespace TensorStack.Python
         /// <summary>
         /// Creates the environment.
         /// </summary>
-        private async Task<IPythonEnvironment> CreateAsync()
+        private async Task<IPythonEnvironment> CreateAsync(IProgress<PipelineProgress> progressCallback = null)
         {
             var exists = Exists(_config.Environment);
-            CallbackMessage($"{(exists ? "Loading" : "Creating")} Python Virtual Environment (.{_config.Environment})");
+            progressCallback.SendMessage($"{(exists ? "Loading" : "Creating")} Python Virtual Environment (.{_config.Environment})");
             var requirementsFile = Path.Combine(_pipelinePath, "requirements.txt");
             await File.WriteAllLinesAsync(requirementsFile, _config.Requirements);
             var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, requirementsFile, _pythonVersion, _logger);
-            CallbackMessage($"Python Virtual Environment {(exists ? "Loaded" : "Created")}.");
+            progressCallback.SendMessage($"Python Virtual Environment {(exists ? "Loaded" : "Created")}.");
             return environment;
         }
 
@@ -101,7 +99,7 @@ namespace TensorStack.Python
         /// Downloads and installs Win-Python portable v3.12.10.
         /// </summary>
         /// <param name="reinstall">if set to <c>true</c> [reinstall].</param>
-        private async Task DownloadAsync(bool reinstall)
+        private async Task DownloadAsync(bool reinstall, IProgress<PipelineProgress> progressCallback = null)
         {
             var subfolder = "WPy64-312100/python";
             var exePath = Path.Combine(_pythonPath, "python.exe");
@@ -109,14 +107,14 @@ namespace TensorStack.Python
             var pythonUrl = "https://github.com/winpython/winpython/releases/download/15.3.20250425final/Winpython64-3.12.10.0dot.zip";
             if (reinstall)
             {
-                CallbackMessage($"Reinstalling Python {_pythonVersion}...");
+                progressCallback.SendMessage($"Reinstalling Python {_pythonVersion}...");
                 if (File.Exists(downloadPath))
                     File.Delete(downloadPath);
 
                 if (Directory.Exists(_pythonPath))
                     Directory.Delete(_pythonPath, true);
 
-                CallbackMessage($"Python Uninstalled.");
+                progressCallback.SendMessage($"Python Uninstalled.");
             }
 
             // Create Python 
@@ -125,7 +123,7 @@ namespace TensorStack.Python
             // Download Python
             if (!File.Exists(downloadPath))
             {
-                CallbackMessage($"Download Python {_pythonVersion}...");
+                progressCallback.SendMessage($"Download Python {_pythonVersion}...");
                 using (var httpClient = new HttpClient())
                 using (var response = await httpClient.GetAsync(pythonUrl))
                 {
@@ -135,13 +133,13 @@ namespace TensorStack.Python
                         await response.Content.CopyToAsync(stream);
                     }
                 }
-                CallbackMessage("Python Download Complete.");
+                progressCallback.SendMessage("Python Download Complete.");
             }
 
             // Extract ZIP file
             if (!File.Exists(exePath))
             {
-                CallbackMessage($"Installing Python {_pythonVersion}...");
+                progressCallback.SendMessage( $"Installing Python {_pythonVersion}...");
                 CopyInternalPythonFiles();
                 using (var archive = ZipFile.OpenRead(downloadPath))
                 {
@@ -164,24 +162,9 @@ namespace TensorStack.Python
                         }
                     }
                 }
-                CallbackMessage($"Python Install Complete.");
+                progressCallback.SendMessage($"Python Install Complete.");
             }
         }
-
-
-        /// <summary>
-        /// Send a callback message.
-        /// </summary>
-        /// <param name="message">The message.</param>
-        private void CallbackMessage(string message)
-        {
-            _progressCallback?.Report(new PipelineProgress
-            {
-                Message = message,
-                Process = "Initialize"
-            });
-        }
-
 
         /// <summary>
         /// Copies the internal python files.

@@ -20,7 +20,6 @@ namespace TensorStack.Python.Common
         public float FlowShift { get; set; }
         public float Strength { get; set; }
         public SchedulerType Scheduler { get; set; }
-        public SchedulerType[] Schedulers { get; set; }
         public List<LoraOptions> LoraOptions { get; set; }
         public ImageTensor ImageInput { get; set; }
     }

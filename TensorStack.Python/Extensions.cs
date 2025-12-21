@@ -1,6 +1,7 @@
 ﻿using CSnakes.Runtime.Python;
 using System;
 using TensorStack.Common.Tensor;
+using TensorStack.Python.Common;
 
 namespace TensorStack.Python
 {
@@ -43,5 +44,14 @@ namespace TensorStack.Python
             return dimensions;
         }
 
+
+        public static void SendMessage(this IProgress<PipelineProgress> progressCallback, string message)
+        {
+            progressCallback?.Report(new PipelineProgress
+            {
+                Message = message,
+                Process = "Initialize"
+            });
+        }
     }
 }
