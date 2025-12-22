@@ -116,7 +116,6 @@ def generate(
         scheduler: str,
         numFrames: int,
         shift: float,
-        flowShift: float,
         strength: float,
         loraOptions: Optional[Dict[str, float]] = None,
         inputData: Optional[Sequence[float]] = None,
@@ -127,6 +126,7 @@ def generate(
     _reset()
 
     # scheduler
+    flowShift = 5.0 if height > 480 else 3.0 # 5.0 for 720P, 3.0 for 480P
     _pipeline.scheduler = UniPCMultistepScheduler.from_config(_pipeline.scheduler.config, flow_shift=flowShift)
 
     #Lora Adapters

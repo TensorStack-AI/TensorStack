@@ -172,12 +172,11 @@ namespace TensorStack.Python
                         using (var scheduler = PyObject.From(options.Scheduler.ToString()))
                         using (var numFrames = PyObject.From(options.Frames))
                         using (var shift = PyObject.From(options.Shift))
-                        using (var flowShift = PyObject.From(options.FlowShift))
                         using (var strength = PyObject.From(options.Strength))
                         using (var loraOptions = PyObject.From(loraConfig))
                         using (var inputData = PyObject.From(imageInput?.Memory.ToArray()))
                         using (var inputShape = PyObject.From(imageInput?.Dimensions.ToArray()))
-                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, flowShift, strength, loraOptions, inputData, inputShape))
+                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, strength, loraOptions, inputData, inputShape))
                         {
                             var result = pythonResult
                                  .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
@@ -330,7 +329,7 @@ namespace TensorStack.Python
                 var logs = await GetLogsAsync();
                 foreach (var progress in LogParser.ParseLogs(logs))
                 {
-                    _logger?.LogInformation("[PythonRuntime] {message}", progress.Message);
+                    _logger?.LogInformation("[PythonRuntime] {Message}", progress.Message);
                     _progressCallback?.Report(progress);
                 }
                 await Task.Delay(refreshRate, _progressCancellation.Token);
@@ -347,6 +346,9 @@ namespace TensorStack.Python
         {
             if (ex.InnerException is PythonRuntimeException pyex)
             {
+                if (ex.InnerException.Message.Equals("Operation Canceled"))
+                    return new OperationCanceledException();
+
                 _logger?.LogError(pyex, "{PythonExceptionType} exception occured", ex.PythonExceptionType);
                 if (!pyex.PythonStackTrace.IsNullOrEmpty())
                     _logger?.LogError(string.Join(Environment.NewLine, pyex.PythonStackTrace));

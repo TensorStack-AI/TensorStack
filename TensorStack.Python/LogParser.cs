@@ -109,7 +109,7 @@ namespace TensorStack.Python
                     DownloadTotal = megabytesTotal,
                     Downloaded = megabytesDownloaded,
                     DownloadSpeed = megabytesSecond,
-                    Process = "Generate"
+                    Process = messageSection.StartsWith("Loading") ? "Loading" : "Generate"
                 };
 
             }

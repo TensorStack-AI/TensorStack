@@ -123,7 +123,6 @@ def generate(
         scheduler: str,
         numFrames: int,
         shift: float,
-        flowShift: float,
         strength: float,
         loraOptions: Optional[Dict[str, float]] = None,
         inputData: Optional[Sequence[float]] = None,

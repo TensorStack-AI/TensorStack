@@ -1,4 +1,6 @@
-﻿namespace TensorStack.Python.Config
+﻿using System;
+
+namespace TensorStack.Python.Config
 {
     public record EnvironmentConfig
     {
@@ -8,13 +10,30 @@
         public string Directory { get; set; }
 
 
+        public static EnvironmentConfig Default(VendorType vendorType)
+        {
+            return vendorType switch
+            {
+                VendorType.AMD => DefaultROCM,
+                VendorType.Nvidia => DefaultCUDA,
+                _ => DefaultCPU
+            };
+        }
+
+        public static EnvironmentConfig Default(object vendor)
+        {
+            throw new NotImplementedException();
+        }
+
         public readonly static EnvironmentConfig DefaultCPU = new()
         {
             Environment = "default-cpu",
             Directory = "PythonRuntime",
             Requirements =
             [
-                "torchvision==0.22.0",
+                "torch==2.9.1",
+                "torchvaudio==2.9.1",
+                "torchvision==0.24.1",
 
                  // Default Packages
                 "typing",
@@ -24,11 +43,9 @@
                 "diffusers",
                 "protobuf",
                 "sentencepiece",
-                "pillow",
                 "ftfy",
                 "scipy",
-                "peft",
-                "pillow"
+                "peft"
             ]
         };
 
@@ -39,8 +56,10 @@
             Directory = "PythonRuntime",
             Requirements =
             [
-                "--extra-index-url https://download.pytorch.org/whl/cu118",
-                "torchvision==0.22.0+cu118",
+                "--extra-index-url https://download.pytorch.org/whl/cu128",
+                "torch==2.9.1+cu128",
+                "torchaudio==2.9.1+cu128",
+                "torchvision==0.24.1+cu128",
 
                  // Default Packages
                 "typing",
@@ -50,11 +69,9 @@
                 "diffusers",
                 "protobuf",
                 "sentencepiece",
-                "pillow",
                 "ftfy",
                 "scipy",
-                "peft",
-                "pillow"
+                "peft"
             ]
         };
 
@@ -80,12 +97,18 @@
                 "diffusers",
                 "protobuf",
                 "sentencepiece",
-                "pillow",
                 "ftfy",
                 "scipy",
-                "peft",
-                "pillow"
+                "peft"
             ]
         };
+    }
+
+    public enum VendorType
+    {
+        Unknown = 0,
+        AMD = 4098,
+        Nvidia = 4318,
+        Intel = 32902
     }
 }

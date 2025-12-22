@@ -15,9 +15,8 @@ namespace TensorStack.Python.Common
         public int Height { get; set; }
         public int Width { get; set; }
         public int Frames { get; set; }
-        public float OutputFrameRate { get; set; }
+        public float FrameRate { get; set; }
         public float Shift { get; set; }
-        public float FlowShift { get; set; }
         public float Strength { get; set; }
         public SchedulerType Scheduler { get; set; }
         public List<LoraOptions> LoraOptions { get; set; }
