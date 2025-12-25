@@ -89,6 +89,7 @@ namespace TensorStack.Python
                         var loraConfig = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
                         using (var modelName = PyObject.From(_configuration.Path))
                         using (var processType = PyObject.From(_configuration.ProcessType.ToString()))
+                        using (var controlNet = PyObject.From(_configuration.ControlNetPath))
                         using (var isModelOffloadEnabled = PyObject.From(_configuration.IsModelOffloadEnabled))
                         using (var isFullOffloadEnabled = PyObject.From(_configuration.IsFullOffloadEnabled))
                         using (var isVaeSlicingEnabled = PyObject.From(_configuration.IsVaeSlicingEnabled))
@@ -100,7 +101,7 @@ namespace TensorStack.Python
                         using (var cacheDir = PyObject.From(_configuration.CacheDirectory))
                         using (var secureToken = PyObject.From(_configuration.SecureToken))
                         using (var loraAdapters = PyObject.From(loraConfig))
-                        using (var pythonResult = _functionLoad.Call(modelName, processType, device, deviceId, dataType, variant, cacheDir, secureToken, isModelOffloadEnabled, isFullOffloadEnabled, isVaeSlicingEnabled, isVaeTilingEnabled, loraAdapters))
+                        using (var pythonResult = _functionLoad.Call(modelName, processType, controlNet, device, deviceId, dataType, variant, cacheDir, secureToken, isModelOffloadEnabled, isFullOffloadEnabled, isVaeSlicingEnabled, isVaeTilingEnabled, loraAdapters))
                         {
                             return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
                         }
@@ -158,7 +159,8 @@ namespace TensorStack.Python
 
                         cancellationToken.Register(() => GenerateCancelAsync(), true);
 
-                        var imageInput = options.ImageInput?.GetChannels(3).ToTensor();
+                        var image = options.ImageInput?.GetChannels(3).ToTensor();
+                        var seed = options.Seed > 0 ? options.Seed : Random.Shared.Next();
                         var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
                         using (var prompt = PyObject.From(options.Prompt))
                         using (var negativePrompt = PyObject.From(options.NegativePrompt))
@@ -168,15 +170,16 @@ namespace TensorStack.Python
                         using (var steps2 = PyObject.From(options.Steps2))
                         using (var height = PyObject.From(options.Height))
                         using (var width = PyObject.From(options.Width))
-                        using (var seed = PyObject.From(options.Seed))
+                        using (var pySeed = PyObject.From(seed))
                         using (var scheduler = PyObject.From(options.Scheduler.ToString()))
                         using (var numFrames = PyObject.From(options.Frames))
                         using (var shift = PyObject.From(options.Shift))
                         using (var strength = PyObject.From(options.Strength))
+                        using (var controlScale = PyObject.From(options.ControlNetScale))
                         using (var loraOptions = PyObject.From(loraConfig))
-                        using (var inputData = PyObject.From(imageInput?.Memory.ToArray()))
-                        using (var inputShape = PyObject.From(imageInput?.Dimensions.ToArray()))
-                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, strength, loraOptions, inputData, inputShape))
+                        using (var inputData = PyObject.From(image?.Memory.ToArray()))
+                        using (var inputShape = PyObject.From(image?.Dimensions.ToArray()))
+                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, pySeed, scheduler, numFrames, shift, strength, controlScale, loraOptions, inputData, inputShape))
                         {
                             var result = pythonResult
                                  .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()

@@ -16,10 +16,15 @@ _processType = None;
 _step_latent = None
 _generator = None
 _cancel_event = Event()
+_pipelineMap = {
+    "TextToImage": ChromaPipeline,
+    "ImageToImage": ChromaImg2ImgPipeline,
+}
 
 def load(
         modelName: str,
         processType: str,
+        controlNet: str = None,
         device: str = "cuda",
         deviceId: int = 0,
         dataType: str = "bfloat16",
@@ -40,22 +45,14 @@ def load(
     # Load Pipeline
     torch_dtype = getDataType(dataType)
     _processType = processType;
-    if _processType == "TextToImage":
-        _pipeline = ChromaPipeline.from_pretrained(
-            modelName, 
-            torch_dtype=torch_dtype,
-            cache_dir = cacheDir,
-            token = secureToken,
-            variant=variant
-        )
-    elif _processType == "ImageToImage":
-        _pipeline = ChromaImg2ImgPipeline.from_pretrained(
-            modelName, 
-            torch_dtype=torch_dtype,
-            cache_dir = cacheDir,
-            token = secureToken,
-            variant=variant
-        )
+    pipeline = _pipelineMap[_processType]
+    _pipeline = pipeline.from_pretrained(
+        modelName, 
+        torch_dtype=torch_dtype,
+        cache_dir = cacheDir,
+        token = secureToken,
+        variant=variant
+    )
 
     #Lora Adapters
     if loraAdapters is not None:
@@ -116,6 +113,7 @@ def generate(
         numFrames: int,
         shift: float,
         strength: float,
+        controlScale: float,
         loraOptions: Optional[Dict[str, float]] = None,
         inputData: Optional[Sequence[float]] = None,
         inputShape: Optional[Sequence[int]] = None
@@ -133,35 +131,24 @@ def generate(
         weights = list(loraOptions.values())
         _pipeline.set_adapters(names, adapter_weights=weights)
 
+    # Pipeline Options
+    options = {
+        "prompt": prompt,
+        "negative_prompt": negativePrompt,
+        "height": height,
+        "width": width,
+        "generator": _generator.manual_seed(seed),
+        "guidance_scale": guidanceScale,
+        "num_inference_steps": steps,
+        "output_type": "np",
+        "callback_on_step_end": _progress_callback,
+        "callback_on_step_end_tensor_inputs": ["latents"],
+    }
+    if _processType == "ImageToImage":
+        options.update({ "image": imageFromInput(inputData, inputShape),"strength": strength,})
+
     # Run Pipeline
-    if _processType == "TextToImage":
-        output = _pipeline(
-            prompt = prompt,
-            negative_prompt = negativePrompt,
-            height = height,
-            width = width,
-            generator = _generator.manual_seed(seed),
-            guidance_scale = guidanceScale,
-            num_inference_steps = steps,
-            output_type = "np",
-            callback_on_step_end = _progress_callback,
-            callback_on_step_end_tensor_inputs = ["latents"]
-        )[0]
-    elif _processType == "ImageToImage":
-        output = _pipeline(
-            image = imageFromInput(inputData, inputShape),
-            strength = strength,
-            prompt = prompt,
-            negative_prompt = negativePrompt,
-            height = height,
-            width = width,
-            generator = _generator.manual_seed(seed),
-            guidance_scale = guidanceScale,
-            num_inference_steps = steps,
-            output_type = "np",
-            callback_on_step_end = _progress_callback,
-            callback_on_step_end_tensor_inputs = ["latents"]
-        )[0]
+    output = _pipeline(**options)[0]
 
     # (Batch, Channel, Height, Width)
     output = output.transpose(0, 3, 1, 2)

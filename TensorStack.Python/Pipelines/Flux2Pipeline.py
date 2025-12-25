@@ -6,8 +6,8 @@ import numpy as np
 from threading import Event
 from collections.abc import Buffer
 from typing import Coroutine, Dict, Sequence, List, Tuple, Optional
-from diffusers import WanPipeline, WanImageToVideoPipeline, UniPCMultistepScheduler
-from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, tensorFromInput
+from diffusers import Flux2Pipeline
+from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, imageFromInput
 sys.stderr = MemoryStdout()
 
 # Globals
@@ -17,8 +17,8 @@ _step_latent = None
 _generator = None
 _cancel_event = Event()
 _pipelineMap = {
-    "TextToImage": WanPipeline,
-    "ImageToImage": WanImageToVideoPipeline,
+    "TextToImage": Flux2Pipeline,
+    "ImageToImage": Flux2Pipeline,
 }
 
 def load(
@@ -45,7 +45,7 @@ def load(
     # Load Pipeline
     torch_dtype = getDataType(dataType)
     _processType = processType;
-    pipeline = _pipelineMap[_processType]
+    pipeline  = _pipelineMap[_processType]
     _pipeline = pipeline.from_pretrained(
         modelName, 
         torch_dtype=torch_dtype,
@@ -75,7 +75,6 @@ def load(
         _pipeline.vae.enable_tiling()
     _generator = torch.Generator(device=execution_device)
     return True
-
 
 
 def unload() -> bool:
@@ -123,9 +122,8 @@ def generate(
     # Reset
     _reset()
 
-    # scheduler
-    flowShift = 5.0 if height > 480 else 3.0 # 5.0 for 720P, 3.0 for 480P
-    _pipeline.scheduler = UniPCMultistepScheduler.from_config(_pipeline.scheduler.config, flow_shift=flowShift)
+    #scheduler
+    _pipeline.scheduler = create_scheduler(scheduler, config=_pipeline.scheduler)
 
     #Lora Adapters
     if loraOptions is not None:
@@ -135,30 +133,25 @@ def generate(
 
     # Pipeline Options
     options = {
+        "image": imageFromInput(inputData, inputShape),
         "prompt": prompt,
-        "negative_prompt": negativePrompt,
         "height": height,
         "width": width,
         "generator": _generator.manual_seed(seed),
         "guidance_scale": guidanceScale,
         "num_inference_steps": steps,
-        "num_frames": numFrames,
         "output_type": "np",
         "callback_on_step_end": _progress_callback,
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
-    if _processType == "ImageToImage":
-        options.update({ "image": imageFromInput(inputData, inputShape), })
 
     # Run Pipeline
     output = _pipeline(**options)[0]
 
-    # (Frames, Channel, Height, Width)
-    output = output.transpose(0, 1, 4, 2, 3)
-    output = output.squeeze(axis=0)
+    # (Batch, Channel, Height, Width)
+    output = output.transpose(0, 3, 1, 2)
     output = output.astype(np.float32)
     return np.ascontiguousarray(output)
-
 
 
 def getLogs() -> list[str]:
@@ -188,23 +181,3 @@ def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
         _step_latent = np.ascontiguousarray(latents.float().cpu())
 
     return info
-
-
-def resize_tensor(image: torch.Tensor, max_area: int, pipeline) -> torch.Tensor:
-    if image.ndim != 4 or image.shape[0] != 1:
-        raise ValueError("Expected image of shape (1,C,H,W)")
-
-    B, C, H, W = image.shape
-    aspect_ratio = H / W
-    mod_value = pipeline.vae_scale_factor_spatial * pipeline.transformer.config.patch_size[1]
-
-    # compute new height and width
-    new_H = int(round(np.sqrt(max_area * aspect_ratio) / mod_value) * mod_value)
-    new_W = int(round(np.sqrt(max_area / aspect_ratio) / mod_value) * mod_value)
-
-    # resize tensor
-    image_resized = F.interpolate(
-        image, size=(new_H, new_W), mode='bilinear', align_corners=False
-    )
-
-    return image_resized

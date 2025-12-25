@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Python.Common
@@ -18,8 +19,12 @@ namespace TensorStack.Python.Common
         public float FrameRate { get; set; }
         public float Shift { get; set; }
         public float Strength { get; set; }
+        public float ControlNetScale { get; set; }
         public SchedulerType Scheduler { get; set; }
         public List<LoraOptions> LoraOptions { get; set; }
+
+        [JsonIgnore]
         public ImageTensor ImageInput { get; set; }
+     
     }
 }

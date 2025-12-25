@@ -8,6 +8,7 @@ namespace TensorStack.Python.Config
         public string Path { get; set; }
         public string Pipeline { get; set; }
         public ProcessType ProcessType { get; set; }
+        public string ControlNetPath { get; set; }
         public string Device { get; set; } = "cuda";
         public int DeviceId { get; set; }
         public bool IsModelOffloadEnabled { get; set; }
@@ -19,5 +20,6 @@ namespace TensorStack.Python.Config
         public string CacheDirectory { get; set; }
         public string SecureToken { get; set; }
         public List<LoraConfig> LoraAdapters { get; set; }
+      
     }
 }

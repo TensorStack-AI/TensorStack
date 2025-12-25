@@ -6,7 +6,7 @@ import numpy as np
 from threading import Event
 from collections.abc import Buffer
 from typing import Coroutine, Dict, Sequence, List, Tuple, Optional
-from diffusers import QwenImagePipeline, QwenImageImg2ImgPipeline, QwenImageEditPipeline
+from diffusers import QwenImagePipeline, QwenImageImg2ImgPipeline, QwenImageEditPipeline, QwenImageControlNetPipeline, QwenImageControlNetModel
 from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, imageFromInput
 sys.stderr = MemoryStdout()
 
@@ -16,10 +16,17 @@ _processType = None;
 _step_latent = None
 _generator = None
 _cancel_event = Event()
+_pipelineMap = {
+    "TextToImage": QwenImagePipeline,
+    "ImageToImage": QwenImageImg2ImgPipeline,
+    "ImageEdit": QwenImageEditPipeline,
+    "ControlNet": QwenImageControlNetPipeline,
+}
 
 def load(
         modelName: str,
         processType: str,
+        controlNet: str = None,
         device: str = "cuda",
         deviceId: int = 0,
         dataType: str = "bfloat16",
@@ -38,32 +45,23 @@ def load(
     _reset()
 
     # Load Pipeline
-    torch_dtype = getDataType(dataType)
+    dtype = getDataType(dataType)
     _processType = processType;
-    if _processType == "TextToImage":
-        _pipeline = QwenImagePipeline.from_pretrained(
-            modelName, 
-            torch_dtype=torch_dtype,
-            cache_dir = cacheDir,
-            token = secureToken,
-            variant=variant
-        )
-    elif _processType == "ImageToImage":
-        _pipeline = QwenImageImg2ImgPipeline.from_pretrained(
-            modelName, 
-            torch_dtype=torch_dtype,
-            cache_dir = cacheDir,
-            token = secureToken,
-            variant=variant
-        )
-    elif _processType == "ImageEdit":
-        _pipeline = QwenImageEditPipeline.from_pretrained(
-            modelName, 
-            torch_dtype=torch_dtype,
-            cache_dir = cacheDir,
-            token = secureToken,
-            variant=variant
-        )
+    options = {
+        "torch_dtype": dtype,
+        "cache_dir": cacheDir,
+        "token": secureToken,
+        "variant": variant,
+    }
+
+    #ControlNet
+    if controlNet is not None:
+        controlnetModel = QwenImageControlNetModel.from_pretrained(controlNet, torch_dtype=dtype)
+        options.update({"controlnet": controlnetModel,})
+
+    # Create pipeline
+    pipeline = _pipelineMap[_processType]
+    _pipeline = pipeline.from_pretrained(modelName, **options)
 
     #Lora Adapters
     if loraAdapters is not None:
@@ -124,6 +122,7 @@ def generate(
         numFrames: int,
         shift: float,
         strength: float,
+        controlScale: float,
         loraOptions: Optional[Dict[str, float]] = None,
         inputData: Optional[Sequence[float]] = None,
         inputShape: Optional[Sequence[int]] = None
@@ -141,52 +140,32 @@ def generate(
         weights = list(loraOptions.values())
         _pipeline.set_adapters(names, adapter_weights=weights)
 
+    # Pipeline Options
+    options = {
+        "prompt": prompt,
+        "negative_prompt": negativePrompt,
+        "height": height,
+        "width": width,
+        "generator": _generator.manual_seed(seed),
+        "true_cfg_scale": guidanceScale,
+        "guidance_scale": guidanceScale2,
+        "num_inference_steps": steps,
+        "output_type": "np",
+        "callback_on_step_end": _progress_callback,
+        "callback_on_step_end_tensor_inputs": ["latents"],
+    }
+    if _processType in ("ImageToImage", "ImageEdit"):
+        options.update({ "image": imageFromInput(inputData, inputShape), })
+    if _processType == "ImageToImage":
+        options.update({"strength": strength,})
+    if _processType == "ControlNet":
+        options.update({
+            "controlnet_conditioning_scale": controlScale,
+            "control_image": imageFromInput(inputData, inputShape), 
+        })
+
     # Run Pipeline
-    if _processType == "TextToImage":
-        output = _pipeline(
-            prompt = prompt,
-            negative_prompt = negativePrompt,
-            height = height,
-            width = width,
-            generator = _generator.manual_seed(seed),
-            true_cfg_scale = guidanceScale,
-            guidance_scale = guidanceScale2,
-            num_inference_steps = steps,
-            output_type = "np",
-            callback_on_step_end = _progress_callback,
-            callback_on_step_end_tensor_inputs = ["latents"]
-        )[0]
-    elif _processType == "ImageToImage":
-        output = _pipeline(
-            image = imageFromInput(inputData, inputShape),
-            strength = strength,
-            prompt = prompt,
-            negative_prompt = negativePrompt,
-            height = height,
-            width = width,
-            generator = _generator.manual_seed(seed),
-            true_cfg_scale = guidanceScale,
-            guidance_scale = guidanceScale2,
-            num_inference_steps = steps,
-            output_type = "np",
-            callback_on_step_end = _progress_callback,
-            callback_on_step_end_tensor_inputs = ["latents"]
-        )[0]
-    elif _processType == "ImageEdit":
-        output = _pipeline(
-            image = imageFromInput(inputData, inputShape),
-            prompt = prompt,
-            negative_prompt = negativePrompt,
-            height = height,
-            width = width,
-            generator = _generator.manual_seed(seed),
-            true_cfg_scale = guidanceScale,
-            guidance_scale = guidanceScale2,
-            num_inference_steps = steps,
-            output_type = "np",
-            callback_on_step_end = _progress_callback,
-            callback_on_step_end_tensor_inputs = ["latents"]
-        )[0]
+    output = _pipeline(**options)[0]
 
     # (Batch, Channel, Height, Width)
     output = output.transpose(0, 3, 1, 2)

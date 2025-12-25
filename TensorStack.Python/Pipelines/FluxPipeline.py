@@ -6,8 +6,8 @@ import numpy as np
 from threading import Event
 from collections.abc import Buffer
 from typing import Coroutine, Dict, Sequence, List, Tuple, Optional
-from diffusers import WanPipeline, WanImageToVideoPipeline, UniPCMultistepScheduler
-from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, tensorFromInput
+from diffusers import FluxPipeline, FluxImg2ImgPipeline, FluxKontextPipeline, FluxControlNetPipeline, FluxControlNetModel
+from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, imageFromInput
 sys.stderr = MemoryStdout()
 
 # Globals
@@ -17,9 +17,12 @@ _step_latent = None
 _generator = None
 _cancel_event = Event()
 _pipelineMap = {
-    "TextToImage": WanPipeline,
-    "ImageToImage": WanImageToVideoPipeline,
+    "TextToImage": FluxPipeline,
+    "ImageToImage": FluxImg2ImgPipeline,
+    "ImageEdit": FluxKontextPipeline,
+    "ControlNet": FluxControlNetPipeline,
 }
+
 
 def load(
         modelName: str,
@@ -42,17 +45,24 @@ def load(
     # Reset
     _reset()
 
-    # Load Pipeline
+    # Pipeline Options
     torch_dtype = getDataType(dataType)
     _processType = processType;
+    options = {
+        "torch_dtype": dtype,
+        "cache_dir": cacheDir,
+        "token": secureToken,
+        "variant": variant,
+    }
+
+    #ControlNet
+    if controlNet is not None:
+        controlnetModel = FluxControlNetModel.from_pretrained(controlNet, torch_dtype=dtype)
+        options.update({"controlnet": controlnetModel,})
+
+    # Create pipeline
     pipeline = _pipelineMap[_processType]
-    _pipeline = pipeline.from_pretrained(
-        modelName, 
-        torch_dtype=torch_dtype,
-        cache_dir = cacheDir,
-        token = secureToken,
-        variant=variant
-    )
+    _pipeline = pipeline.from_pretrained(modelName, **options)
 
     #Lora Adapters
     if loraAdapters is not None:
@@ -77,15 +87,18 @@ def load(
     return True
 
 
-
 def unload() -> bool:
     global _pipeline
     _pipeline.remove_all_hooks()
     _pipeline.maybe_free_model_hooks()
     if hasattr(_pipeline,"tokenizer"):
         del _pipeline.tokenizer
+    if hasattr(_pipeline,"tokenizer_2"):
+        del _pipeline.tokenizer_2
     if hasattr(_pipeline,"text_encoder"):
         del _pipeline.text_encoder
+    if hasattr(_pipeline,"text_encoder_2"):
+        del _pipeline.text_encoder_2
     if hasattr(_pipeline,"transformer"):
         del _pipeline.transformer
     if hasattr(_pipeline,"vae"):
@@ -123,9 +136,8 @@ def generate(
     # Reset
     _reset()
 
-    # scheduler
-    flowShift = 5.0 if height > 480 else 3.0 # 5.0 for 720P, 3.0 for 480P
-    _pipeline.scheduler = UniPCMultistepScheduler.from_config(_pipeline.scheduler.config, flow_shift=flowShift)
+    #scheduler
+    _pipeline.scheduler = create_scheduler(scheduler, config=_pipeline.scheduler)
 
     #Lora Adapters
     if loraOptions is not None:
@@ -136,29 +148,38 @@ def generate(
     # Pipeline Options
     options = {
         "prompt": prompt,
+        "prompt_2": prompt,
         "negative_prompt": negativePrompt,
+        "negative_prompt_2": negativePrompt,
         "height": height,
         "width": width,
         "generator": _generator.manual_seed(seed),
-        "guidance_scale": guidanceScale,
+        "true_cfg_scale": guidanceScale,
+        "guidance_scale": guidanceScale2,
         "num_inference_steps": steps,
-        "num_frames": numFrames,
         "output_type": "np",
         "callback_on_step_end": _progress_callback,
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
-    if _processType == "ImageToImage":
+    if _processType in ("ImageToImage", "ImageEdit"):
         options.update({ "image": imageFromInput(inputData, inputShape), })
+    if _processType == "ImageToImage":
+        options.update({"strength": strength,})
+    if _processType == "ControlNet":
+        options.update({
+            "control_guidance_start": 0.0,
+            "control_guidance_end": 1.0,
+            "controlnet_conditioning_scale": controlScale,
+            "control_image": imageFromInput(inputData, inputShape), 
+        })
 
     # Run Pipeline
     output = _pipeline(**options)[0]
 
-    # (Frames, Channel, Height, Width)
-    output = output.transpose(0, 1, 4, 2, 3)
-    output = output.squeeze(axis=0)
+    # (Batch, Channel, Height, Width)
+    output = output.transpose(0, 3, 1, 2)
     output = output.astype(np.float32)
     return np.ascontiguousarray(output)
-
 
 
 def getLogs() -> list[str]:
@@ -188,23 +209,3 @@ def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
         _step_latent = np.ascontiguousarray(latents.float().cpu())
 
     return info
-
-
-def resize_tensor(image: torch.Tensor, max_area: int, pipeline) -> torch.Tensor:
-    if image.ndim != 4 or image.shape[0] != 1:
-        raise ValueError("Expected image of shape (1,C,H,W)")
-
-    B, C, H, W = image.shape
-    aspect_ratio = H / W
-    mod_value = pipeline.vae_scale_factor_spatial * pipeline.transformer.config.patch_size[1]
-
-    # compute new height and width
-    new_H = int(round(np.sqrt(max_area * aspect_ratio) / mod_value) * mod_value)
-    new_W = int(round(np.sqrt(max_area / aspect_ratio) / mod_value) * mod_value)
-
-    # resize tensor
-    image_resized = F.interpolate(
-        image, size=(new_H, new_W), mode='bilinear', align_corners=False
-    )
-
-    return image_resized

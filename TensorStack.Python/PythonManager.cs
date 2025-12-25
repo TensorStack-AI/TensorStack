@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Threading.Tasks;
+using TensorStack.Common.Common;
 using TensorStack.Python.Common;
 using TensorStack.Python.Config;
 
@@ -86,12 +87,19 @@ namespace TensorStack.Python
         private async Task<IPythonEnvironment> CreateAsync(IProgress<PipelineProgress> progressCallback = null)
         {
             var exists = Exists(_config.Environment);
-            progressCallback.SendMessage($"{(exists ? "Loading" : "Creating")} Python Virtual Environment (.{_config.Environment})");
             var requirementsFile = Path.Combine(_pipelinePath, "requirements.txt");
-            await File.WriteAllLinesAsync(requirementsFile, _config.Requirements);
-            var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, requirementsFile, _pythonVersion, _logger);
-            progressCallback.SendMessage($"Python Virtual Environment {(exists ? "Loaded" : "Created")}.");
-            return environment;
+            try
+            {
+                progressCallback.SendMessage($"{(exists ? "Loading" : "Creating")} Python Virtual Environment (.{_config.Environment})");
+                await File.WriteAllLinesAsync(requirementsFile, _config.Requirements);
+                var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, requirementsFile, _pythonVersion, _logger);
+                progressCallback.SendMessage($"Python Virtual Environment {(exists ? "Loaded" : "Created")}.");
+                return environment;
+            }
+            finally
+            {
+                FileHelper.DeleteFile(requirementsFile);
+            }
         }
 
 
@@ -139,7 +147,7 @@ namespace TensorStack.Python
             // Extract ZIP file
             if (!File.Exists(exePath))
             {
-                progressCallback.SendMessage( $"Installing Python {_pythonVersion}...");
+                progressCallback.SendMessage($"Installing Python {_pythonVersion}...");
                 CopyInternalPythonFiles();
                 using (var archive = ZipFile.OpenRead(downloadPath))
                 {

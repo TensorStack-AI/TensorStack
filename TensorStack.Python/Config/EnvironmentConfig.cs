@@ -1,4 +1,4 @@
-﻿using System;
+﻿using TensorStack.Common;
 
 namespace TensorStack.Python.Config
 {
@@ -10,7 +10,22 @@ namespace TensorStack.Python.Config
         public string Directory { get; set; }
 
 
-        public static EnvironmentConfig Default(VendorType vendorType)
+        public readonly static string[] DefaultRequirements =
+        [
+            "typing==3.7.4.3",
+            "wheel==0.45.1",
+            "transformers==4.57.3",
+            "accelerate==1.12.0",
+            "diffusers==0.36.0",
+            "protobuf==6.33.2",
+            "sentencepiece==0.2.1",
+            "ftfy==6.3.1",
+            "scipy==1.16.3",
+            "peft==0.18.0"
+        ];
+
+
+        public static EnvironmentConfig VendorDefault(VendorType vendorType)
         {
             return vendorType switch
             {
@@ -20,32 +35,16 @@ namespace TensorStack.Python.Config
             };
         }
 
-        public static EnvironmentConfig Default(object vendor)
-        {
-            throw new NotImplementedException();
-        }
 
         public readonly static EnvironmentConfig DefaultCPU = new()
         {
             Environment = "default-cpu",
             Directory = "PythonRuntime",
-            Requirements =
-            [
+            Requirements = [
                 "torch==2.9.1",
                 "torchvaudio==2.9.1",
                 "torchvision==0.24.1",
-
-                 // Default Packages
-                "typing",
-                "wheel",
-                "transformers",
-                "accelerate",
-                "diffusers",
-                "protobuf",
-                "sentencepiece",
-                "ftfy",
-                "scipy",
-                "peft"
+                ..DefaultRequirements,
             ]
         };
 
@@ -60,18 +59,7 @@ namespace TensorStack.Python.Config
                 "torch==2.9.1+cu128",
                 "torchaudio==2.9.1+cu128",
                 "torchvision==0.24.1+cu128",
-
-                 // Default Packages
-                "typing",
-                "wheel",
-                "transformers",
-                "accelerate",
-                "diffusers",
-                "protobuf",
-                "sentencepiece",
-                "ftfy",
-                "scipy",
-                "peft"
+                ..DefaultRequirements,
             ]
         };
 
@@ -88,27 +76,12 @@ namespace TensorStack.Python.Config
                 "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm-0.1.dev0.tar.gz",
                 "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torch-2.9.0+rocmsdk20251116-cp312-cp312-win_amd64.whl",
                 "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torchvision-0.24.0+rocmsdk20251116-cp312-cp312-win_amd64.whl",
-
-                // Default Packages
-                "typing",
-                "wheel",
-                "transformers",
-                "accelerate",
-                "diffusers",
-                "protobuf",
-                "sentencepiece",
-                "ftfy",
-                "scipy",
-                "peft"
+                ..DefaultRequirements,
             ]
         };
-    }
 
-    public enum VendorType
-    {
-        Unknown = 0,
-        AMD = 4098,
-        Nvidia = 4318,
-        Intel = 32902
+
+
+
     }
 }
