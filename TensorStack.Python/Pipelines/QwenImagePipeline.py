@@ -20,7 +20,7 @@ _pipelineMap = {
     "TextToImage": QwenImagePipeline,
     "ImageToImage": QwenImageImg2ImgPipeline,
     "ImageEdit": QwenImageEditPipeline,
-    "ControlNet": QwenImageControlNetPipeline,
+    "ControlNetImage": QwenImageControlNetPipeline,
 }
 
 def load(
@@ -125,7 +125,9 @@ def generate(
         controlScale: float,
         loraOptions: Optional[Dict[str, float]] = None,
         inputData: Optional[Sequence[float]] = None,
-        inputShape: Optional[Sequence[int]] = None
+        inputShape: Optional[Sequence[int]] = None,
+        controlInputData: Optional[Sequence[float]] = None,
+        controlInputShape: Optional[Sequence[int]] = None
     ) -> Buffer:
 
     # Reset
@@ -141,6 +143,8 @@ def generate(
         _pipeline.set_adapters(names, adapter_weights=weights)
 
     # Pipeline Options
+    image = imageFromInput(inputData, inputShape);
+    control_image = imageFromInput(controlInputData, controlInputShape);
     options = {
         "prompt": prompt,
         "negative_prompt": negativePrompt,
@@ -154,14 +158,17 @@ def generate(
         "callback_on_step_end": _progress_callback,
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
+
     if _processType in ("ImageToImage", "ImageEdit"):
-        options.update({ "image": imageFromInput(inputData, inputShape), })
+        options.update({ "image": image })
+
     if _processType == "ImageToImage":
-        options.update({"strength": strength,})
-    if _processType == "ControlNet":
+        options.update({ "strength": strength })
+
+    if _processType == "ControlNetImage":
         options.update({
             "controlnet_conditioning_scale": controlScale,
-            "control_image": imageFromInput(inputData, inputShape), 
+            "control_image": control_image
         })
 
     # Run Pipeline

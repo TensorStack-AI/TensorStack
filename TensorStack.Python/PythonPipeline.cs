@@ -156,11 +156,10 @@ namespace TensorStack.Python
                     try
                     {
                         _logger?.LogInformation("Invoking Python function: {FunctionName}", "generate");
-
                         cancellationToken.Register(() => GenerateCancelAsync(), true);
 
-                        var image = options.ImageInput?.GetChannels(3).ToTensor();
-                        var seed = options.Seed > 0 ? options.Seed : Random.Shared.Next();
+                        var image = options.InputImage?.GetChannels(3).ToTensor();
+                        var controlImage = options.InputControlImage?.GetChannels(3).ToTensor();
                         var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
                         using (var prompt = PyObject.From(options.Prompt))
                         using (var negativePrompt = PyObject.From(options.NegativePrompt))
@@ -170,7 +169,7 @@ namespace TensorStack.Python
                         using (var steps2 = PyObject.From(options.Steps2))
                         using (var height = PyObject.From(options.Height))
                         using (var width = PyObject.From(options.Width))
-                        using (var pySeed = PyObject.From(seed))
+                        using (var seed = PyObject.From(options.Seed))
                         using (var scheduler = PyObject.From(options.Scheduler.ToString()))
                         using (var numFrames = PyObject.From(options.Frames))
                         using (var shift = PyObject.From(options.Shift))
@@ -179,7 +178,9 @@ namespace TensorStack.Python
                         using (var loraOptions = PyObject.From(loraConfig))
                         using (var inputData = PyObject.From(image?.Memory.ToArray()))
                         using (var inputShape = PyObject.From(image?.Dimensions.ToArray()))
-                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, pySeed, scheduler, numFrames, shift, strength, controlScale, loraOptions, inputData, inputShape))
+                        using (var controlInputData = PyObject.From(controlImage?.Memory.ToArray()))
+                        using (var controlInputShape = PyObject.From(controlImage?.Dimensions.ToArray()))
+                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, strength, controlScale, loraOptions, inputData, inputShape, controlInputData, controlInputShape))
                         {
                             var result = pythonResult
                                  .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()

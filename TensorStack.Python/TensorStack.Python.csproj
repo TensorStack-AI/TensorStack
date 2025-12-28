@@ -76,6 +76,12 @@
     <None Include="Pipelines\QwenImagePipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--StableDiffusionXLPipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\StableDiffusionXLPipeline.py" Pack="true" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Pipelines\StableDiffusionXLPipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--WanPipeline-->
   <ItemGroup>
     <Content Include="Pipelines\WanPipeline.py" Pack="true" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />

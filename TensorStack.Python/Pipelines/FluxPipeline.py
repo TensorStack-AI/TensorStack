@@ -20,7 +20,7 @@ _pipelineMap = {
     "TextToImage": FluxPipeline,
     "ImageToImage": FluxImg2ImgPipeline,
     "ImageEdit": FluxKontextPipeline,
-    "ControlNet": FluxControlNetPipeline,
+    "ControlNetImage": FluxControlNetPipeline,
 }
 
 
@@ -46,7 +46,7 @@ def load(
     _reset()
 
     # Pipeline Options
-    torch_dtype = getDataType(dataType)
+    dtype = getDataType(dataType)
     _processType = processType;
     options = {
         "torch_dtype": dtype,
@@ -130,7 +130,9 @@ def generate(
         controlScale: float,
         loraOptions: Optional[Dict[str, float]] = None,
         inputData: Optional[Sequence[float]] = None,
-        inputShape: Optional[Sequence[int]] = None
+        inputShape: Optional[Sequence[int]] = None,
+        controlInputData: Optional[Sequence[float]] = None,
+        controlInputShape: Optional[Sequence[int]] = None
     ) -> Buffer:
 
     # Reset
@@ -146,6 +148,8 @@ def generate(
         _pipeline.set_adapters(names, adapter_weights=weights)
 
     # Pipeline Options
+    image = imageFromInput(inputData, inputShape);
+    control_image = imageFromInput(controlInputData, controlInputShape);
     options = {
         "prompt": prompt,
         "prompt_2": prompt,
@@ -162,15 +166,17 @@ def generate(
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
     if _processType in ("ImageToImage", "ImageEdit"):
-        options.update({ "image": imageFromInput(inputData, inputShape), })
+        options.update({ "image": image })
+
     if _processType == "ImageToImage":
-        options.update({"strength": strength,})
-    if _processType == "ControlNet":
+        options.update({"strength": strength})
+
+    if _processType == "ControlNetImage":
         options.update({
             "control_guidance_start": 0.0,
             "control_guidance_end": 1.0,
             "controlnet_conditioning_scale": controlScale,
-            "control_image": imageFromInput(inputData, inputShape), 
+            "control_image": control_image 
         })
 
     # Run Pipeline

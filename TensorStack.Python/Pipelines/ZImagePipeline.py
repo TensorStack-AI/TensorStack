@@ -43,12 +43,12 @@ def load(
     _reset()
 
     # Load Pipeline
-    torch_dtype = getDataType(dataType)
+    dtype = getDataType(dataType)
     _processType = processType;
     pipeline = _pipelineMap[_processType]
     _pipeline = pipeline.from_pretrained(
         modelName, 
-        torch_dtype=torch_dtype,
+        torch_dtype=dtype,
         cache_dir = cacheDir,
         token = secureToken,
         variant=variant
@@ -116,7 +116,9 @@ def generate(
         controlScale: float,
         loraOptions: Optional[Dict[str, float]] = None,
         inputData: Optional[Sequence[float]] = None,
-        inputShape: Optional[Sequence[int]] = None
+        inputShape: Optional[Sequence[int]] = None,
+        controlInputData: Optional[Sequence[float]] = None,
+        controlInputShape: Optional[Sequence[int]] = None
     ) -> Buffer:
 
     # Reset
@@ -132,6 +134,8 @@ def generate(
         _pipeline.set_adapters(names, adapter_weights=weights)
 
     # Pipeline Options
+    image = imageFromInput(inputData, inputShape);
+    control_image = imageFromInput(controlInputData, controlInputShape);
     options = {
         "prompt": prompt,
         "negative_prompt": negativePrompt,
@@ -144,8 +148,9 @@ def generate(
         "callback_on_step_end": _progress_callback,
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
+
     if _processType == "ImageToImage":
-        options.update({ "image": imageFromInput(inputData, inputShape),"strength": strength,})
+        options.update({ "image": image,"strength": strength,})
 
     # Run Pipeline
     output = _pipeline(**options)[0]
