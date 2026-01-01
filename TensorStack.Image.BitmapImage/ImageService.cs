@@ -44,7 +44,7 @@ namespace TensorStack.Image
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"The file '{filePath}' does not exist.", filePath);
 
-            var imageUri = new Uri(filePath);
+            var imageUri = new Uri(filePath, UriKind.RelativeOrAbsolute);
             var rotation = GetRotation(imageUri);
             var bitmapSource = new BitmapImage();
             bitmapSource.BeginInit();
@@ -53,7 +53,7 @@ namespace TensorStack.Image
             if (decodePixelHeight > 0)
                 bitmapSource.DecodePixelHeight = decodePixelHeight;
             bitmapSource.Rotation = rotation;
-            bitmapSource.UriSource = new Uri(filePath);
+            bitmapSource.UriSource = imageUri;
             bitmapSource.CacheOption = BitmapCacheOption.OnLoad;
             bitmapSource.EndInit();
             bitmapSource.Freeze();

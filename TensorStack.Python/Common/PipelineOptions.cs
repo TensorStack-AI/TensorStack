@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
+using TensorStack.Common;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Python.Common
@@ -23,10 +25,46 @@ namespace TensorStack.Python.Common
         public SchedulerType Scheduler { get; set; }
         public List<LoraOptions> LoraOptions { get; set; }
 
-        [JsonIgnore]
-        public ImageTensor InputImage { get; set; }
 
         [JsonIgnore]
-        public ImageTensor InputControlImage { get; set; }
+        public ImageTensor InputImage
+        {
+            get { return InputImages.FirstOrDefault(); }
+            set
+            {
+                if (InputImages.Count == 0)
+                {
+                    InputImages.Add(value);
+                }
+                else
+                {
+                    InputImages[0] = value;
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public ImageTensor InputControlImage
+        {
+            get { return InputControlImages.FirstOrDefault(); }
+            set
+            {
+                if (InputImages.Count == 0)
+                {
+                    InputControlImages.Add(value);
+                }
+                else
+                {
+                    InputControlImages[0] = value;
+                }
+            }
+        }
+
+
+        [JsonIgnore]
+        public List<ImageTensor> InputImages { get; set; } = [];
+
+        [JsonIgnore]
+        public List<ImageTensor> InputControlImages { get; set; } = [];
     }
 }

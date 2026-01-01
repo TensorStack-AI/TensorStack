@@ -23,7 +23,7 @@ namespace TensorStack.Python
         private readonly PipelineConfig _configuration;
         private readonly int _progressRefresh;
         private readonly IProgress<PipelineProgress> _progressCallback;
-        private readonly CancellationTokenSource _progressCancellation;
+    //    private readonly CancellationTokenSource _progressCancellation;
         private PyObject _module;
         private PyObject _functionLoad;
         private PyObject _functionUnload;
@@ -31,7 +31,7 @@ namespace TensorStack.Python
         private PyObject _functionGenerate;
         private PyObject _functionGetStepLatent;
         private PyObject _functionGetLogs;
-
+        private bool _isRunning;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PythonPipeline"/> class.
@@ -41,10 +41,10 @@ namespace TensorStack.Python
         public PythonPipeline(PipelineConfig configuration, IProgress<PipelineProgress> progressCallback = default, ILogger logger = default)
         {
             _logger = logger;
+            _isRunning = true;
             _configuration = configuration;
             _progressRefresh = 250;
             _progressCallback = progressCallback;
-            _progressCancellation = new CancellationTokenSource();
             _pipelineName = _configuration.Pipeline;
             using (GIL.Acquire())
             {
@@ -158,9 +158,10 @@ namespace TensorStack.Python
                         _logger?.LogInformation("Invoking Python function: {FunctionName}", "generate");
                         cancellationToken.Register(() => GenerateCancelAsync(), true);
 
-                        var image = options.InputImage?.GetChannels(3).ToTensor();
-                        var controlImage = options.InputControlImage?.GetChannels(3).ToTensor();
+                        var images = GetImageData(options);
+                        var controlNetImages = GetControlImageData(options);
                         var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
+
                         using (var prompt = PyObject.From(options.Prompt))
                         using (var negativePrompt = PyObject.From(options.NegativePrompt))
                         using (var guidance = PyObject.From(options.GuidanceScale))
@@ -176,11 +177,9 @@ namespace TensorStack.Python
                         using (var strength = PyObject.From(options.Strength))
                         using (var controlScale = PyObject.From(options.ControlNetScale))
                         using (var loraOptions = PyObject.From(loraConfig))
-                        using (var inputData = PyObject.From(image?.Memory.ToArray()))
-                        using (var inputShape = PyObject.From(image?.Dimensions.ToArray()))
-                        using (var controlInputData = PyObject.From(controlImage?.Memory.ToArray()))
-                        using (var controlInputShape = PyObject.From(controlImage?.Dimensions.ToArray()))
-                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, strength, controlScale, loraOptions, inputData, inputShape, controlInputData, controlInputShape))
+                        using (var imageData = PyObject.From(images))
+                        using (var controlNetData = PyObject.From(controlNetImages))
+                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, strength, controlScale, loraOptions, imageData, controlNetData))
                         {
                             var result = pythonResult
                                  .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
@@ -286,8 +285,7 @@ namespace TensorStack.Python
         public void Dispose()
         {
             _logger?.LogInformation("Disposing module {ModuleName}", _pipelineName);
-            _progressCancellation.SafeCancel();
-            _progressCancellation.Dispose();
+            _isRunning = false;
             UnbindFunctions();
             _module.Dispose();
             GC.SuppressFinalize(this);
@@ -328,7 +326,7 @@ namespace TensorStack.Python
         /// <param name="refreshRate">The refresh rate.</param>
         private async Task LoggingLoop(int refreshRate)
         {
-            while (!_progressCancellation.IsCancellationRequested)
+            while (_isRunning)
             {
                 var logs = await GetLogsAsync();
                 foreach (var progress in LogParser.ParseLogs(logs))
@@ -336,7 +334,7 @@ namespace TensorStack.Python
                     _logger?.LogInformation("[PythonRuntime] {Message}", progress.Message);
                     _progressCallback?.Report(progress);
                 }
-                await Task.Delay(refreshRate, _progressCancellation.Token);
+                await Task.Delay(refreshRate);
             }
         }
 
@@ -362,6 +360,36 @@ namespace TensorStack.Python
 
             _logger?.LogError(ex, "{PythonExceptionType} exception occured", ex.PythonExceptionType);
             return new Exception(ex.Message, ex);
+        }
+
+
+        private List<(float[], int[])> GetImageData(PipelineOptions options)
+        {
+            if (options.InputImages.IsNullOrEmpty())
+                return null;
+
+            var inputData = new List<(float[], int[])>();
+            foreach (var imageInput in options.InputImages)
+            {
+                var imageTensor = imageInput.GetChannels(3);
+                inputData.Add((imageTensor.Span.ToArray(), imageTensor.Dimensions.ToArray()));
+            }
+            return inputData;
+        }
+
+
+        private List<(float[], int[])> GetControlImageData(PipelineOptions options)
+        {
+            if (options.InputControlImages.IsNullOrEmpty())
+                return null;
+
+            var inputData = new List<(float[], int[])>();
+            foreach (var imageInput in options.InputControlImages)
+            {
+                var imageTensor = imageInput.GetChannels(3);
+                inputData.Add((imageTensor.Span.ToArray(), imageTensor.Dimensions.ToArray()));
+            }
+            return inputData;
         }
     }
 }

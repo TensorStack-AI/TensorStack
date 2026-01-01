@@ -1,6 +1,9 @@
+import gc
+import ctypes
+import ctypes.wintypes
 import torch
 from PIL import Image
-from typing import Sequence, Optional
+from typing import Sequence, Optional, List, Tuple, Union
 import numpy as np
 import threading
 from diffusers import (
@@ -68,7 +71,6 @@ def create_scheduler(name: str, *,config=None, **kwargs,):
     return scheduler_cls(**kwargs)
 
 
-
 def getDataType(dtype: str):
     if dtype == "float8_e5m2":
         return torch.float8_e5m2
@@ -128,6 +130,44 @@ def imageFromInput(
     t = t.permute(1, 2, 0)
     t = (t.clamp(0, 1) * 255).to(torch.uint8)
     return Image.fromarray(t.numpy())
+
+
+def prepare_images(
+    lst: Optional[List[Tuple[Sequence[float], Sequence[int]]]]
+) -> Optional[Union[Image.Image, List[Image.Image]]]:
+    if not lst:
+        return None
+
+    def make_tensor(pair: Tuple[Sequence[float], Sequence[int]]):
+        data, shape = pair
+        return imageFromInput(data, shape)
+
+    if len(lst) == 1:
+        return make_tensor(lst[0])
+
+    return [make_tensor(pair) for pair in lst]
+
+
+def trim_memory(isMemoryOffload: bool):
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    if isMemoryOffload == True:
+        SetProcessWorkingSetSizeEx = ctypes.windll.kernel32.SetProcessWorkingSetSizeEx
+        SetProcessWorkingSetSizeEx.argtypes = [
+            ctypes.wintypes.HANDLE,   # hProcess
+            ctypes.c_size_t,          # dwMinimumWorkingSetSize
+            ctypes.c_size_t,          # dwMaximumWorkingSetSize
+            ctypes.wintypes.DWORD     # Flags
+        ]
+        SetProcessWorkingSetSizeEx.restype = ctypes.wintypes.BOOL
+        h_process = ctypes.windll.kernel32.GetCurrentProcess()
+        result = SetProcessWorkingSetSizeEx(
+            h_process,
+            ctypes.c_size_t(-1), # dwMinimumWorkingSetSize (disable)
+            ctypes.c_size_t(-1), # dwMaximumWorkingSetSize (disable)
+            0 # No special flags required for simple disable
+        )
 
 
 class MemoryStdout:

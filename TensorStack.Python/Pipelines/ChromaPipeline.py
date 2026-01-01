@@ -1,13 +1,12 @@
 ﻿import os
-import gc
 import sys
 import torch
 import numpy as np
 from threading import Event
 from collections.abc import Buffer
-from typing import Coroutine, Dict, Sequence, List, Tuple, Optional
+from typing import Coroutine, Dict, Sequence, List, Tuple, Optional, Union
 from diffusers import ChromaPipeline, ChromaImg2ImgPipeline
-from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, imageFromInput
+from tensorstack.utils import MemoryStdout, create_scheduler, getDataType, imageFromInput, prepare_images, trim_memory
 sys.stderr = MemoryStdout()
 
 # Globals
@@ -15,6 +14,7 @@ _pipeline = None
 _processType = None;
 _step_latent = None
 _generator = None
+_isMemoryOffload = False
 _cancel_event = Event()
 _pipelineMap = {
     "TextToImage": ChromaPipeline,
@@ -37,7 +37,7 @@ def load(
         isVaeTilingEnabled: bool = False,
         loraAdapters: Optional[List[Tuple[str, str, str]]] = None
     ) -> bool:
-    global _pipeline, _generator, _processType
+    global _pipeline, _generator, _processType, _isMemoryOffload
 
     # Reset
     _reset()
@@ -62,8 +62,10 @@ def load(
     # Device
     execution_device = torch.device(f"{device}:{deviceId}")
     if isFullOffloadEnabled:
+        _isMemoryOffload = True
         _pipeline.enable_sequential_cpu_offload(device=execution_device)
     elif isModelOffloadEnabled:
+        _isMemoryOffload = True
         _pipeline.enable_model_cpu_offload(device=execution_device)
     else:
         _pipeline.to(execution_device)
@@ -90,8 +92,9 @@ def unload() -> bool:
     if hasattr(_pipeline,"vae"):
         del _pipeline.vae
     del _pipeline
-    torch.cuda.empty_cache()
-    gc.collect()
+
+    # Cleanup
+    trim_memory(_isMemoryOffload)
     return True
 
 
@@ -115,10 +118,8 @@ def generate(
         strength: float,
         controlScale: float,
         loraOptions: Optional[Dict[str, float]] = None,
-        inputData: Optional[Sequence[float]] = None,
-        inputShape: Optional[Sequence[int]] = None,
-        controlInputData: Optional[Sequence[float]] = None,
-        controlInputShape: Optional[Sequence[int]] = None
+        inputData: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
+        controlNetData: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
     ) -> Buffer:
 
     # Reset
@@ -133,9 +134,11 @@ def generate(
         weights = list(loraOptions.values())
         _pipeline.set_adapters(names, adapter_weights=weights)
 
+    # Input Images
+    image = prepare_images(inputData)
+    control_image = prepare_images(controlNetData)
+
     # Pipeline Options
-    image = imageFromInput(inputData, inputShape);
-    control_image = imageFromInput(controlInputData, controlInputShape);
     options = {
         "prompt": prompt,
         "negative_prompt": negativePrompt,
@@ -155,8 +158,10 @@ def generate(
     output = _pipeline(**options)[0]
 
     # (Batch, Channel, Height, Width)
-    output = output.transpose(0, 3, 1, 2)
-    output = output.astype(np.float32)
+    output = output.transpose(0, 3, 1, 2).astype(np.float32)
+
+    # Cleanup
+    trim_memory(_isMemoryOffload)
     return np.ascontiguousarray(output)
 
 

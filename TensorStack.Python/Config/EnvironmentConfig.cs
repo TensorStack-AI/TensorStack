@@ -21,7 +21,9 @@ namespace TensorStack.Python.Config
             "sentencepiece==0.2.1",
             "ftfy==6.3.1",
             "scipy==1.16.3",
-            "peft==0.18.0"
+            "peft==0.18.0",
+            "hf-xet==1.2.0",
+            "torchsde==0.2.6"
         ];
 
 
