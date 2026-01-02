@@ -70,6 +70,12 @@
     <None Include="Pipelines\Flux2Pipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--Kandinsky5Pipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\Kandinsky5Pipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Pipelines\Kandinsky5Pipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--QwenImagePipeline-->
   <ItemGroup>
     <Content Include="Pipelines\QwenImagePipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
