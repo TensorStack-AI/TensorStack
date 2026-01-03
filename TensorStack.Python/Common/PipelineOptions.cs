@@ -49,7 +49,7 @@ namespace TensorStack.Python.Common
             get { return InputControlImages.FirstOrDefault(); }
             set
             {
-                if (InputImages.Count == 0)
+                if (InputControlImages.Count == 0)
                 {
                     InputControlImages.Add(value);
                 }

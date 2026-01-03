@@ -58,6 +58,12 @@
     <None Include="Pipelines\ChromaPipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--CogVideoXPipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\CogVideoXPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Pipelines\CogVideoXPipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--FluxPipeline-->
   <ItemGroup>
     <Content Include="Pipelines\FluxPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
@@ -74,6 +80,12 @@
   <ItemGroup>
     <Content Include="Pipelines\Kandinsky5Pipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
     <None Include="Pipelines\Kandinsky5Pipeline.py" Pack="false" />
+  </ItemGroup>
+
+  <!--LTXPipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\LTXPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Pipelines\LTXPipeline.py" Pack="false" />
   </ItemGroup>
 
   <!--QwenImagePipeline-->
