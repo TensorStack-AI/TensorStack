@@ -1,13 +1,16 @@
-﻿using TensorStack.Common;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using TensorStack.Common;
 
 namespace TensorStack.Python.Config
 {
     public record EnvironmentConfig
     {
         public bool IsDebug { get; set; }
+        public string Directory { get; set; }
         public string Environment { get; set; }
         public string[] Requirements { get; set; }
-        public string Directory { get; set; }
+        public Dictionary<string, string> Variables { get; set; }
 
 
         public readonly static string[] DefaultRequirements =
@@ -70,6 +73,9 @@ namespace TensorStack.Python.Config
         {
             Environment = "default-rocm",
             Directory = "PythonRuntime",
+            Variables = new Dictionary<string, string> {
+                {"TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL", "1" }
+            },
             Requirements =
             [
                 "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_core-0.1.dev0-py3-none-win_amd64.whl",
@@ -81,9 +87,6 @@ namespace TensorStack.Python.Config
                 ..DefaultRequirements,
             ]
         };
-
-
-
 
     }
 }

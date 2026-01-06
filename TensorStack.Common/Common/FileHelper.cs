@@ -33,6 +33,23 @@ namespace TensorStack.Common.Common
         }
 
 
+        public static bool DeleteDirectory(string directory, bool recursive = true)
+        {
+            try
+            {
+                if (!Directory.Exists(directory))
+                    return false;
+
+                Directory.Delete(directory, recursive);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+
         public static string RandomFileName(string extension)
         {
             var ext = Path.HasExtension(extension) ? Path.GetExtension(extension) : extension;

@@ -94,6 +94,9 @@ namespace TensorStack.Common
                 HardwareID = (int)device.DeviceId,
                 HardwareVendor = device.Vendor,
                 HardwareVendorId = (int)device.VendorId,
+                Vendor = Enum.IsDefined(typeof(VendorType), (int)device.VendorId)
+                    ? (VendorType)(int)device.VendorId
+                    : VendorType.CPU
             };
         }
 

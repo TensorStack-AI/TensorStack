@@ -34,7 +34,14 @@ namespace TensorStack.Python
             _config = config;
             _pythonPath = Path.GetFullPath(Path.Join(_config.Directory, "Python"));
             _pipelinePath = Path.GetFullPath(Path.Join(_config.Directory, "Pipelines"));
+            CopyInternalPythonFiles();
             CopyInternalPipelineFiles();
+        }
+
+
+        public async Task<IPythonEnvironment> LoadAsync(IProgress<PipelineProgress> progressCallback = null)
+        {
+            return await LoadInternalAsync(progressCallback);
         }
 
 
@@ -43,7 +50,7 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="isRebuild">Delete and rebuild the environment</param>
         /// <param name="isReinstall">Delete and rebuild the environment and base Python installation</param>
-        public Task<IPythonEnvironment> CreateEnvironmentAsync(bool isRebuild = false, bool isReinstall = false, IProgress<PipelineProgress> progressCallback = null)
+        public Task<IPythonEnvironment> CreateAsync(bool isRebuild = false, bool isReinstall = false, IProgress<PipelineProgress> progressCallback = null)
         {
             return Task.Run(async () =>
             {
@@ -51,7 +58,7 @@ namespace TensorStack.Python
                 if (isReinstall || isRebuild)
                     await DeleteAsync();
 
-                return await CreateAsync(progressCallback);
+                return await CreateInternalAsync(progressCallback);
             });
         }
 
@@ -66,7 +73,7 @@ namespace TensorStack.Python
                 return false;
 
             await Task.Run(() => Directory.Delete(path, true));
-            return Exists(path);
+            return Exists();
         }
 
 
@@ -74,32 +81,52 @@ namespace TensorStack.Python
         /// Checks if a environment exists
         /// </summary>
         /// <param name="name">The name.</param>
-        public bool Exists(string name)
+        public bool Exists()
         {
-            var path = Path.Combine(_pipelinePath, $".{name}");
+            var path = Path.Combine(_pipelinePath, $".{_config.Environment}");
             return Directory.Exists(path);
         }
 
 
         /// <summary>
-        /// Creates the environment.
+        /// Creates an environment.
         /// </summary>
-        private async Task<IPythonEnvironment> CreateAsync(IProgress<PipelineProgress> progressCallback = null)
+        private async Task<IPythonEnvironment> CreateInternalAsync(IProgress<PipelineProgress> progressCallback = null)
         {
-            var exists = Exists(_config.Environment);
             var requirementsFile = Path.Combine(_pipelinePath, "requirements.txt");
             try
             {
-                progressCallback.SendMessage($"{(exists ? "Loading" : "Creating")} Python Virtual Environment (.{_config.Environment})");
+                progressCallback.SendMessage($"Creating Python Virtual Environment (.{_config.Environment})");
                 await File.WriteAllLinesAsync(requirementsFile, _config.Requirements);
                 var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, requirementsFile, _pythonVersion, _logger);
-                progressCallback.SendMessage($"Python Virtual Environment {(exists ? "Loaded" : "Created")}.");
+                progressCallback.SendMessage($"Python Virtual Environment Created");
                 return environment;
             }
             finally
             {
                 FileHelper.DeleteFile(requirementsFile);
             }
+        }
+
+
+        /// <summary>
+        /// Load an existing Environment.
+        /// </summary>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <returns>A Task&lt;IPythonEnvironment&gt; representing the asynchronous operation.</returns>
+        /// <exception cref="System.Exception">Environment does not exist</exception>
+        private async Task<IPythonEnvironment> LoadInternalAsync(IProgress<PipelineProgress> progressCallback = null)
+        {
+            if (!Exists())
+                throw new Exception("Environment does not exist");
+
+            return await Task.Run(() =>
+            {
+                progressCallback.SendMessage($"Loading Python Virtual Environment (.{_config.Environment})");
+                var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, _pythonVersion, _logger);
+                progressCallback.SendMessage($"Python Virtual Environment Loaded");
+                return environment;
+            });
         }
 
 
@@ -201,11 +228,17 @@ namespace TensorStack.Python
         /// <param name="targetPath">The target path.</param>
         private static void CopyFiles(string sourcePath, string targetPath)
         {
-            foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
+            foreach (var dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
                 Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
 
-            foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
-                File.Copy(newPath, newPath.Replace(sourcePath, targetPath), true);
+            foreach (var sourceFile in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
+            {
+                var targetFile = sourceFile.Replace(sourcePath, targetPath);
+                if (!File.Exists(targetFile) || File.GetLastWriteTimeUtc(sourceFile) > File.GetLastWriteTimeUtc(targetFile))
+                {
+                    File.Copy(sourceFile, targetFile, true);
+                }
+            }
         }
     }
 }
