@@ -165,28 +165,22 @@ namespace TensorStack.Common
             {
                 return cancellationTokenSource.Token.CanBeCanceled;
             }
-            catch { }
+            catch (ObjectDisposedException) { }
             return false;
         }
 
 
         public static void SafeCancel(this CancellationTokenSource cancellationTokenSource)
         {
-            try
-            {
+            if (cancellationTokenSource.CanBeCanceled())
                 cancellationTokenSource.Cancel();
-            }
-            catch { }
         }
 
 
         public static async Task SafeCancelAsync(this CancellationTokenSource cancellationTokenSource)
         {
-            try
-            {
+            if (cancellationTokenSource.CanBeCanceled())
                 await cancellationTokenSource.CancelAsync();
-            }
-            catch { }
         }
 
 

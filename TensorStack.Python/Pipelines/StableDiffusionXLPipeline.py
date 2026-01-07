@@ -168,7 +168,7 @@ def generate(
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
 
-    if _processType in ("ImageToImage",):
+    if _processType in ("ImageToImage","ControlNetImageToImage"):
         options.update({ "image": image, "strength": float(strength)})
 
     if _processType == "ControlNetImage":
