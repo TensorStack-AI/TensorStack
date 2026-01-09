@@ -15,6 +15,8 @@ _processType = None;
 _step_latent = None
 _generator = None
 _isMemoryOffload = False
+_prompt_cache_key = None
+_prompt_cache_value = None
 _cancel_event = Event()
 _pipelineMap = {
     "TextToImage": Kandinsky5T2IPipeline,
@@ -82,7 +84,9 @@ def load(
 
 
 def unload() -> bool:
-    global _pipeline
+    global _pipeline, _prompt_cache_key, _prompt_cache_value
+    _prompt_cache_key = None
+    _prompt_cache_value = None
     _pipeline.remove_all_hooks()
     _pipeline.maybe_free_model_hooks()
     if hasattr(_pipeline,"tokenizer"):
@@ -127,6 +131,8 @@ def generate(
         inputData: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
         controlNetData: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
     ) -> Buffer:
+    global _prompt_cache_key, _prompt_cache_value
+    guidanceScale = float(guidanceScale)
 
     # Reset
     _reset()

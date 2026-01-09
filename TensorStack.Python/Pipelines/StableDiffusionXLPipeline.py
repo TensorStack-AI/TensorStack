@@ -11,10 +11,12 @@ sys.stderr = MemoryStdout()
 
 # Globals
 _pipeline = None
-_processType = None;
+_processType = None
 _step_latent = None
 _generator = None
 _isMemoryOffload = False
+_prompt_cache_key = None
+_prompt_cache_value = None
 _cancel_event = Event()
 _pipelineMap = {
     "TextToImage": StableDiffusionXLPipeline,
@@ -47,7 +49,7 @@ def load(
 
     # Pipeline Options
     dtype = getDataType(dataType)
-    _processType = processType;
+    _processType = processType
     options = {
         "torch_dtype": dtype,
         "cache_dir": cacheDir,
@@ -90,7 +92,9 @@ def load(
 
 
 def unload() -> bool:
-    global _pipeline
+    global _pipeline, _prompt_cache_key, _prompt_cache_value
+    _prompt_cache_key = None
+    _prompt_cache_value = None
     _pipeline.remove_all_hooks()
     _pipeline.maybe_free_model_hooks()
     if hasattr(_pipeline,"tokenizer"):
@@ -135,6 +139,8 @@ def generate(
         inputData: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
         controlNetData: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
     ) -> Buffer:
+    global _prompt_cache_key, _prompt_cache_value
+    guidanceScale = float(guidanceScale)
 
     # Reset
     _reset()
@@ -152,12 +158,28 @@ def generate(
     image = prepare_images(inputData)
     control_image = prepare_images(controlNetData)
 
+    # Prompt Cache
+    prompt_cache_key = (prompt, negativePrompt)
+    if _prompt_cache_key != prompt_cache_key:
+        with torch.no_grad():
+            _prompt_cache_value = _pipeline.encode_prompt(
+                prompt=prompt,
+                prompt_2=prompt,
+                device=_pipeline._execution_device,
+                num_images_per_prompt=1,
+                do_classifier_free_guidance=guidanceScale > 1,
+                negative_prompt=negativePrompt,
+                negative_prompt_2=negativePrompt
+            )
+            _prompt_cache_key = prompt_cache_key
+
     # Pipeline Options
+    (prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds) = _prompt_cache_value
     options = {
-        "prompt": prompt,
-        "prompt_2": prompt,
-        "negative_prompt": negativePrompt,
-        "negative_prompt_2": negativePrompt,
+        "prompt_embeds": prompt_embeds,
+        "negative_prompt_embeds": negative_prompt_embeds,
+        "pooled_prompt_embeds": pooled_prompt_embeds,
+        "negative_pooled_prompt_embeds": negative_pooled_prompt_embeds,
         "height": height,
         "width": width,
         "generator": _generator.manual_seed(seed),
