@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -50,11 +51,12 @@ namespace TensorStack.Python
                 var megabytesDownloaded = 0f;
                 var megabytesTotal = 0f;
                 var messageSections = logEntry.Split('|', StringSplitOptions.TrimEntries).AsSpan();
-                var messageSection = messageSections[0].Split(':')[0];
+                var messageSection = logEntry;
 
                 // Parse Steps / Interations
                 if (messageSections.Length > 2)
                 {
+                    messageSection = messageSections[0].Split(':')[0];
                     var infoSection = messageSections[2].Split('[', StringSplitOptions.TrimEntries).AsSpan();
                     var stepsSection = infoSection[0].Split('/').AsSpan();
                     if (stepsSection.Length == 2)

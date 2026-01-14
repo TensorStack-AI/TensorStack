@@ -3,15 +3,15 @@ import ctypes
 import ctypes.wintypes
 import torch
 from PIL import Image
-from typing import Sequence, Optional, List, Tuple, Union
+from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
 import numpy as np
 import threading
 from diffusers import (
+    DDIMScheduler,
+    DDPMScheduler,
     LMSDiscreteScheduler,
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
-    DDPMScheduler,
-    DDIMScheduler,
     KDPM2DiscreteScheduler,
     KDPM2AncestralDiscreteScheduler,
     DDPMWuerstchenScheduler,
@@ -22,8 +22,14 @@ from diffusers import (
     HeunDiscreteScheduler,
     UniPCMultistepScheduler,
     DPMSolverMultistepScheduler,
+    DPMSolverMultistepInverseScheduler,
     DPMSolverSinglestepScheduler,
-    DPMSolverSDEScheduler
+    DPMSolverSDEScheduler,
+    DEISMultistepScheduler,
+    EDMEulerScheduler,
+    EDMDPMSolverMultistepScheduler,
+    FlowMatchLCMScheduler,
+    IPNDMScheduler
 )
 
 _SCHEDULER_MAP = {
@@ -43,33 +49,32 @@ _SCHEDULER_MAP = {
     "heun": HeunDiscreteScheduler,
     "unipc": UniPCMultistepScheduler,
     "dpmm": DPMSolverMultistepScheduler,
+    "dpmminverse": DPMSolverMultistepInverseScheduler,
     "dpms": DPMSolverSinglestepScheduler,
     "dpmsde": DPMSolverSDEScheduler,
+    "deism": DEISMultistepScheduler,
+    "edm": EDMEulerScheduler,
+    "edmm": EDMDPMSolverMultistepScheduler,
+    "flowmatchlcm": FlowMatchLCMScheduler,
+    "ipndm": IPNDMScheduler,
 }
 
 
-def create_scheduler(name: str, *,config=None, **kwargs,):
-    if not name:
-        raise ValueError("Scheduler name must not be empty")
+def create_scheduler(
+    scheduler_name: str,
+    scheduler_options: Dict[str, Any],
+):
+    scheduler_cls = _SCHEDULER_MAP[scheduler_name.lower()]
 
-    key = name.lower().replace(" ", "").replace("-", "_")
+    # 0 = inf
+    stmax = scheduler_options.get("s_tmax")
+    if isinstance(stmax, (int, float)):
+        scheduler_options["s_tmax"] = stmax if stmax > 0 else float("inf")
 
-    if key not in _SCHEDULER_MAP:
-        raise ValueError(
-            f"Unknown scheduler '{name}'. "
-            f"Available: {sorted(_SCHEDULER_MAP.keys())}"
-        )
-
-    scheduler_cls = _SCHEDULER_MAP[key]
-
-    if config is not None:
-        # Best practice: preserve trained noise schedule
-        if hasattr(config, "config"):
-            return scheduler_cls.from_config(config.config, **kwargs)
-        return scheduler_cls.from_config(config, **kwargs)
-
-    return scheduler_cls(**kwargs)
-
+    # Defensive copy + drop None
+    config = {k: v for k, v in scheduler_options.items() if v is not None}
+   
+    return scheduler_cls.from_config(config)
 
 def getDataType(dtype: str):
     if dtype == "float8_e5m2":
@@ -81,6 +86,44 @@ def getDataType(dtype: str):
     if dtype == "bfloat16":
         return torch.bfloat16
     return torch.float
+
+
+def configure_pipeline_memory(
+    pipeline: Any,
+    execution_device: str,
+    pipelineOptions: Dict[str, Any],
+) -> bool:
+    """
+    Configures memory offloading and VAE optimizations for a Diffusers pipeline.
+
+    Returns:
+        bool: True if any memory offload was enabled, False otherwise.
+    """
+    is_memory_offload = False
+    is_full_offload_enabled = bool(pipelineOptions["is_full_offload_enabled"])
+    is_model_offload_enabled = bool(pipelineOptions["is_model_offload_enabled"])
+    is_vae_slicing_enabled = bool(pipelineOptions["is_vae_slicing_enabled"])
+    is_vae_tiling_enabled = bool(pipelineOptions["is_vae_tiling_enabled"])
+
+    # Memory offload
+    if is_full_offload_enabled:
+        is_memory_offload = True
+        pipeline.enable_sequential_cpu_offload(device=execution_device)
+    elif is_model_offload_enabled:
+        is_memory_offload = True
+        pipeline.enable_model_cpu_offload(device=execution_device)
+    else:
+        pipeline.to(execution_device)
+
+    # VAE optimizations
+    if hasattr(pipeline, "vae"):
+        if is_vae_slicing_enabled:
+            pipeline.vae.enable_slicing()
+        if is_vae_tiling_enabled:
+            pipeline.vae.enable_tiling()
+
+    print(f"[configure_pipeline_memory]: is_memory_offload:{is_memory_offload}, is_full_offload_enabled:{is_full_offload_enabled}, is_model_offload_enabled:{is_model_offload_enabled}, is_vae_slicing_enabled:{is_vae_slicing_enabled}, is_vae_tiling_enabled:{is_vae_tiling_enabled}")
+    return is_memory_offload
 
 
 def tensorFromInput(
@@ -168,6 +211,10 @@ def trim_memory(isMemoryOffload: bool):
             ctypes.c_size_t(-1), # dwMaximumWorkingSetSize (disable)
             0 # No special flags required for simple disable
         )
+
+
+def isSingleFile(modelPath: str):
+    return modelPath.lower().endswith((".safetensors", ".gguf"))
 
 
 class MemoryStdout:

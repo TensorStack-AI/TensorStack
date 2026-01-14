@@ -23,7 +23,6 @@ namespace TensorStack.Python
         private readonly PipelineConfig _configuration;
         private readonly int _progressRefresh;
         private readonly IProgress<PipelineProgress> _progressCallback;
-    //    private readonly CancellationTokenSource _progressCancellation;
         private PyObject _module;
         private PyObject _functionLoad;
         private PyObject _functionUnload;
@@ -86,22 +85,12 @@ namespace TensorStack.Python
                     {
                         _logger?.LogInformation("Invoking Python function: {FunctionName}", "load");
 
-                        var loraConfig = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
-                        using (var modelName = PyObject.From(_configuration.Path))
-                        using (var processType = PyObject.From(_configuration.ProcessType.ToString()))
-                        using (var controlNet = PyObject.From(_configuration.ControlNetPath))
-                        using (var isModelOffloadEnabled = PyObject.From(_configuration.IsModelOffloadEnabled))
-                        using (var isFullOffloadEnabled = PyObject.From(_configuration.IsFullOffloadEnabled))
-                        using (var isVaeSlicingEnabled = PyObject.From(_configuration.IsVaeSlicingEnabled))
-                        using (var isVaeTilingEnabled = PyObject.From(_configuration.IsVaeTilingEnabled))
-                        using (var device = PyObject.From(_configuration.Device))
-                        using (var deviceId = PyObject.From(_configuration.DeviceId))
-                        using (var dataType = PyObject.From(_configuration.DataType.ToString().ToLower()))
-                        using (var variant = PyObject.From(_configuration.Variant))
-                        using (var cacheDir = PyObject.From(_configuration.CacheDirectory))
-                        using (var secureToken = PyObject.From(_configuration.SecureToken))
-                        using (var loraAdapters = PyObject.From(loraConfig))
-                        using (var pythonResult = _functionLoad.Call(modelName, processType, controlNet, device, deviceId, dataType, variant, cacheDir, secureToken, isModelOffloadEnabled, isFullOffloadEnabled, isVaeSlicingEnabled, isVaeTilingEnabled, loraAdapters))
+                        var pipelineConfigDict = _configuration.ToPythonDictionary("lora_adapters");
+                        var loraConfigDict = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
+
+                        using (var pipelineConfig = PyObject.From(pipelineConfigDict))
+                        using (var loraConfig = PyObject.From(loraConfigDict))
+                        using (var pythonResult = _functionLoad.Call(pipelineConfig, loraConfig))
                         {
                             return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
                         }
@@ -160,26 +149,17 @@ namespace TensorStack.Python
 
                         var images = GetImageData(options);
                         var controlNetImages = GetControlImageData(options);
-                        var loraConfig = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
 
-                        using (var prompt = PyObject.From(options.Prompt))
-                        using (var negativePrompt = PyObject.From(options.NegativePrompt))
-                        using (var guidance = PyObject.From(options.GuidanceScale))
-                        using (var guidance2 = PyObject.From(options.GuidanceScale2))
-                        using (var steps = PyObject.From(options.Steps))
-                        using (var steps2 = PyObject.From(options.Steps2))
-                        using (var height = PyObject.From(options.Height))
-                        using (var width = PyObject.From(options.Width))
-                        using (var seed = PyObject.From(options.Seed))
-                        using (var scheduler = PyObject.From(options.Scheduler.ToString()))
-                        using (var numFrames = PyObject.From(options.Frames))
-                        using (var shift = PyObject.From(options.Shift))
-                        using (var strength = PyObject.From(options.Strength))
-                        using (var controlScale = PyObject.From(options.ControlNetScale))
-                        using (var loraOptions = PyObject.From(loraConfig))
+                        var schedulerOptionsDict = options.SchedulerOptions.ToPythonDictionary();
+                        var inferenceOptionsDict = options.ToPythonDictionary("scheduler_options", "lora_options");
+                        var loraOptionsDict = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
+
+                        using (var inferenceOptions = PyObject.From(inferenceOptionsDict))
+                        using (var schedulerOptions = PyObject.From(schedulerOptionsDict))
+                        using (var loraOptions = PyObject.From(loraOptionsDict))
                         using (var imageData = PyObject.From(images))
                         using (var controlNetData = PyObject.From(controlNetImages))
-                        using (var pythonResult = _functionGenerate.Call(prompt, negativePrompt, guidance, guidance2, steps, steps2, height, width, seed, scheduler, numFrames, shift, strength, controlScale, loraOptions, imageData, controlNetData))
+                        using (var pythonResult = _functionGenerate.Call(inferenceOptions, schedulerOptions, loraOptions, imageData, controlNetData))
                         {
                             var result = pythonResult
                                  .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
@@ -351,14 +331,14 @@ namespace TensorStack.Python
                 if (ex.InnerException.Message.Equals("Operation Canceled"))
                     return new OperationCanceledException();
 
-                _logger?.LogError(pyex, "{PythonExceptionType} exception occured", ex.PythonExceptionType);
+                _logger?.LogError(pyex, "{PythonExceptionType} exception occurred", ex.PythonExceptionType);
                 if (!pyex.PythonStackTrace.IsNullOrEmpty())
                     _logger?.LogError(string.Join(Environment.NewLine, pyex.PythonStackTrace));
 
                 return new Exception(pyex.Message, pyex);
             }
 
-            _logger?.LogError(ex, "{PythonExceptionType} exception occured", ex.PythonExceptionType);
+            _logger?.LogError(ex, "{PythonExceptionType} exception occurred", ex.PythonExceptionType);
             return new Exception(ex.Message, ex);
         }
 

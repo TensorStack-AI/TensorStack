@@ -20,6 +20,7 @@ namespace TensorStack.Python
         private readonly EnvironmentConfig _config;
         private readonly string _pythonPath;
         private readonly string _pipelinePath;
+        private readonly string _baseDirectory;
         private readonly string _pythonVersion = "3.12.10";
 
         /// <summary>
@@ -28,10 +29,11 @@ namespace TensorStack.Python
         /// <param name="config">The configuration.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="logger">The logger.</param>
-        public PythonManager(EnvironmentConfig config, ILogger logger = default)
+        public PythonManager(EnvironmentConfig config, string baseDirectory, ILogger logger = default)
         {
             _logger = logger;
             _config = config;
+            _baseDirectory = Path.GetFullPath(baseDirectory);
             _pythonPath = Path.GetFullPath(Path.Join(_config.Directory, "Python"));
             _pipelinePath = Path.GetFullPath(Path.Join(_config.Directory, "Pipelines"));
             CopyInternalPythonFiles();
@@ -207,7 +209,7 @@ namespace TensorStack.Python
         private void CopyInternalPythonFiles()
         {
             Directory.CreateDirectory(_pythonPath);
-            CopyFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Python"), _pythonPath);
+            CopyFiles(Path.Combine(_baseDirectory, "Python"), _pythonPath);
         }
 
 
@@ -217,7 +219,7 @@ namespace TensorStack.Python
         private void CopyInternalPipelineFiles()
         {
             Directory.CreateDirectory(_pipelinePath);
-            CopyFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Pipelines"), _pipelinePath);
+            CopyFiles(Path.Combine(_baseDirectory, "Pipelines"), _pipelinePath);
         }
 
 
