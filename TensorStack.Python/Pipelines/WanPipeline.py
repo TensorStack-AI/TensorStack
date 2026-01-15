@@ -105,7 +105,7 @@ def generate(
     controlScale = float(inferenceOptions["control_net_scale"])
 
     # scheduler
-    schedulerOptions.flow_shift = 5.0 if height > 480 else 3.0 # 5.0 for 720P, 3.0 for 480P
+    inferenceOptions["flow_shift"] = 5.0 if height > 480 else 3.0 # 5.0 for 720P, 3.0 for 480P
     _pipeline.scheduler = utils.create_scheduler(scheduler, schedulerOptions)
 
     #Lora Adapters

@@ -2,10 +2,10 @@ import gc
 import ctypes
 import ctypes.wintypes
 import torch
+import threading
+import numpy as np
 from PIL import Image
 from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
-import numpy as np
-import threading
 from diffusers import (
     DDIMScheduler,
     DDPMScheduler,

@@ -121,5 +121,15 @@ namespace TensorStack.Image
             base.Dispose(disposing);
         }
 
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageInput"/> class.
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        public static async Task<ImageInput> CreateAsync(string filename)
+        {
+            var bitmap = await ImageService.LoadFromFileAsync(filename);
+            return await Task.Run(() => new ImageInput(bitmap));
+        }
     }
 }

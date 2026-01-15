@@ -47,7 +47,7 @@ namespace TensorStack.Python
             _pipelineName = _configuration.Pipeline;
             using (GIL.Acquire())
             {
-                _logger?.LogInformation("Importing module {ModuleName}", _pipelineName);
+                _logger?.LogInformation("[PythonPipeline] [ReloadModule] Importing pipeline module '{pipelineName}'.", _pipelineName);
                 _module = Import.ImportModule(_pipelineName);
                 BindFunctions();
             }
@@ -62,7 +62,7 @@ namespace TensorStack.Python
         {
             using (GIL.Acquire())
             {
-                _logger?.LogInformation("Reloading module {ModuleName}", _pipelineName);
+                _logger?.LogInformation("[PythonPipeline] [ReloadModule] Reloading module.");
 
                 Import.ReloadModule(ref _module);
                 UnbindFunctions();
@@ -83,7 +83,7 @@ namespace TensorStack.Python
                 {
                     try
                     {
-                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "load");
+                        _logger?.LogInformation("[PythonPipeline] [Load] Loading pipeline.");
 
                         var pipelineConfigDict = _configuration.ToPythonDictionary("lora_adapters");
                         var loraConfigDict = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
@@ -115,7 +115,7 @@ namespace TensorStack.Python
                 {
                     try
                     {
-                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "unload");
+                        _logger?.LogInformation("[PythonPipeline] [Unload] Unloading pipeline.");
 
                         using (var pythonResult = _functionUnload.Call())
                         {
@@ -144,7 +144,7 @@ namespace TensorStack.Python
                 {
                     try
                     {
-                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "generate");
+                        _logger?.LogInformation("[PythonPipeline] [Generate] Executing pipeline.");
                         cancellationToken.Register(() => GenerateCancelAsync(), true);
 
                         var images = GetImageData(options);
@@ -213,7 +213,7 @@ namespace TensorStack.Python
                 {
                     try
                     {
-                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "get_step_latent");
+                        _logger?.LogInformation("[PythonPipeline] [GetStepLatent] Fetching step latents.");
 
                         using (var pythonResult = _functionGetStepLatent.Call())
                         {
@@ -243,7 +243,7 @@ namespace TensorStack.Python
                 {
                     try
                     {
-                        _logger?.LogInformation("Invoking Python function: {FunctionName}", "cancel");
+                        _logger?.LogInformation("[PythonPipeline] [GenerateCancel] Canceling generation.");
 
                         using (var pythonResult = _functionCancel.Call())
                         {
@@ -264,7 +264,7 @@ namespace TensorStack.Python
         /// </summary>
         public void Dispose()
         {
-            _logger?.LogInformation("Disposing module {ModuleName}", _pipelineName);
+            _logger?.LogInformation("[PythonPipeline] [Dispose] Disposing pipeline.");
             _isRunning = false;
             UnbindFunctions();
             _module.Dispose();
@@ -311,7 +311,7 @@ namespace TensorStack.Python
                 var logs = await GetLogsAsync();
                 foreach (var progress in LogParser.ParseLogs(logs))
                 {
-                    _logger?.LogInformation("[PythonRuntime] {Message}", progress.Message);
+                    _logger?.LogInformation("[PythonPipeline] [PythonRuntime] {Message}", progress.Message);
                     _progressCallback?.Report(progress);
                 }
                 await Task.Delay(refreshRate);
@@ -331,14 +331,14 @@ namespace TensorStack.Python
                 if (ex.InnerException.Message.Equals("Operation Canceled"))
                     return new OperationCanceledException();
 
-                _logger?.LogError(pyex, "{PythonExceptionType} exception occurred", ex.PythonExceptionType);
+                _logger?.LogError(pyex, "[PythonPipeline] [PythonRuntime] {PythonExceptionType} exception occurred", ex.PythonExceptionType);
                 if (!pyex.PythonStackTrace.IsNullOrEmpty())
                     _logger?.LogError(string.Join(Environment.NewLine, pyex.PythonStackTrace));
 
                 return new Exception(pyex.Message, pyex);
             }
 
-            _logger?.LogError(ex, "{PythonExceptionType} exception occurred", ex.PythonExceptionType);
+            _logger?.LogError(ex, "[PythonPipeline] [PythonRuntime] {PythonExceptionType} exception occurred", ex.PythonExceptionType);
             return new Exception(ex.Message, ex);
         }
 

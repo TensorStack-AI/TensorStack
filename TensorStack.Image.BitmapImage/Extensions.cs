@@ -35,6 +35,17 @@ namespace TensorStack.Image
 
 
         /// <summary>
+        /// Converts ImageTensorBase to ImageTensor.
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <returns>ImageTensor.</returns>
+        public static async Task<ImageInput> ToImageInputAsync(this ImageTensor imageTensor)
+        {
+            return await Task.Run(() => new ImageInput(imageTensor));
+        }
+
+
+        /// <summary>
         /// Saves the ImageTensor.
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
