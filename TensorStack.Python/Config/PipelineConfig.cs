@@ -6,8 +6,8 @@ namespace TensorStack.Python.Config
 {
     public sealed record PipelineConfig
     {
-        [JsonPropertyName("path")]
-        public string Path { get; set; }
+        [JsonPropertyName("base_model_path")]
+        public string BaseModelPath { get; set; }
 
         [JsonPropertyName("pipeline")]
         public string Pipeline { get; set; }
@@ -27,6 +27,9 @@ namespace TensorStack.Python.Config
         [JsonPropertyName("data_type")]
         public DataType DataType { get; set; } = DataType.Bfloat16;
 
+        [JsonPropertyName("quant_data_type")]
+        public DataType QuantDataType { get; set; } = DataType.Bfloat16;
+
         [JsonPropertyName("variant")]
         public string Variant { get; set; }
 
@@ -36,20 +39,13 @@ namespace TensorStack.Python.Config
         [JsonPropertyName("secure_token")]
         public string SecureToken { get; set; }
 
-        [JsonPropertyName("is_model_offload_enabled")]
-        public bool IsModelOffloadEnabled { get; set; }
-
-        [JsonPropertyName("is_full_offload_enabled")]
-        public bool IsFullOffloadEnabled { get; set; }
-
-        [JsonPropertyName("is_vae_slicing_enabled")]
-        public bool IsVaeSlicingEnabled { get; set; }
-
-        [JsonPropertyName("is_vae_tiling_enabled")]
-        public bool IsVaeTilingEnabled { get; set; }
-
         [JsonPropertyName("lora_adapters")]
         public List<LoraConfig> LoraAdapters { get; set; }
 
+        [JsonPropertyName("memory_mode")]
+        public MemoryModeType MemoryMode { get; set; }
+
+        [JsonPropertyName("checkpoint_config")]
+        public CheckpointConfig CheckpointConfig { get; set; }
     }
 }

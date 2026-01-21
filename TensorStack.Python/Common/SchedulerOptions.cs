@@ -51,6 +51,9 @@ namespace TensorStack.Python.Common
         public float MaxShift { get; init; } = 1.15f;
         public bool StochasticSampling { get; init; } = false;
         public float FlowShift => Shift;
+
+        public int BaseImageSeqLen { get; set; } = 256;
+        public int MaxImageSeqLen { get; set; } = 4096;
     }
 
 
@@ -84,7 +87,10 @@ namespace TensorStack.Python.Common
         Midpoint = 0,
 
         [JsonStringEnumMemberName("heun")]
-        Heun = 1
+        Heun = 1,
+
+        [JsonStringEnumMemberName("bh2")]
+        BH2 = 2
     }
 
 
@@ -110,7 +116,10 @@ namespace TensorStack.Python.Common
         Variable = 1,
 
         [JsonStringEnumMemberName("sample")]
-        Sample = 2
+        Sample = 2,
+
+        [JsonStringEnumMemberName("flow_prediction")]
+        FlowPrediction = 3
     }
 
 

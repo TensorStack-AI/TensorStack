@@ -3,6 +3,7 @@ using CSnakes.Runtime.Python;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -311,8 +312,14 @@ namespace TensorStack.Python
                 var logs = await GetLogsAsync();
                 foreach (var progress in LogParser.ParseLogs(logs))
                 {
-                    _logger?.LogInformation("[PythonPipeline] [PythonRuntime] {Message}", progress.Message);
-                    _progressCallback?.Report(progress);
+                    if (progress == null)
+                        continue;
+
+                    if (!string.IsNullOrWhiteSpace(progress.Message))
+                        _logger?.LogInformation("[PythonPipeline] [PythonRuntime] {Message}", progress.Message);
+
+                    if (!string.IsNullOrWhiteSpace(progress.Process))
+                        _progressCallback?.Report(progress);
                 }
                 await Task.Delay(refreshRate);
             }

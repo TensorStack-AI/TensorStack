@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using TensorStack.Common;
 using TensorStack.Python.Common;
 
 namespace TensorStack.Python
@@ -43,77 +45,82 @@ namespace TensorStack.Python
         {
             try
             {
-                var iteration = 0;
-                var iterations = 0;
-                var iterationsPerSecond = 0f;
-                var secondsPerIteration = 0f;
-                var megabytesSecond = 0f;
-                var megabytesDownloaded = 0f;
-                var megabytesTotal = 0f;
                 var messageSections = logEntry.Split('|', StringSplitOptions.TrimEntries).AsSpan();
-                var messageSection = logEntry;
-
-                // Parse Steps / Interations
-                if (messageSections.Length > 2)
+                if (messageSections.Length > 0)
                 {
-                    messageSection = messageSections[0].Split(':')[0];
-                    var infoSection = messageSections[2].Split('[', StringSplitOptions.TrimEntries).AsSpan();
-                    var stepsSection = infoSection[0].Split('/').AsSpan();
-                    if (stepsSection.Length == 2)
+                    if (messageSections[0].Equals("[HUB_DOWNLOAD]"))
                     {
-                        if (!int.TryParse(stepsSection[0], out iteration))
+                        if (messageSections.Length >= 8)
                         {
-                            if (!float.TryParse(stepsSection[0].Replace('M', default), out megabytesDownloaded))
-                            {
-                                if (float.TryParse(stepsSection[0].Replace('G', default), out megabytesDownloaded))
-                                {
-                                    megabytesDownloaded *= 1000;
-                                }
-                            }
-                        }
+                            var modelName = messageSections[1];
+                            var modelFileName = messageSections[2];
+                            var modelProgress = int.Parse(messageSections[3]);
+                            var modelTotal = int.Parse(messageSections[4]);
+                            var progress = int.Parse(messageSections[5]);
+                            var progressTotal = int.Parse(messageSections[6]);
+                            var speed = float.Parse(messageSections[7]);
 
-                        if (!int.TryParse(stepsSection[1], out iterations))
+                            return new PipelineProgress
+                            {
+                                Process = "Download",
+                                Message = logEntry.Replace("[HUB_DOWNLOAD]", "[Download]"),
+                                Iteration = progress,
+                                Iterations = progressTotal,
+                                DownloadModel = modelName,
+                                DownloadFile = modelFileName,
+                                //DownloadTotal = megabytesTotal,
+                                //Downloaded = megabytesDownloaded,
+                                DownloadSpeed = speed,
+                            };
+                        }
+                    }
+                    else
+                    {
+                        // Parse Steps / Interations
+                        if (messageSections.Length > 2)
                         {
-                            if (!float.TryParse(stepsSection[1].Replace('M', default), out megabytesTotal))
+                            var iteration = 0;
+                            var iterations = 0;
+                            var iterationsPerSecond = 0f;
+                            var secondsPerIteration = 0f;
+                            var messageSection = messageSections[0].Split(':')[0];
+                            var infoSection = messageSections[2].Split('[', StringSplitOptions.TrimEntries).AsSpan();
+                            var stepsSection = infoSection[0].Split('/').AsSpan();
+                            if (stepsSection.Length == 2)
                             {
-                                if (float.TryParse(stepsSection[1].Replace('G', default), out megabytesTotal))
-                                {
-                                    megabytesTotal *= 1000;
-                                }
+                                _ = int.TryParse(stepsSection[0], out iteration);
+                                _ = int.TryParse(stepsSection[1], out iterations);
                             }
-                        }
-                    }
 
-                    var iterationsSection = infoSection[1].Split(',', StringSplitOptions.TrimEntries)[1].TrimEnd(']').AsSpan();
-                    if (iterationsSection.Contains("it/s".AsSpan(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        _ = float.TryParse(iterationsSection[..^4], out iterationsPerSecond);
-                        secondsPerIteration = 1f / iterationsPerSecond;
-                    }
-                    else if (iterationsSection.Contains("s/it".AsSpan(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        _ = float.TryParse(iterationsSection[..^4], out secondsPerIteration);
-                        iterationsPerSecond = 1f / secondsPerIteration;
-                    }
-                    else if (iterationsSection.Contains("MB/s".AsSpan(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        _ = float.TryParse(iterationsSection[..^4], out megabytesSecond);
+                            var iterationsSection = infoSection[1].Split(',', StringSplitOptions.TrimEntries)[1].TrimEnd(']').AsSpan();
+                            if (iterationsSection.Contains("it/s".AsSpan(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                _ = float.TryParse(iterationsSection[..^4], out iterationsPerSecond);
+                                secondsPerIteration = 1f / iterationsPerSecond;
+                            }
+                            else if (iterationsSection.Contains("s/it".AsSpan(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                _ = float.TryParse(iterationsSection[..^4], out secondsPerIteration);
+                                iterationsPerSecond = 1f / secondsPerIteration;
+                            }
+
+                            return new PipelineProgress
+                            {
+                                Message = messageSection,
+                                Iteration = iteration,
+                                Iterations = iterations,
+                                IterationsPerSecond = float.IsFinite(iterationsPerSecond) ? iterationsPerSecond : 0f,
+                                SecondsPerIteration = float.IsFinite(secondsPerIteration) ? secondsPerIteration : 0f,
+                                Process = messageSection.StartsWith("Loading") ? "Load" : "Generate"
+                            };
+                        }
                     }
                 }
 
                 return new PipelineProgress
                 {
-                    Message = messageSection,
-                    Iteration = iteration,
-                    Iterations = iterations,
-                    IterationsPerSecond = float.IsFinite(iterationsPerSecond) ? iterationsPerSecond : 0f,
-                    SecondsPerIteration = float.IsFinite(secondsPerIteration) ? secondsPerIteration : 0f,
-                    DownloadTotal = megabytesTotal,
-                    Downloaded = megabytesDownloaded,
-                    DownloadSpeed = megabytesSecond,
-                    Process = messageSection.StartsWith("Loading") ? "Loading" : "Generate"
+                    Message = logEntry
                 };
-
             }
             catch (Exception)
             {

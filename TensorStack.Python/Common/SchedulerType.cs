@@ -95,7 +95,15 @@ namespace TensorStack.Python.Common
 
         // IPNDMScheduler
         [Display(Name = "IPNDM")]
-        IPNDM = 51
+        IPNDM = 51,
+
+        // CogVideoXDDIMScheduler
+        [Display(Name = "CogVideoX DDIM")]
+        CogVideoXDDIM = 52,
+
+        // CogVideoXDPMScheduler
+        [Display(Name = "CogVideoX DPM")]
+        CogVideoXDPM = 53
     }
 
 
@@ -120,6 +128,8 @@ namespace TensorStack.Python.Common
                 SchedulerType.UniPC => true,
                 SchedulerType.DPMSDE => true,
                 SchedulerType.EDM => true,
+                SchedulerType.CogVideoXDPM => true,
+                SchedulerType.CogVideoXDDIM => true,
                 _ => false
             };
         }
@@ -160,6 +170,8 @@ namespace TensorStack.Python.Common
                 SchedulerType.DDPM => true,
                 SchedulerType.Heun => true,
                 SchedulerType.LCM => true,
+                SchedulerType.CogVideoXDPM => true,
+                SchedulerType.CogVideoXDDIM => true,
                 _ => false
             };
         }
@@ -177,6 +189,8 @@ namespace TensorStack.Python.Common
                 SchedulerType.EDMM => true,
                 SchedulerType.LCM => true,
                 SchedulerType.UniPC => true,
+                SchedulerType.CogVideoXDPM => true,
+                SchedulerType.CogVideoXDDIM => true,
                 _ => false
             };
         }
@@ -203,6 +217,8 @@ namespace TensorStack.Python.Common
                 SchedulerType.LMS => true,
                 SchedulerType.PNDM => true,
                 SchedulerType.UniPC => true,
+                SchedulerType.CogVideoXDPM => true,
+                SchedulerType.CogVideoXDDIM => true,
                 _ => false
             };
         }

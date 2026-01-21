@@ -14,9 +14,11 @@ namespace TensorStack.Python.Common
         public float Downloaded { get; set; }
         public float DownloadTotal { get; set; }
         public float DownloadSpeed { get; set; }
-        public bool IsLoading => Process == "Loading";
+        public string DownloadModel { get; set; }
+        public string DownloadFile { get; set; }
+        public bool IsLoading => Process == "Load";
         public bool IsGenerating => Process == "Generate" && Iterations > 0;
-        public bool IsDownloading => DownloadTotal > 0 || Downloaded > 0 || DownloadSpeed > 0;
+        public bool IsDownloading => Process == "Download";
 
         public readonly static IProgress<PipelineProgress> ConsoleCallback = new Progress<PipelineProgress>(Console.WriteLine);
     }

@@ -26,7 +26,8 @@ namespace TensorStack.Python.Config
             "scipy==1.16.3",
             "peft==0.18.0",
             "hf-xet==1.2.0",
-            "torchsde==0.2.6"
+            "torchsde==0.2.6",
+            "torchao==0.15.0"
         ];
 
 

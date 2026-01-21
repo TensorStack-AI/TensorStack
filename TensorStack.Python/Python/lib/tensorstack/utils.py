@@ -1,12 +1,25 @@
+import os
 import gc
+import sys
 import ctypes
 import ctypes.wintypes
 import torch
 import threading
 import numpy as np
+from tqdm import tqdm
+import tensorstack.data_objects as DataObjects
 from PIL import Image
+from dataclasses import asdict
 from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
+from torchao.quantization import quantize_, Int8WeightOnlyConfig
+from transformers import (
+    AutoConfig,
+    TorchAoConfig as TransformersTorchAoConfig
+)
 from diffusers import (
+    DiffusionPipeline, 
+    PipelineQuantizationConfig,
+    TorchAoConfig as DiffusersTorchAoConfig,
     DDIMScheduler,
     DDPMScheduler,
     LMSDiscreteScheduler,
@@ -29,8 +42,12 @@ from diffusers import (
     EDMEulerScheduler,
     EDMDPMSolverMultistepScheduler,
     FlowMatchLCMScheduler,
-    IPNDMScheduler
+    IPNDMScheduler,
+    CogVideoXDDIMScheduler, 
+    CogVideoXDPMScheduler
 )
+from huggingface_hub import hf_hub_download
+import json
 
 _SCHEDULER_MAP = {
     # Canonical
@@ -57,105 +74,115 @@ _SCHEDULER_MAP = {
     "edmm": EDMDPMSolverMultistepScheduler,
     "flowmatchlcm": FlowMatchLCMScheduler,
     "ipndm": IPNDMScheduler,
+    "cogvideoxddim": CogVideoXDDIMScheduler,
+    "cogvideoxdpms": CogVideoXDPMScheduler
 }
 
 
 def create_scheduler(
     scheduler_name: str,
-    scheduler_options: Dict[str, Any],
+    scheduler_options: DataObjects.SchedulerOptions,
+    scheduler_config: Dict[str, Any] = None
 ):
     scheduler_cls = _SCHEDULER_MAP[scheduler_name.lower()]
-
-    # 0 = inf
-    stmax = scheduler_options.get("s_tmax")
-    if isinstance(stmax, (int, float)):
-        scheduler_options["s_tmax"] = stmax if stmax > 0 else float("inf")
-
-    # Defensive copy + drop None
-    config = {k: v for k, v in scheduler_options.items() if v is not None}
-   
+    config = dict(scheduler_config) if scheduler_config is not None else {}
+    overrides = {k: v for k, v in asdict(scheduler_options).items() if v is not None}
+    config.update(overrides)
     return scheduler_cls.from_config(config)
-
-def getDataType(dtype: str):
-    if dtype == "float8_e5m2":
-        return torch.float8_e5m2
-    if dtype == "float8_e4m3fn":
-        return torch.float8_e4m3fn
-    if dtype == "float16":
-        return torch.float16
-    if dtype == "bfloat16":
-        return torch.bfloat16
-    return torch.float
 
 
 def configure_pipeline_memory(
     pipeline: Any,
     execution_device: str,
-    pipelineOptions: Dict[str, Any],
+    config: DataObjects.PipelineConfig,
 ) -> bool:
-    """
-    Configures memory offloading and VAE optimizations for a Diffusers pipeline.
+    
+    if config.memory_mode in("LowMemDevice", "LowMemOffloadModel"):
+        vae = getattr(pipeline, "vae", None)
+        if callable(getattr(vae, "enable_tiling", None)):
+            vae.enable_tiling()
+        if callable(getattr(vae, "enable_slicing", None)):
+            vae.enable_slicing()
 
-    Returns:
-        bool: True if any memory offload was enabled, False otherwise.
-    """
-    is_memory_offload = False
-    is_full_offload_enabled = bool(pipelineOptions["is_full_offload_enabled"])
-    is_model_offload_enabled = bool(pipelineOptions["is_model_offload_enabled"])
-    is_vae_slicing_enabled = bool(pipelineOptions["is_vae_slicing_enabled"])
-    is_vae_tiling_enabled = bool(pipelineOptions["is_vae_tiling_enabled"])
-
-    # Memory offload
-    if is_full_offload_enabled:
-        is_memory_offload = True
-        pipeline.enable_sequential_cpu_offload(device=execution_device)
-    elif is_model_offload_enabled:
-        is_memory_offload = True
-        pipeline.enable_model_cpu_offload(device=execution_device)
-    else:
+    if config.memory_mode in("Device", "LowMemDevice"):
         pipeline.to(execution_device)
 
-    # VAE optimizations
-    if hasattr(pipeline, "vae"):
-        if is_vae_slicing_enabled:
-            pipeline.vae.enable_slicing()
-        if is_vae_tiling_enabled:
-            pipeline.vae.enable_tiling()
+    elif config.memory_mode == "OffloadCPU":
+        pipeline.enable_sequential_cpu_offload(device=execution_device)
 
-    print(f"[configure_pipeline_memory]: is_memory_offload:{is_memory_offload}, is_full_offload_enabled:{is_full_offload_enabled}, is_model_offload_enabled:{is_model_offload_enabled}, is_vae_slicing_enabled:{is_vae_slicing_enabled}, is_vae_tiling_enabled:{is_vae_tiling_enabled}")
-    return is_memory_offload
+    elif config.memory_mode in("OffloadModel", "LowMemOffloadModel"):
+        pipeline.enable_model_cpu_offload(device=execution_device)
+
+    return config.memory_mode in ("OffloadCPU", "OffloadModel", "LowMemOffloadModel")
 
 
-def tensorFromInput(
-    inputData: Optional[Sequence[float]],
-    inputShape: Optional[Sequence[int]],
-    *,
-    device: str | torch.device = "cuda",
-    dtype: torch.dtype = torch.float32,
-) -> Optional[torch.Tensor]:
+def get_device_map(config: DataObjects.PipelineConfig):
+    return "balanced" if config.memory_mode == "MultiDevice" else None
+
+
+def get_pipeline_config(repo_id: str, cache_dir: str) -> Dict[str, Optional[str]]:
     """
-    Create a torch.Tensor from a flat float sequence + shape.
-
-    Returns None if inputData or inputShape is None or empty.
+    Download all known pipeline component configs for a repo and return their local paths.
+    Components not present will have value None.
     """
 
-    if not inputData or not inputShape:
+    config_paths: Dict[str, Optional[str]] = {}
+    components = ["text_encoder", "text_encoder_2", "transformer", "transformer_2", "unet", "vae", "controlnet", "scheduler"]
+    DiffusionPipeline.from_pretrained(repo_id, text_encoder=None, text_encoder_2=None, unet=None, vae=None, transformer=None, torch_dtype=None)
+    for comp in components:
+        try:
+            # All components: attempt to download config.json from the subfolder
+            file_name = "config.json" if comp != "scheduler" else "scheduler_config.json"
+            path = hf_hub_download(repo_id, f"{comp}/{file_name}", cache_dir=cache_dir)
+            if os.path.exists(path):
+                config_paths[comp] = path
+            else:
+                config_paths[comp] = None
+        except Exception:
+            config_paths[comp] = None
+
+    return config_paths
+
+
+def get_quantize_model_config(dtype: torch.dtype, quant_dtype: torch.dtype):
+    if quant_dtype != dtype:
+        print(f"[Quantize] Quantizing model from '{dtype}' to '{quant_dtype}'")
+        if quant_dtype == torch.int8:
+            return DiffusersTorchAoConfig(Int8WeightOnlyConfig()), TransformersTorchAoConfig(Int8WeightOnlyConfig()) 
+    return None, None
+
+
+def quantize_model(model: Any, quant_dtype: torch.dtype):
+    if quant_dtype == torch.int8:
+        quantize_(model, Int8WeightOnlyConfig())
+
+
+def get_quantize_pipeline_config(
+        dtype: torch.dtype, 
+        quant_dtype: torch.dtype,
+        diffusers: list[str],
+        transformers: list[str]
+    ):
+
+    # No quantization required
+    if quant_dtype == dtype:
         return None
 
-    shape = tuple(int(x) for x in inputShape)
+    quant_mapping = {}
+    if quant_dtype == torch.int8:
+        diffusers_cfg, transformers_cfg = get_quantize_model_config(dtype, quant_dtype)
 
-    expected = 1
-    for d in shape:
-        expected *= d
+        for name in diffusers:
+            quant_mapping[name] = diffusers_cfg
 
-    if len(inputData) != expected:
-        raise ValueError(
-            f"inputData length ({len(inputData)}) "
-            f"does not match shape {shape} (expected {expected})"
-        )
+        for name in transformers:
+            quant_mapping[name] = transformers_cfg
 
-    np_array = np.asarray(inputData, dtype=np.float32).reshape(shape)
-    return torch.from_numpy(np_array).to(device=device, dtype=dtype)
+    if not quant_mapping:
+        return None
+    
+    print(f"[Quantize] Quantizing model from '{dtype}' to '{quant_dtype}'")
+    return PipelineQuantizationConfig(quant_mapping=quant_mapping)
 
 
 def imageFromInput(
@@ -237,3 +264,112 @@ class MemoryStdout:
             logs_copy = self._log_history[:]
             self._log_history.clear()
         return logs_copy
+
+
+class ModelDownloadProgress:
+    def __init__(self, total_models: int, total_per_model: int = 1000):
+        self.total_per_model = total_per_model
+        self.model_index: int = 0
+        self.model_name: str = ""
+        self.download_stats: Dict[str, Dict[str, float]] = {}  # filename -> {"downloaded": float, "total": float}
+        self.total_models = total_models
+        self._patched = False
+        self.PatchTqdm()
+
+    # --------------------
+    # Public API
+    # --------------------
+    def Initialize(self, model_index: int, model_name: str):
+        """Start tracking a new model. Previous model considered 100% complete."""
+        if self.model_name:
+            # Mark previous model as complete
+            for fn in self.download_stats:
+                if fn.startswith(self.model_name):
+                    self.download_stats[fn]["downloaded"] = self.download_stats[fn]["total"]
+
+        self.model_index = model_index
+        self.model_name = model_name
+
+        # Clear any previous files for this model
+        for fn in list(self.download_stats.keys()):
+            if fn.startswith(model_name):
+                del self.download_stats[fn]
+
+    def Update(self, filename: str, downloaded: float, total: float, speed: float):
+        """Update a file's progress (MB)."""
+        self.download_stats[filename] = {
+            "downloaded": downloaded, 
+            "total": total, 
+            "speed": speed, 
+            "model": self.model_name 
+        }
+        self._print_progress(filename)
+
+    def Clear(self):
+        """Reset all download tracking."""
+
+        #print(f"[HUB_DOWNLOAD] | model | model | {self.total_per_model} | {self.total_per_model} | {self.total_per_model * self.total_models} | {self.total_per_model * self.total_models} | {0.00}")
+        self.model_index = 0
+        self.model_name = ""
+        self.download_stats.clear()
+     
+
+    # --------------------
+    # Internal Methods
+    # --------------------
+    def _print_progress(self, filename: str):
+        current_files = [x for x in self.download_stats.values() if x["model"] == self.model_name]
+        if not current_files:
+            avg_speed = 0.0
+            model_progress = 0
+        else:
+            avg_speed = sum(x.get("speed", 0.0) for x in current_files)
+            model_progress = sum(x["downloaded"] / max(x["total"], 0.001) for x in current_files) / len(current_files)
+
+        scaled_model_progress = int(model_progress * self.total_per_model)
+        overall_progress = self.model_index * self.total_per_model + scaled_model_progress
+        max_progress = self.total_models * self.total_per_model
+
+        print(f"[HUB_DOWNLOAD] | {self.model_name} | {filename} | {scaled_model_progress} | {self.total_per_model} | {overall_progress} | {max_progress} | {avg_speed:.2f}")
+
+    # --------------------
+    # TQDM Patch
+    # --------------------
+    def PatchTqdm(self):
+        """Monkey-patch tqdm.update to feed progress automatically."""
+        if self._patched:
+            return  # only patch once
+
+        original_update = tqdm.update
+        progress_tracker = self
+
+        def patched_update(self_tqdm, n=1):
+            # Only process if total and desc exist
+            if self_tqdm.n is not None and self_tqdm.total is not None and self_tqdm.desc:
+                downloaded = self_tqdm.n / 1024 / 1024
+                total_size = self_tqdm.total / 1024 / 1024
+                speed = (
+                    self_tqdm.format_dict.get("rate", 0.0) / 1024 / 1024
+                    if self_tqdm.format_dict.get("rate")
+                    else 0.001
+                )
+
+                # Extract model and filename
+                model, filename = (self_tqdm.desc.split("/", 1) + [None])[:2]
+
+                if model is not None and filename is not None and model == progress_tracker.model_name:
+                    progress_tracker.Update(filename, downloaded, total_size, speed)
+
+            return original_update(self_tqdm, n)
+
+        tqdm.update = patched_update
+        self._patched = True
+
+
+def redirect_output():
+    sys.stderr = MemoryStdout()
+    sys.stdout = MemoryStdout()
+
+
+def get_output() -> list[str]:
+    return sys.stderr.get_log_history() + sys.stdout.get_log_history()

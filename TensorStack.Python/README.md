@@ -58,8 +58,8 @@ var pipelineConfig = new PipelineConfig
     Path = "Qwen/Qwen-Image-Edit",
     Pipeline = "QwenImagePipeline",
     ProcessType = ProcessType.ImageEdit,
-    IsFullOffloadEnabled = true,
-    DataType = DataType.Bfloat16
+    DataType = DataType.Bfloat16,
+    MemoryMode = MemoryModeType.OffloadCPU
 };
 
 // Create Pipeline Proxy
