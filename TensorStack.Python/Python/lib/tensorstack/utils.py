@@ -4,22 +4,21 @@ import sys
 import ctypes
 import ctypes.wintypes
 import torch
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
 import threading
 import numpy as np
 from tqdm import tqdm
 import tensorstack.data_objects as DataObjects
 from PIL import Image
 from dataclasses import asdict
+from huggingface_hub import hf_hub_download
 from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
-from torchao.quantization import quantize_, Int8WeightOnlyConfig
 from transformers import (
-    AutoConfig,
-    TorchAoConfig as TransformersTorchAoConfig
+    AutoConfig
 )
 from diffusers import (
     DiffusionPipeline, 
-    PipelineQuantizationConfig,
-    TorchAoConfig as DiffusersTorchAoConfig,
     DDIMScheduler,
     DDPMScheduler,
     LMSDiscreteScheduler,
@@ -46,8 +45,6 @@ from diffusers import (
     CogVideoXDDIMScheduler, 
     CogVideoXDPMScheduler
 )
-from huggingface_hub import hf_hub_download
-import json
 
 _SCHEDULER_MAP = {
     # Canonical
@@ -97,7 +94,7 @@ def configure_pipeline_memory(
     config: DataObjects.PipelineConfig,
 ) -> bool:
     
-    if config.memory_mode in("LowMemDevice", "LowMemOffloadModel"):
+    if config.memory_mode in("OffloadCPU", "LowMemDevice", "LowMemOffloadModel"):
         vae = getattr(pipeline, "vae", None)
         if callable(getattr(vae, "enable_tiling", None)):
             vae.enable_tiling()
@@ -142,47 +139,6 @@ def get_pipeline_config(repo_id: str, cache_dir: str) -> Dict[str, Optional[str]
             config_paths[comp] = None
 
     return config_paths
-
-
-def get_quantize_model_config(dtype: torch.dtype, quant_dtype: torch.dtype):
-    if quant_dtype != dtype:
-        print(f"[Quantize] Quantizing model from '{dtype}' to '{quant_dtype}'")
-        if quant_dtype == torch.int8:
-            return DiffusersTorchAoConfig(Int8WeightOnlyConfig()), TransformersTorchAoConfig(Int8WeightOnlyConfig()) 
-    return None, None
-
-
-def quantize_model(model: Any, quant_dtype: torch.dtype):
-    if quant_dtype == torch.int8:
-        quantize_(model, Int8WeightOnlyConfig())
-
-
-def get_quantize_pipeline_config(
-        dtype: torch.dtype, 
-        quant_dtype: torch.dtype,
-        diffusers: list[str],
-        transformers: list[str]
-    ):
-
-    # No quantization required
-    if quant_dtype == dtype:
-        return None
-
-    quant_mapping = {}
-    if quant_dtype == torch.int8:
-        diffusers_cfg, transformers_cfg = get_quantize_model_config(dtype, quant_dtype)
-
-        for name in diffusers:
-            quant_mapping[name] = diffusers_cfg
-
-        for name in transformers:
-            quant_mapping[name] = transformers_cfg
-
-    if not quant_mapping:
-        return None
-    
-    print(f"[Quantize] Quantizing model from '{dtype}' to '{quant_dtype}'")
-    return PipelineQuantizationConfig(quant_mapping=quant_mapping)
 
 
 def imageFromInput(

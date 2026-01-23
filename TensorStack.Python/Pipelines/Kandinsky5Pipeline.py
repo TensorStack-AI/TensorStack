@@ -1,6 +1,7 @@
 import sys
 import tensorstack.utils as Utils
 import tensorstack.data_objects as DataObjects
+import tensorstack.quantization as Quantization
 Utils.redirect_output()
 
 import torch
@@ -180,7 +181,7 @@ def create_pipeline(config: DataObjects.PipelineConfig):
 
     # Configuration
     pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory)
-    quant_config_diffusers, uant_config_transformers = Utils.get_quantize_model_config(config.data_type, config.quant_data_type)
+    quant_config_diffusers, uant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     pipeline_kwargs = { "variant": config.variant, "token": config.secure_token, "cache_dir": config.cache_directory }
 
     # Load Models
@@ -228,7 +229,7 @@ def load_text_encoder(
             use_safetensors=True, 
             local_files_only=True
         )
-        Utils.quantize_model(text_encoder, config.quant_data_type)
+        Quantization.quantize_model(text_encoder, config.quant_data_type, config.memory_mode)
         return text_encoder
     
     return Qwen2_5_VLForConditionalGeneration.from_pretrained(
@@ -277,7 +278,7 @@ def load_transformer(
             use_safetensors=True, 
             local_files_only=True
         )
-        Utils.quantize_model(transformer, config.quant_data_type)
+        Quantization.quantize_model(transformer, config.quant_data_type, config.memory_mode)
         return transformer
     
     return Kandinsky5Transformer3DModel.from_pretrained(

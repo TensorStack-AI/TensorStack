@@ -27,7 +27,7 @@ namespace TensorStack.Python.Config
             "peft==0.18.0",
             "hf-xet==1.2.0",
             "torchsde==0.2.6",
-            "torchao==0.15.0"
+            "optimum-quanto==0.2.7",
         ];
 
 
@@ -75,16 +75,18 @@ namespace TensorStack.Python.Config
             Environment = "default-rocm",
             Directory = "PythonRuntime",
             Variables = new Dictionary<string, string> {
+                {"MIOPEN_FIND_MODE", "2" },
+                {"HIP_VISIBLE_DEVICES", "0,1" },
                 {"TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL", "1" }
             },
             Requirements =
             [
-                "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_core-0.1.dev0-py3-none-win_amd64.whl",
-                "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.whl",
-                "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_libraries_custom-0.1.dev0-py3-none-win_amd64.whl",
-                "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm-0.1.dev0.tar.gz",
-                "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torch-2.9.0+rocmsdk20251116-cp312-cp312-win_amd64.whl",
-                "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torchvision-0.24.0+rocmsdk20251116-cp312-cp312-win_amd64.whl",
+                "https://repo.radeon.com/rocm/windows/rocm-rel-7.2/rocm-7.2.0.dev0.tar.gz",
+                "https://repo.radeon.com/rocm/windows/rocm-rel-7.2/rocm_sdk_core-7.2.0.dev0-py3-none-win_amd64.whl",
+                "https://repo.radeon.com/rocm/windows/rocm-rel-7.2/rocm_sdk_devel-7.2.0.dev0-py3-none-win_amd64.whl",
+                "https://repo.radeon.com/rocm/windows/rocm-rel-7.2/rocm_sdk_libraries_custom-7.2.0.dev0-py3-none-win_amd64.whl",
+                "https://repo.radeon.com/rocm/windows/rocm-rel-7.2/torch-2.9.1%2Brocmsdk20260116-cp312-cp312-win_amd64.whl",
+                "https://repo.radeon.com/rocm/windows/rocm-rel-7.2/torchvision-0.24.1%2Brocmsdk20260116-cp312-cp312-win_amd64.whl",
                 ..DefaultRequirements,
             ]
         };
