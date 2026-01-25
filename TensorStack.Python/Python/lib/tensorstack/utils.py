@@ -125,7 +125,7 @@ def get_pipeline_config(repo_id: str, cache_dir: str) -> Dict[str, Optional[str]
 
     config_paths: Dict[str, Optional[str]] = {}
     components = ["text_encoder", "text_encoder_2", "transformer", "transformer_2", "unet", "vae", "controlnet", "scheduler"]
-    DiffusionPipeline.from_pretrained(repo_id, text_encoder=None, text_encoder_2=None, unet=None, vae=None, transformer=None, torch_dtype=None)
+    DiffusionPipeline.from_pretrained(repo_id, text_encoder=None, text_encoder_2=None, unet=None, vae=None, transformer=None, torch_dtype=None, cache_dir=cache_dir)
     for comp in components:
         try:
             # All components: attempt to download config.json from the subfolder
@@ -139,6 +139,23 @@ def get_pipeline_config(repo_id: str, cache_dir: str) -> Dict[str, Optional[str]
             config_paths[comp] = None
 
     return config_paths
+
+
+def load_lora_weights(pipeline: Any, config: DataObjects.PipelineConfig):
+    if config.lora_adapters is not None:
+        for lora in config.lora_adapters:
+            pipeline.load_lora_weights(lora.path, weight_name=lora.weights, adapter_name=lora.name)
+
+
+def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
+    if config.lora_options is not None:
+        lora_map = { 
+            opt.name: opt.strength
+            for opt in config.lora_options
+        }   
+        names = list(lora_map.keys())
+        weights = list(lora_map.values())
+        pipeline.set_adapters(names, adapter_weights=weights)
 
 
 def imageFromInput(

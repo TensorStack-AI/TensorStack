@@ -86,12 +86,9 @@ namespace TensorStack.Python
                     {
                         _logger?.LogInformation("[PythonPipeline] [Load] Loading pipeline.");
 
-                        var pipelineConfigDict = _configuration.ToPythonDictionary("lora_adapters");
-                        var loraConfigDict = _configuration.LoraAdapters?.Select(x => (x.Path, x.Weights, x.Name));
-
+                        var pipelineConfigDict = _configuration.ToPythonDictionary();
                         using (var pipelineConfig = PyObject.From(pipelineConfigDict))
-                        using (var loraConfig = PyObject.From(loraConfigDict))
-                        using (var pythonResult = _functionLoad.Call(pipelineConfig, loraConfig))
+                        using (var pythonResult = _functionLoad.Call(pipelineConfig))
                         {
                             return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
                         }
@@ -137,7 +134,7 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public Task<Tensor<float>> GenerateAsync(PipelineOptions options, CancellationToken cancellationToken = default)
+        public Task<List<Tensor<float>>> GenerateAsync(PipelineOptions options, CancellationToken cancellationToken = default)
         {
             return Task.Run(() =>
             {
@@ -148,25 +145,20 @@ namespace TensorStack.Python
                         _logger?.LogInformation("[PythonPipeline] [Generate] Executing pipeline.");
                         cancellationToken.Register(() => GenerateCancelAsync(), true);
 
-                        var images = GetImageData(options);
-                        var controlNetImages = GetControlImageData(options);
-
-                        var schedulerOptionsDict = options.SchedulerOptions.ToPythonDictionary();
-                        var inferenceOptionsDict = options.ToPythonDictionary("scheduler_options", "lora_options");
-                        var loraOptionsDict = options.LoraOptions?.ToDictionary(k => k.Name, v => v.Strength);
-
+                        var inputTensors = GetInputData(options);
+                        var controlInputTensors = GetControlInputData(options);
+                        var inferenceOptionsDict = options.ToPythonDictionary();
                         using (var inferenceOptions = PyObject.From(inferenceOptionsDict))
-                        using (var schedulerOptions = PyObject.From(schedulerOptionsDict))
-                        using (var loraOptions = PyObject.From(loraOptionsDict))
-                        using (var imageData = PyObject.From(images))
-                        using (var controlNetData = PyObject.From(controlNetImages))
-                        using (var pythonResult = _functionGenerate.Call(inferenceOptions, schedulerOptions, loraOptions, imageData, controlNetData))
+                        using (var imageData = PyObject.From(inputTensors))
+                        using (var controlNetData = PyObject.From(controlInputTensors))
+                        using (var pythonResults = _functionGenerate.Call(inferenceOptions, imageData, controlNetData))
                         {
-                            var result = pythonResult
-                                 .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
-                                 .ToTensor()
-                                 .Normalize(Normalization.OneToOne);
-                            return result;
+                            var results = new List<Tensor<float>>();
+                            foreach (var pythonResult in pythonResults.AsBareEnumerable<IPyBuffer, PyObjectImporters.Buffer>())
+                            {
+                                results.Add(pythonResult.ToTensor().Normalize(Normalization.OneToOne));
+                            }
+                            return results;
                         }
                     }
                     catch (PythonInvocationException ex)
@@ -350,7 +342,7 @@ namespace TensorStack.Python
         }
 
 
-        private List<(float[], int[])> GetImageData(PipelineOptions options)
+        private List<(float[], int[])> GetInputData(PipelineOptions options)
         {
             if (options.InputImages.IsNullOrEmpty())
                 return null;
@@ -365,7 +357,7 @@ namespace TensorStack.Python
         }
 
 
-        private List<(float[], int[])> GetControlImageData(PipelineOptions options)
+        private List<(float[], int[])> GetControlInputData(PipelineOptions options)
         {
             if (options.InputControlImages.IsNullOrEmpty())
                 return null;

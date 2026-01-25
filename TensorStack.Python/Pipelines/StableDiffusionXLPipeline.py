@@ -38,22 +38,18 @@ _pipelineMap = {
 }
 
 
-def load(config_args: Dict[str, Any], lora_args: Optional[List[Dict[str, Any]]] = None) -> bool:
+def load(config_args: Dict[str, Any]) -> bool:
     global _pipeline, _generator, _processType, _isMemoryOffload
 
     # Config
     config = DataObjects.PipelineConfig(**config_args)
-    lora_config = [DataObjects.LoraConfig(**cfg) for cfg in lora_args or []]
     _processType = config.process_type
    
     # Pipeline
     _pipeline = create_pipeline(config)
 
     #Lora Adapters
-    if lora_config is not None:
-        for lora in lora_config:
-            print(f"[LoraAdapter] {lora}")
-            _pipeline.load_lora_weights(lora.path, weight_name=lora.weights, adapter_name=lora.name)
+    Utils.load_lora_weights(_pipeline, config)
 
     # Device
     execution_device = torch.device(f"{config.device}:{config.device_id}")
@@ -65,26 +61,20 @@ def load(config_args: Dict[str, Any], lora_args: Optional[List[Dict[str, Any]]] 
 
 def generate(
         inference_args: Dict[str, Any],
-        scheduler_args: Dict[str, Any],
-        lora_args: Optional[Dict[str, float]] = None,
         input_tensors: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
         control_tensors: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
-    ) -> Buffer:
+    ) -> Sequence[Buffer]:
     global _prompt_cache_key, _prompt_cache_value
     _cancel_event.clear()
 
     # Options
     options = DataObjects.PipelineOptions(**inference_args)
-    scheduler_options = DataObjects.SchedulerOptions(**scheduler_args)
 
     #scheduler
-    _pipeline.scheduler = Utils.create_scheduler(options.scheduler, scheduler_options, _pipeline.scheduler.config)
+    _pipeline.scheduler = Utils.create_scheduler(options.scheduler, options.scheduler_options, _pipeline.scheduler.config)
 
     #Lora Adapters
-    if lora_args is not None:
-        names = list(lora_args.keys())
-        weights = list(lora_args.values())
-        _pipeline.set_adapters(names, adapter_weights=weights)
+    Utils.set_lora_weights(_pipeline, options)
 
     # Input Images
     image = Utils.prepare_images(input_tensors)
@@ -146,7 +136,7 @@ def generate(
 
     # Cleanup
     Utils.trim_memory(_isMemoryOffload)
-    return np.ascontiguousarray(output)
+    return [ np.ascontiguousarray(output) ]
 
 
 def generateCancel() -> None:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Optional, Union, Sequence
 import torch
 
 def get_data_type(dtype: str):
@@ -32,6 +32,19 @@ class CheckpointConfig:
 
 
 @dataclass(slots=True)
+class LoraConfig:
+    path: str
+    name: str
+    weights: str
+
+
+@dataclass(slots=True)
+class LoraOption:
+    name: str
+    strength: float
+
+
+@dataclass(slots=True)
 class PipelineConfig:
     # Required / core
     base_model_path: str
@@ -54,40 +67,18 @@ class PipelineConfig:
     cache_directory: Optional[str] = None
     secure_token: Optional[str] = None
 
+    lora_adapters: Optional[Sequence[LoraConfig]] = None
     checkpoint_config: Optional[CheckpointConfig] = None
   
     def __post_init__(self):
         self.data_type = get_data_type(self.data_type)
         self.quant_data_type = get_data_type(self.quant_data_type)
+        if (self.lora_adapters is not None and isinstance(self.lora_adapters, Sequence)):
+            self.lora_adapters = [LoraConfig(**dict(cfg)) for cfg in self.lora_adapters or []]
         if (self.checkpoint_config is not None and isinstance(self.checkpoint_config, dict)):
             self.checkpoint_config = CheckpointConfig(**self.checkpoint_config)
         elif self.checkpoint_config is None:
             self.checkpoint_config = CheckpointConfig()
-
-
-@dataclass(slots=True)
-class LoraConfig:
-    path: str
-    name: str
-    weights: str
-
-
-@dataclass(slots=True)
-class PipelineOptions:
-    seed: int
-    prompt: str
-    negative_prompt: Optional[str] = None 
-    guidance_scale: float = 1.0
-    guidance_scale2: float = 1.0
-    steps: int = 50
-    steps2: int = 0
-    height: int = 0
-    width: int = 0
-    frames: int = 0
-    frame_rate: float = 0.0
-    strength: float = 1.0
-    control_net_scale: float = 1.0
-    scheduler: str = "ddim"
 
 
 @dataclass(slots=True)
@@ -150,3 +141,28 @@ class SchedulerOptions:
             self.s_tmax = float("infinity")
 
 
+
+@dataclass(slots=True)
+class PipelineOptions:
+    seed: int
+    prompt: str
+    negative_prompt: Optional[str] = None 
+    guidance_scale: float = 1.0
+    guidance_scale2: float = 1.0
+    steps: int = 50
+    steps2: int = 0
+    height: int = 0
+    width: int = 0
+    frames: int = 0
+    frame_rate: float = 0.0
+    strength: float = 1.0
+    control_net_scale: float = 1.0
+    scheduler: str = "ddim"
+    lora_options: Optional[Sequence[LoraOption]] = None 
+    scheduler_options: SchedulerOptions = None
+
+    def __post_init__(self):
+        if (self.scheduler_options is not None and isinstance(self.scheduler_options, dict)):
+            self.scheduler_options = SchedulerOptions(**self.scheduler_options)
+        if (self.lora_options is not None and isinstance(self.lora_options, Sequence)):
+            self.lora_options = [LoraOption(**dict(cfg)) for cfg in self.lora_options or []]
