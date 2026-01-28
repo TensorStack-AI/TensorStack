@@ -16,6 +16,7 @@ from diffusers import (
     FluxTransformer2DModel,
     FluxPipeline, 
     FluxImg2ImgPipeline, 
+    FluxInpaintPipeline,
     FluxKontextPipeline,
     FluxControlNetPipeline,
 )
@@ -35,6 +36,7 @@ _pipelineMap = {
     "TextToImage": FluxPipeline,
     "ImageToImage": FluxImg2ImgPipeline,
     "ImageEdit": FluxKontextPipeline,
+    "ImageInpaint": FluxInpaintPipeline,
     "ControlNetImage": FluxControlNetPipeline,
 }
 
@@ -106,6 +108,9 @@ def generate(
     if _processType == "ImageToImage":
         pipeline_options.update({"strength": options.strength})
 
+    if _processType == "ImageInpaint":
+        pipeline_options.update({ "image": image[0], "mask_image": image[1], "strength": options.strength})
+        
     if _processType == "ControlNetImage":
         pipeline_options.update({
             "control_guidance_start": 0.0,

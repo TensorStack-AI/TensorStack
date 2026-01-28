@@ -16,7 +16,8 @@ from diffusers import (
     QwenImageTransformer2DModel,
     QwenImagePipeline,
     QwenImageImg2ImgPipeline, 
-    QwenImageEditPlusPipeline, 
+    QwenImageInpaintPipeline, 
+    QwenImageEditPlusPipeline,
     QwenImageControlNetPipeline
 )
 
@@ -33,6 +34,7 @@ _cancel_event = Event()
 _pipelineMap = {
     "TextToImage": QwenImagePipeline,
     "ImageToImage": QwenImageImg2ImgPipeline,
+    "ImageInpaint": QwenImageInpaintPipeline,
     "ImageEdit": QwenImageEditPlusPipeline,
     "ControlNetImage": QwenImageControlNetPipeline,
 }
@@ -102,6 +104,9 @@ def generate(
 
     if _processType == "ImageToImage":
         pipeline_options.update({ "strength": options.strength })
+
+    if _processType == "ImageInpaint":
+        pipeline_options.update({ "image": image[0], "mask_image": image[1], "strength": options.strength})
 
     if _processType in ("ImageToImage", "ImageEdit"):
         pipeline_options.update({ "image": image,  "num_images_per_prompt": 1 })

@@ -16,6 +16,7 @@ from diffusers import (
     UNet2DConditionModel,
     StableDiffusionXLPipeline,
     StableDiffusionXLImg2ImgPipeline,
+    StableDiffusionXLInpaintPipeline,
     StableDiffusionXLControlNetPipeline,
     StableDiffusionXLControlNetImg2ImgPipeline,
 )
@@ -33,6 +34,7 @@ _cancel_event = Event()
 _pipelineMap = {
     "TextToImage": StableDiffusionXLPipeline,
     "ImageToImage": StableDiffusionXLImg2ImgPipeline,
+    "ImageInpaint": StableDiffusionXLInpaintPipeline,
     "ControlNetImage": StableDiffusionXLControlNetPipeline,
     "ControlNetImageToImage": StableDiffusionXLControlNetImg2ImgPipeline,
 }
@@ -114,6 +116,9 @@ def generate(
 
     if _processType in ("ImageToImage","ControlNetImageToImage"):
         pipeline_options.update({ "image": image, "strength": options.strength})
+
+    if _processType == "ImageInpaint":
+        pipeline_options.update({ "image": image[0], "mask_image": image[1], "strength": options.strength})
 
     if _processType == "ControlNetImage":
         pipeline_options.update({ "image": control_image })

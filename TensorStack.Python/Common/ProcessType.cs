@@ -5,6 +5,7 @@
         TextToImage = 100,
         ImageToImage = 101,
         ImageEdit = 102,
+        ImageInpaint = 103,
 
         ControlNetImage = 200,
         ControlNetImageToImage = 201,
