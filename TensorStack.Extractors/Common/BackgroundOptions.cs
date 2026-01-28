@@ -16,6 +16,7 @@ namespace TensorStack.Extractors.Common
         public BackgroundMode Mode { get; init; }
 
         public bool IsTransparentSupported { get; init; } = true;
+        public float MaskFill { get; set; } = 1;
     }
 
 

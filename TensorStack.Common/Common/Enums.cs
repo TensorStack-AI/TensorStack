@@ -75,37 +75,4 @@ namespace TensorStack.Common
         Bilinear = 0,
         Bicubic = 1
     }
-
-
-    /// <summary>
-    /// Enum TileMode
-    /// </summary>
-    public enum TileMode
-    {
-        /// <summary>
-        /// Joins the tiles overlapping edges.
-        /// </summary>
-        None,
-
-        /// <summary>
-        /// Joins the tiles  overlapping the edges.
-        /// </summary>
-        Overlap,
-
-        /// <summary>
-        /// Joins the tiles blending the overlapped edges.
-        /// </summary>
-        Blend,
-
-        /// <summary>
-        /// Joins the tiles clipping the overlapped edges.
-        /// </summary>
-        Clip,
-
-        /// <summary>
-        /// Joins the tiles clipping and blending the overlapped edges.
-        /// </summary>
-        [Description("Clip + Blend")]
-        ClipBlend
-    }
 }

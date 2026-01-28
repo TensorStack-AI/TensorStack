@@ -67,10 +67,11 @@ namespace TensorStack.Upscaler.Pipelines
         /// <returns>A Task&lt;ImageTensor&gt; representing the asynchronous operation.</returns>
         public async Task<ImageTensor> RunAsync(UpscaleImageOptions options, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
+            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
             var timestamp = RunProgress.GetTimestamp();
-            var resultTensor = await UpscaleInternalAsync(options.Image, options, cancellationToken);
+            var resultTensor = await UpscaleInternalAsync(metadata, options.Image, options, progressCallback, cancellationToken);
             progressCallback?.Report(new RunProgress(timestamp));
-            return resultTensor;
+            return resultTensor.AsImageTensor();
         }
 
 
@@ -84,12 +85,14 @@ namespace TensorStack.Upscaler.Pipelines
         /// <returns>A Task&lt;VideoTensor&gt; representing the asynchronous operation.</returns>
         public async Task<VideoTensor> RunAsync(UpscaleVideoOptions options, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
+            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
+
             var timestamp = RunProgress.GetTimestamp();
             var results = new List<ImageTensor>();
             foreach (var frame in options.Video.GetFrames())
             {
                 var frameTime = Stopwatch.GetTimestamp();
-                var resultTensor = await UpscaleInternalAsync(frame, options, cancellationToken);
+                var resultTensor = await UpscaleInternalAsync(metadata, frame, options, default, cancellationToken);
                 results.Add(resultTensor);
                 progressCallback?.Report(new RunProgress(results.Count, options.Video.Frames, frameTime));
             }
@@ -110,12 +113,14 @@ namespace TensorStack.Upscaler.Pipelines
         /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
         public async IAsyncEnumerable<VideoFrame> RunAsync(UpscaleStreamOptions options, IProgress<RunProgress> progressCallback = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
+
             var frameCount = 0;
             var timestamp = RunProgress.GetTimestamp();
             await foreach (var videoFrame in options.Stream)
             {
                 var frameTime = Stopwatch.GetTimestamp();
-                var resultTensor = await UpscaleInternalAsync(videoFrame.Frame, options, cancellationToken);
+                var resultTensor = await UpscaleInternalAsync(metadata, videoFrame.Frame, options, default, cancellationToken);
                 progressCallback?.Report(new RunProgress(++frameCount, 0, frameTime));
                 yield return new VideoFrame(videoFrame.Index, resultTensor, videoFrame.SourceFrameRate);
             }
@@ -138,11 +143,14 @@ namespace TensorStack.Upscaler.Pipelines
         /// <param name="imageTensor">The image tensor.</param>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> UpscaleInternalAsync(ImageTensor imageTensor, UpscaleOptions options, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> UpscaleInternalAsync(ModelMetadata metadata, ImageTensor imageTensor, UpscaleOptions options, IProgress<RunProgress> tileProgressCallback = default, CancellationToken cancellationToken = default)
         {
-            return options.TileMode == TileMode.None
-                ? await ExecuteUpscaleAsync(imageTensor, cancellationToken)
-                : await ExecuteUpscaleTilesAsync(imageTensor, options.MaxTileSize, options.TileMode, options.TileOverlap, cancellationToken);
+            ThrowIfInvalidInput(imageTensor);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return options.IsTileEnabled == false
+                ? await ExecuteUpscaleAsync(metadata, imageTensor, cancellationToken)
+                : await ExecuteTileUpscaleAsync(metadata, imageTensor, options, tileProgressCallback, cancellationToken);
         }
 
 
@@ -151,12 +159,8 @@ namespace TensorStack.Upscaler.Pipelines
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExecuteUpscaleAsync(ImageTensor imageTensor, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExecuteUpscaleAsync(ModelMetadata metadata, ImageTensor imageTensor, CancellationToken cancellationToken = default)
         {
-            ThrowIfInvalidInput(imageTensor);
-            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-
             using (var modelParameters = new ModelParameters(metadata, cancellationToken))
             {
                 modelParameters.AddImageInput(imageTensor, _model.Channels, _model.Normalization);
@@ -173,33 +177,64 @@ namespace TensorStack.Upscaler.Pipelines
 
 
         /// <summary>
-        /// Execute Upscaler using tiles
+        /// Execute tile upscale infernece
         /// </summary>
+        /// <param name="metadata">The metadata.</param>
         /// <param name="imageTensor">The image tensor.</param>
-        /// <param name="maxTileSize">Maximum size of the tile.</param>
-        /// <param name="tileOverlap">The tile overlap.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExecuteUpscaleTilesAsync(ImageTensor imageTensor, int maxTileSize, TileMode tileMode, int tileOverlap, CancellationToken cancellationToken = default)
+        /// <param name="tileJob">The tile job.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        private async Task<ImageTensor> ExecuteTileUpscaleAsync(ModelMetadata metadata, Tensor<float> imageTensor, TileJob tileJob, CancellationToken cancellationToken)
         {
-            if (_model.SampleSize > 0)
-                maxTileSize = _model.SampleSize - tileOverlap;
+            var tileTensor = ImageTiles.ExtractTileSpan(imageTensor, tileJob.X, tileJob.Y, tileJob.TileSize, _model.Channels);
+            var tileHeight = tileTensor.Dimensions[2] * _model.ScaleFactor;
+            var tileWidth = tileTensor.Dimensions[3] * _model.ScaleFactor;
+            using (var modelParameters = new ModelParameters(metadata, cancellationToken))
+            {
+                modelParameters.AddInput(tileTensor, _model.Normalization);
+                modelParameters.AddOutput([1, _model.Channels, tileHeight, tileWidth]);
+                using (var results = await _model.RunInferenceAsync(modelParameters))
+                {
+                    var outputTensor = results[0].ToTensor();
+                    return outputTensor
+                        .Normalize(_model.OutputNormalization)
+                        .AsImageTensor();
+                }
+            }
+        }
 
-            if (imageTensor.Width <= (maxTileSize + tileOverlap) || imageTensor.Height <= (maxTileSize + tileOverlap))
-                return await ExecuteUpscaleAsync(imageTensor, cancellationToken);
 
-            var inputTiles = new ImageTiles(imageTensor, tileMode, tileOverlap);
-            var outputTiles = new ImageTiles
-            (
-                inputTiles.Width * _model.ScaleFactor,
-                inputTiles.Height * _model.ScaleFactor,
-                inputTiles.TileMode,
-                inputTiles.Overlap * _model.ScaleFactor,
-                await ExecuteUpscaleTilesAsync(inputTiles.Tile1, maxTileSize, tileMode, tileOverlap, cancellationToken),
-                await ExecuteUpscaleTilesAsync(inputTiles.Tile2, maxTileSize, tileMode, tileOverlap, cancellationToken),
-                await ExecuteUpscaleTilesAsync(inputTiles.Tile3, maxTileSize, tileMode, tileOverlap, cancellationToken),
-                await ExecuteUpscaleTilesAsync(inputTiles.Tile4, maxTileSize, tileMode, tileOverlap, cancellationToken)
-            );
-            return outputTiles.JoinTiles();
+        /// <summary>
+        /// Execute tiled upscale
+        /// </summary>
+        /// <param name="metadata">The metadata.</param>
+        /// <param name="inputImage">The input image.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        private async Task<ImageTensor> ExecuteTileUpscaleAsync(ModelMetadata metadata, ImageTensor inputImage, UpscaleOptions options, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
+        {
+            if (inputImage.Width <= options.MaxTileSize && inputImage.Height <= options.MaxTileSize)
+                return await ExecuteUpscaleAsync(metadata, inputImage, cancellationToken);
+
+            var tileSize = options.MaxTileSize - options.TileOverlap;
+            var outputHeight = inputImage.Height * _model.ScaleFactor;
+            var outputWidth = inputImage.Width * _model.ScaleFactor;
+            var outputImage = new ImageTensor(outputHeight, outputWidth);
+
+            var weightSum = ImageTiles.CreateWeightSum(outputImage);
+            var imageTiles = ImageTiles.ComputeTiles(inputImage, tileSize, options.MaxTileSize);
+            var weightMap = ImageTiles.CreateWeightMap(options.MaxTileSize, options.TileOverlap);
+            for (int i = 0; i < imageTiles.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var imageTile = imageTiles[i];
+                var upscaledTile = await ExecuteTileUpscaleAsync(metadata, inputImage, imageTile, cancellationToken);
+                ImageTiles.BlendTile(outputImage, weightSum, upscaledTile, weightMap, imageTile.X, imageTile.Y, _model.ScaleFactor);
+
+                progressCallback?.Report(new RunProgress(i + 1, imageTiles.Count));
+            }
+            return ImageTiles.Normalize(outputImage, weightSum);
         }
 
 
@@ -226,6 +261,5 @@ namespace TensorStack.Upscaler.Pipelines
         {
             return new UpscalePipeline(UpscalerModel.Create(configuration));
         }
-
     }
 }

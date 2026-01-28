@@ -21,7 +21,7 @@ namespace TensorStack.Extractors.Common
         /// <summary>
         /// Enable/Disable TileMode, splitting image into smaller tiles to save memory.
         /// </summary>
-        public TileMode TileMode { get; init; }
+        public bool IsTileEnabled { get; init; }
 
         /// <summary>
         /// The maximum size of the tile.

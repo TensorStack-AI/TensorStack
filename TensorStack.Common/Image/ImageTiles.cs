@@ -1,276 +1,233 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using System;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using TensorStack.Common.Tensor;
 
 namespace TensorStack.Common.Image
 {
-    /// <summary>
-    /// ImageTile Class to handle splitting and joining a larrgr image tensor into quarters with overlap.
-    /// </summary>
-    public record ImageTiles
+    public static class ImageTiles
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageTiles"/> class.
+        /// Computes the tiles.
         /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="tileMode">The tile mode</param>
-        /// <param name="overlap">The overlap.</param>
-        /// <param name="tile1">The tile1.</param>
-        /// <param name="tile2">The tile2.</param>
-        /// <param name="tile3">The tile3.</param>
-        /// <param name="tile4">The tile4.</param>
-        public ImageTiles(int width, int height, TileMode tileMode, int overlap, ImageTensor tile1, ImageTensor tile2, ImageTensor tile3, ImageTensor tile4)
+        /// <param name="inputImage">The input image.</param>
+        /// <param name="tileSize">Size of the tile.</param>
+        /// <param name="maxTileSize">Maximum size of the tile.</param>
+        /// <returns>List&lt;TileJob&gt;.</returns>
+        public static List<TileJob> ComputeTiles(ImageTensor inputImage, int tileSize, int maxTileSize)
         {
-            Width = width;
-            Height = height;
-            Overlap = overlap;
-            TileMode = tileMode;
-            Tile1 = tile1;
-            Tile2 = tile2;
-            Tile3 = tile3;
-            Tile4 = tile4;
-        }
+            var ys = ComputeOffsets(inputImage.Height, tileSize);
+            var xs = ComputeOffsets(inputImage.Width, tileSize);
+            var imageTiles = new List<TileJob>();
+            foreach (int y in ys)
+                foreach (int x in xs)
+                    imageTiles.Add(new TileJob(x, y, maxTileSize));
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ImageTiles"/> class.
-        /// </summary>
-        /// <param name="sourceTensor">The source tensor.</param>
-        /// <param name="overlap">The overlap.</param>
-        public ImageTiles(ImageTensor sourceTensor, TileMode tileMode, int overlap = 16)
-        {
-            Overlap = overlap;
-            TileMode = tileMode;
-            Width = sourceTensor.Dimensions[3] / 2;
-            Height = sourceTensor.Dimensions[2] / 2;
-            Tile1 = SplitImageTile(sourceTensor, 0, 0, Height + overlap, Width + overlap);
-            Tile2 = SplitImageTile(sourceTensor, 0, Width - overlap, Height + overlap, Width * 2);
-            Tile3 = SplitImageTile(sourceTensor, Height - overlap, 0, Height * 2, Width + overlap);
-            Tile4 = SplitImageTile(sourceTensor, Height - overlap, Width - overlap, Height * 2, Width * 2);
+            return imageTiles;
         }
-
-        public int Width { get; init; }
-        public int Height { get; init; }
-        public int Overlap { get; init; }
-        public TileMode TileMode { get; init; }
-        public ImageTensor Tile1 { get; init; }
-        public ImageTensor Tile2 { get; init; }
-        public ImageTensor Tile3 { get; init; }
-        public ImageTensor Tile4 { get; init; }
 
 
         /// <summary>
-        /// Joins the tiles into a single ImageTensor.
+        /// Compute tile offsets (step = tile - overlap). Last tile clamped backward.
         /// </summary>
-        /// <returns>ImageTensor.</returns>
-        public ImageTensor JoinTiles()
+        /// <param name="full">The full.</param>
+        /// <param name="step">The step.</param>
+        private static int[] ComputeOffsets(int full, int step)
         {
-            var totalWidth = Width * 2;
-            var totalHeight = Height * 2;
-            var channels = Tile1.Dimensions[1];
-            var destination = new ImageTensor(totalHeight, totalWidth);
-            JoinTile(destination, Tile1, 0, 0, Height + Overlap, Width + Overlap);
-            JoinTile(destination, Tile2, 0, Width - Overlap, Height + Overlap, totalWidth);
-            JoinTile(destination, Tile3, Height - Overlap, 0, totalHeight, Width + Overlap);
-            JoinTile(destination, Tile4, Height - Overlap, Width - Overlap, totalHeight, totalWidth);
-            return destination;
+            if (full <= step)
+                return [0];
+
+            var list = new List<int>();
+            for (int pos = 0; pos + step < full; pos += step)
+                list.Add(pos);
+
+            int last = full - step;
+            if (list[^1] != last)
+                list.Add(last);
+
+            return list.ToArray();
         }
 
 
-        public void JoinTile(ImageTensor destination, ImageTensor tile, int startRow, int startCol, int endRow, int endCol)
+        /// <summary>
+        /// Creates the weight sum.
+        /// </summary>
+        /// <param name="outputImage">The output image.</param>
+        public static Tensor<float> CreateWeightSum(ImageTensor outputImage)
         {
-            switch (TileMode)
+            return new Tensor<float>([1, 1, outputImage.Height, outputImage.Width]);
+        }
+
+
+        /// <summary>
+        /// Weighted feathering map for tile blending
+        /// </summary>
+        /// <param name="tileSize">Size of the tile.</param>
+        /// <param name="overlap">The overlap.</param>
+        public static float[,] CreateWeightMap(int tileSize, int overlap)
+        {
+            var w = new float[tileSize, tileSize];
+            for (int y = 0; y < tileSize; y++)
             {
-                case TileMode.Blend:
-                    JoinTileBlend(destination, tile, startRow, startCol, endRow, endCol);
-                    break;
-                case TileMode.Clip:
-                    JoinTileClip(destination, tile, startRow, startCol, endRow, endCol);
-                    break;
-                case TileMode.ClipBlend:
-                    JoinTileClipBlend(destination, tile, startRow, startCol, endRow, endCol);
-                    break;
-                case TileMode.Overlap:
-                    JoinTileOverlap(destination, tile, startRow, startCol, endRow, endCol);
-                    break;
-                case TileMode.None:
-                default:
-                    throw new ArgumentException("TileMode None is invalid");
+                float wy = 1f;
+                if (y < overlap)
+                    wy = (float)y / overlap;
+                else if (y >= tileSize - overlap)
+                    wy = (float)(tileSize - y - 1) / overlap;
+
+                for (int x = 0; x < tileSize; x++)
+                {
+                    float wx = 1f;
+                    if (x < overlap)
+                        wx = (float)x / overlap;
+                    else if (x >= tileSize - overlap)
+                        wx = (float)(tileSize - x - 1) / overlap;
+
+                    w[y, x] = MathF.Min(wx, wy);
+                }
+            }
+            return w;
+        }
+
+
+        /// <summary>
+        /// Extracts the tile span.
+        /// </summary>
+        /// <param name="imageTensor">The image tensor.</param>
+        /// <param name="posX">The position x.</param>
+        /// <param name="posY">The position y.</param>
+        /// <param name="tileSize">Size of the tile.</param>
+        /// <param name="channels">The channels.</param>
+        /// <returns>TensorSpan&lt;System.Single&gt;.</returns>
+        public static TensorSpan<float> ExtractTileSpan(Tensor<float> imageTensor, int posX, int posY, int tileSize, int channels)
+        {
+            int height = imageTensor.Dimensions[2];
+            int width = imageTensor.Dimensions[3];
+            var tileShape = new[] { 1, channels, tileSize, tileSize };
+            var tileSpan = new TensorSpan<float>(tileShape);
+            for (int c = 0; c < channels; c++)
+            {
+                for (int y = 0; y < tileSize; y++)
+                {
+                    int srcY = Math.Min(posY + y, height - 1);
+                    for (int x = 0; x < tileSize; x++)
+                    {
+                        int srcX = Math.Min(posX + x, width - 1);
+                        tileSpan[0, c, y, x] = imageTensor[0, c, srcY, srcX];
+                    }
+                }
+            }
+            return tileSpan;
+        }
+
+
+        /// <summary>
+        /// Blends the tile into the outputImage.
+        /// </summary>
+        /// <param name="outputImage">The output image.</param>
+        /// <param name="weightSum">The weight sum.</param>
+        /// <param name="tile">The tile.</param>
+        /// <param name="weight">The weight.</param>
+        /// <param name="posX">The position x.</param>
+        /// <param name="posY">The position y.</param>
+        public static void BlendTile(ImageTensor output, Tensor<float> weightSum, Tensor<float> tile, float[,] weight, int posX, int posY, int scaleFactor)
+        {
+            var channels = tile.Dimensions[1];
+            var tileSize = tile.Dimensions[2];
+
+            var outH = output.Height;
+            var outW = output.Width;
+
+            var outHW = outH * outW;
+            var tileHW = tileSize * tileSize;
+
+            var outSpan = output.Memory.Span;
+            var tileSpan = tile.Memory.Span;
+            var weightSumSpan = weightSum.Memory.Span;
+
+            var outX0 = posX * scaleFactor;
+            var outY0 = posY * scaleFactor;
+
+            var weightH = weight.GetLength(0);
+            var weightW = weight.GetLength(1);
+
+            Span<int> wxLut = stackalloc int[tileSize];
+            Span<int> wyLut = stackalloc int[tileSize];
+            for (int i = 0; i < tileSize; i++)
+            {
+                wxLut[i] = Math.Min(i / scaleFactor, weightW - 1);
+                wyLut[i] = Math.Min(i / scaleFactor, weightH - 1);
+            }
+
+            for (int y = 0; y < tileSize; y++)
+            {
+                int oy = outY0 + y;
+                if ((uint)oy >= (uint)outH)
+                    continue;
+
+                int wy = wyLut[y];
+                int outRow = oy * outW;
+
+                for (int x = 0; x < tileSize; x++)
+                {
+                    int ox = outX0 + x;
+                    if ((uint)ox >= (uint)outW)
+                        continue;
+
+                    float w = weight[wy, wxLut[x]];
+                    if (w == 0f)
+                        continue;
+
+                    int outIdx = outRow + ox;
+                    int tileIdx = y * tileSize + x;
+
+                    int o = outIdx;
+                    int t = tileIdx;
+                    for (int c = 0; c < channels; c++)
+                    {
+                        outSpan[o] += tileSpan[t] * w;
+                        o += outHW;
+                        t += tileHW;
+                    }
+                    weightSumSpan[outIdx] += w;
+                }
             }
         }
 
 
         /// <summary>
-        /// Joins the tiles overlapping edges.
+        /// Normalizes the specified output.
         /// </summary>
-        /// <param name="destination">The destination.</param>
-        /// <param name="tile">The tile.</param>
-        /// <param name="startRow">The start row.</param>
-        /// <param name="startCol">The start col.</param>
-        /// <param name="endRow">The end row.</param>
-        /// <param name="endCol">The end col.</param>
-        private static void JoinTileOverlap(ImageTensor destination, ImageTensor tile, int startRow, int startCol, int endRow, int endCol)
+        /// <param name="output">The output.</param>
+        /// <param name="weightSum">The weight sum.</param>
+        public static ImageTensor Normalize(ImageTensor output, Tensor<float> weightSum)
         {
-            int height = endRow - startRow;
-            int width = endCol - startCol;
-            int channels = tile.Dimensions[1];
-            Parallel.For(0, channels, (c) =>
+            var height = output.Height;
+            var width = output.Width;
+            var channels = output.Dimensions[1];
+            var outSpan = output.Memory.Span;
+            var weightSpan = weightSum.Memory.Span;
+            var hw = height * width;
+            var channelStride = hw;
+            for (int i = 0; i < hw; i++)
             {
-                for (int i = 0; i < height; i++)
+                float w = weightSpan[i];
+                if (w <= 0f)
+                    continue;
+
+                float inv = 1f / w;
+                int baseIdx = i;
+                for (int c = 0; c < channels; c++)
                 {
-                    for (int j = 0; j < width; j++)
-                    {
-                        destination[0, c, startRow + i, startCol + j] = tile[0, c, i, j];
-                    }
+                    outSpan[baseIdx] *= inv;
+                    baseIdx += channelStride;
                 }
-            });
-        }
-
-
-        /// <summary>
-        /// Joins the tiles blending the overlapped edges.
-        /// </summary>
-        /// <param name="destination">The destination.</param>
-        /// <param name="tile">The tile.</param>
-        /// <param name="startRow">The start row.</param>
-        /// <param name="startCol">The start col.</param>
-        /// <param name="endRow">The end row.</param>
-        /// <param name="endCol">The end col.</param>
-        private void JoinTileBlend(ImageTensor destination, ImageTensor tile, int startRow, int startCol, int endRow, int endCol)
-        {
-            int height = endRow - startRow;
-            int width = endCol - startCol;
-            int channels = tile.Dimensions[1];
-            Parallel.For(0, channels, (c) =>
-            {
-                for (int i = 0; i < height; i++)
-                {
-                    for (int j = 0; j < width; j++)
-                    {
-                        var value = tile[0, c, i, j];
-                        var existing = destination[0, c, startRow + i, startCol + j];
-                        if (existing > 0)
-                        {
-                            value = (existing + value) / 2f;
-                        }
-                        destination[0, c, startRow + i, startCol + j] = value;
-                    }
-                }
-            });
-        }
-
-
-        /// <summary>
-        /// Joins the tiles clipping the overlapped edges.
-        /// </summary>
-        /// <param name="destination">The destination.</param>
-        /// <param name="tile">The tile.</param>
-        /// <param name="startRow">The start row.</param>
-        /// <param name="startCol">The start col.</param>
-        /// <param name="endRow">The end row.</param>
-        /// <param name="endCol">The end col.</param>
-        private void JoinTileClip(ImageTensor destination, ImageTensor tile, int startRow, int startCol, int endRow, int endCol)
-        {
-            int height = endRow - startRow;
-            int width = endCol - startCol;
-            int channels = tile.Dimensions[1];
-            Parallel.For(0, channels, (c) =>
-            {
-                for (int i = 0; i < height; i++)
-                {
-                    for (int j = 0; j < width; j++)
-                    {
-                        if (startRow > 0 && i < Overlap)
-                            continue;
-                        if (startCol > 0 && j < Overlap)
-                            continue;
-                        if (startRow == 0 && i > (endRow - Overlap))
-                            continue;
-                        if (startCol == 0 && j > (endCol - Overlap))
-                            continue;
-
-                        var existing = destination[0, c, startRow + i, startCol + j];
-                        if (existing > 0)
-                            continue;
-
-                        destination[0, c, startRow + i, startCol + j] = tile[0, c, i, j];
-                    }
-                }
-            });
-        }
-
-
-        /// <summary>
-        /// Joins the tiles clipping  and blending the overlapped edges.
-        /// </summary>
-        /// <param name="destination">The destination.</param>
-        /// <param name="tile">The tile.</param>
-        /// <param name="startRow">The start row.</param>
-        /// <param name="startCol">The start col.</param>
-        /// <param name="endRow">The end row.</param>
-        /// <param name="endCol">The end col.</param>
-        private void JoinTileClipBlend(ImageTensor destination, ImageTensor tile, int startRow, int startCol, int endRow, int endCol)
-        {
-            int clip = Overlap / 2;
-            int height = endRow - startRow;
-            int width = endCol - startCol;
-            int channels = tile.Dimensions[1];
-            Parallel.For(0, channels, (c) =>
-            {
-                for (int i = 0; i < height; i++)
-                {
-                    for (int j = 0; j < width; j++)
-                    {
-                        if (startRow > 0 && i < clip)
-                            continue;
-                        if (startCol > 0 && j < clip)
-                            continue;
-                        if (startRow == 0 && i > (endRow - clip))
-                            continue;
-                        if (startCol == 0 && j > (endCol - clip))
-                            continue;
-
-                        var value = tile[0, c, i, j];
-                        var existing = destination[0, c, startRow + i, startCol + j];
-                        if (existing > 0)
-                            value = (existing + value) / 2f;
-
-                        destination[0, c, startRow + i, startCol + j] = value;
-                    }
-                }
-            });
-        }
-
-
-        /// <summary>
-        /// Splits the image tile.
-        /// </summary>
-        /// <param name="source">The source.</param>
-        /// <param name="startRow">The start row.</param>
-        /// <param name="startCol">The start col.</param>
-        /// <param name="endRow">The end row.</param>
-        /// <param name="endCol">The end col.</param>
-        /// <returns>ImageTensor.</returns>
-        private static ImageTensor SplitImageTile(ImageTensor source, int startRow, int startCol, int endRow, int endCol)
-        {
-            int height = endRow - startRow;
-            int width = endCol - startCol;
-            int channels = source.Dimensions[1];
-            var splitTensor = new ImageTensor(height, width);
-            Parallel.For(0, channels, (c) =>
-            {
-                for (int i = 0; i < height; i++)
-                {
-                    for (int j = 0; j < width; j++)
-                    {
-                        splitTensor[0, c, i, j] = source[0, c, startRow + i, startCol + j];
-                    }
-                }
-            });
-            return splitTensor;
+            }
+            return output;
         }
 
     }
+
+    public record TileJob(int X, int Y, int TileSize);
 }

@@ -64,7 +64,8 @@ namespace TensorStack.Extractors.Pipelines
         public async Task<ImageTensor> RunAsync(ExtractorImageOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var timestamp = RunProgress.GetTimestamp();
-            var resultTensor = await ExtractInternalAsync(options.Image, options, cancellationToken);
+            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
+            var resultTensor = await ExtractInternalAsync(metadata, options.Image, options, progressCallback, cancellationToken);
 
             if (options.MergeInput)
                 resultTensor = MergeResult(options.Image, resultTensor);
@@ -86,10 +87,11 @@ namespace TensorStack.Extractors.Pipelines
         {
             var timestamp = RunProgress.GetTimestamp();
             var results = new List<ImageTensor>();
+            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
             foreach (var frame in options.Video.GetFrames())
             {
                 var frameTime = Stopwatch.GetTimestamp();
-                var resultTensor = await ExtractInternalAsync(frame, options, cancellationToken);
+                var resultTensor = await ExtractInternalAsync(metadata, frame, options, default, cancellationToken);
                 if (options.MergeInput)
                     resultTensor = MergeResult(frame, resultTensor);
 
@@ -111,15 +113,15 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>A Task&lt;IAsyncEnumerable`1&gt; representing the asynchronous operation.</returns>
-
         public async IAsyncEnumerable<VideoFrame> RunAsync(ExtractorStreamOptions options, IProgress<RunProgress> progressCallback = default, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var frameCount = 0;
             var timestamp = RunProgress.GetTimestamp();
+            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
             await foreach (var videoFrame in options.Stream)
             {
                 var frameTime = Stopwatch.GetTimestamp();
-                var resultTensor = await ExtractInternalAsync(videoFrame.Frame, options, cancellationToken);
+                var resultTensor = await ExtractInternalAsync(metadata, videoFrame.Frame, options, default, cancellationToken);
 
                 if (options.MergeInput)
                     resultTensor = MergeResult(videoFrame.Frame, resultTensor);
@@ -146,35 +148,32 @@ namespace TensorStack.Extractors.Pipelines
         /// <param name="imageTensor">The image tensor.</param>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExtractInternalAsync(ImageTensor imageTensor, ExtractorOptions options, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExtractInternalAsync(ModelMetadata modelMetadata, ImageTensor imageTensor, ExtractorOptions options, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
         {
-            return options.TileMode == TileMode.None
-                ? await ExecuteExtractorAsync(imageTensor, cancellationToken)
-                : await ExecuteExtractorTilesAsync(imageTensor, options.MaxTileSize, options.TileMode, options.TileOverlap, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return options.IsTileEnabled == false
+                ? await ExecuteExtractorAsync(modelMetadata, imageTensor, cancellationToken)
+                : await ExecuteTileExtractorAsync(modelMetadata, imageTensor, options, progressCallback, cancellationToken);
         }
 
 
         /// <summary>
-        /// Execute Extractor
+        /// Execute Extractor infernece
         /// </summary>
         /// <param name="imageTensor">The image tensor.</param>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExecuteExtractorAsync(ImageTensor imageInput, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExecuteExtractorAsync(ModelMetadata modelMetadata, ImageTensor imageInput, CancellationToken cancellationToken = default)
         {
             // Resize Input
             var inputTensor = imageInput;
             if (_model.SampleSize > 0)
                 inputTensor = inputTensor.ResizeImage(_model.SampleSize, _model.SampleSize, ResizeMode.Stretch);
 
-            ThrowIfInvalidInput(inputTensor);
-
-            var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-
             var outputShape = new[] { 1, _model.OutputChannels, inputTensor.Dimensions[2], inputTensor.Dimensions[3] };
-            var outputBuffer = metadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
-            using (var modelParameters = new ModelParameters(metadata, cancellationToken))
+            var outputBuffer = modelMetadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
+            using (var modelParameters = new ModelParameters(modelMetadata, cancellationToken))
             {
                 modelParameters.AddImageInput(inputTensor, _model.Channels, _model.Normalization);
                 modelParameters.AddOutput(outputBuffer);
@@ -204,37 +203,83 @@ namespace TensorStack.Extractors.Pipelines
 
 
         /// <summary>
-        /// Execute Extractor using tiles
+        /// Execute tile extractor infernece.
         /// </summary>
+        /// <param name="modelMetadata">The model metadata.</param>
         /// <param name="imageTensor">The image tensor.</param>
-        /// <param name="maxTileSize">Maximum size of the tile.</param>
-        /// <param name="tileOverlap">The tile overlap.</param>
-        /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;ImageTensor&gt; representing the asynchronous operation.</returns>
-        private async Task<ImageTensor> ExecuteExtractorTilesAsync(ImageTensor imageTensor, int maxTileSize, TileMode tileMode, int tileOverlap, CancellationToken cancellationToken = default)
+        /// <param name="tileJob">The tile job.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        private async Task<ImageTensor> ExecuteTileExtractorAsync(ModelMetadata modelMetadata, Tensor<float> imageTensor, TileJob tileJob, CancellationToken cancellationToken = default)
         {
-            if (_model.SampleSize > 0)
-                maxTileSize = _model.SampleSize - tileOverlap;
+            var tileTensor = ImageTiles.ExtractTileSpan(imageTensor, tileJob.X, tileJob.Y, tileJob.TileSize, _model.Channels);
+            var tileHeight = tileTensor.Dimensions[2];
+            var tileWidth = tileTensor.Dimensions[3];
 
-            if (imageTensor.Width <= (maxTileSize + tileOverlap) || imageTensor.Height <= (maxTileSize + tileOverlap))
-                return await ExecuteExtractorAsync(imageTensor, cancellationToken);
+            var outputShape = new[] { 1, _model.OutputChannels, tileHeight, tileWidth };
+            var outputBuffer = modelMetadata.Outputs[0].Value.Dimensions.Length == 4 ? outputShape : outputShape[1..];
+            using (var modelParameters = new ModelParameters(modelMetadata, cancellationToken))
+            {
+                modelParameters.AddInput(tileTensor, _model.Normalization);
+                modelParameters.AddOutput(outputBuffer);
 
-            var inputTiles = new ImageTiles(imageTensor, tileMode, tileOverlap);
-            var outputTiles = new ImageTiles
-            (
-                inputTiles.Width,
-                inputTiles.Height,
-                inputTiles.TileMode,
-                inputTiles.Overlap,
-                await ExecuteExtractorTilesAsync(inputTiles.Tile1, maxTileSize, tileMode, tileOverlap, cancellationToken),
-                await ExecuteExtractorTilesAsync(inputTiles.Tile2, maxTileSize, tileMode, tileOverlap, cancellationToken),
-                await ExecuteExtractorTilesAsync(inputTiles.Tile3, maxTileSize, tileMode, tileOverlap, cancellationToken),
-                await ExecuteExtractorTilesAsync(inputTiles.Tile4, maxTileSize, tileMode, tileOverlap, cancellationToken)
-            );
-            return outputTiles.JoinTiles();
+                var results = _model.IsDynamicOutput
+                    ? _model.RunInference(modelParameters)
+                    : await _model.RunInferenceAsync(modelParameters);
+                using (results)
+                {
+                    // Output Tensor
+                    var outputTensor = results[0].ToTensor();
+                    if (outputBuffer.Length != 4)
+                        outputTensor.Reshape([1, .. outputTensor.Dimensions]);
+
+                    // Normalize Output
+                    outputTensor.Normalize(_model.OutputNormalization);
+
+                    // Resize Output
+                    var outputImage = outputTensor.AsImageTensor();
+                    if (outputImage.Width != tileWidth || outputImage.Height != tileHeight)
+                        outputImage = outputImage.ResizeImage(tileWidth, tileHeight, ResizeMode.Stretch);
+
+                    return outputImage;
+                }
+            }
         }
 
 
+        /// <summary>
+        /// Execute tiled extractor process
+        /// </summary>
+        /// <param name="metadata">The metadata.</param>
+        /// <param name="inputImage">The input image.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        private async Task<ImageTensor> ExecuteTileExtractorAsync(ModelMetadata metadata, ImageTensor inputImage, ExtractorOptions options, IProgress<RunProgress> progressCallback = default, CancellationToken cancellationToken = default)
+        {
+            var scaleFactor = 1;
+            if (inputImage.Width <= options.MaxTileSize && inputImage.Height <= options.MaxTileSize)
+                return await ExecuteExtractorAsync(metadata, inputImage, cancellationToken);
+
+            var tileSize = options.MaxTileSize - options.TileOverlap;
+            var outputHeight = inputImage.Height * scaleFactor;
+            var outputWidth = inputImage.Width * scaleFactor;
+            var outputImage = new ImageTensor(outputHeight, outputWidth);
+
+            var weightSum = ImageTiles.CreateWeightSum(outputImage);
+            var imageTiles = ImageTiles.ComputeTiles(inputImage, tileSize, options.MaxTileSize);
+            var weightMap = ImageTiles.CreateWeightMap(options.MaxTileSize, options.TileOverlap);
+            for (int i = 0; i < imageTiles.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var imageTile = imageTiles[i];
+                var upscaledTile = await ExecuteTileExtractorAsync(metadata, inputImage, imageTile, cancellationToken);
+                ImageTiles.BlendTile(outputImage, weightSum, upscaledTile, weightMap, imageTile.X, imageTile.Y, scaleFactor);
+
+                progressCallback?.Report(new RunProgress(i + 1, imageTiles.Count));
+            }
+            return ImageTiles.Normalize(outputImage, weightSum);
+        }
 
 
         /// <summary>
@@ -249,20 +294,6 @@ namespace TensorStack.Extractors.Pipelines
             var mergedInput = input.CloneAs();
             mergedInput.UpdateAlphaChannel(output);
             return mergedInput;
-        }
-
-
-        /// <summary>
-        /// Throws exception if input is invalid.
-        /// </summary>
-        /// <param name="imageTensor">The image tensor.</param>
-        private void ThrowIfInvalidInput(ImageTensor imageTensor)
-        {
-            if (_model.SampleSize > 0)
-            {
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(imageTensor.Width, _model.SampleSize, nameof(imageTensor.Width));
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(imageTensor.Height, _model.SampleSize, nameof(imageTensor.Height));
-            }
         }
 
 

@@ -58,7 +58,7 @@ namespace TensorStack.Extractors.Pipelines
         public async Task<ImageTensor> RunAsync(BackgroundImageOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var timestamp = RunProgress.GetTimestamp();
-            var resultTensor = await ExtractBackgroundInternalAsync(options.Mode, options.IsTransparentSupported, options.Image, cancellationToken);
+            var resultTensor = await ExtractBackgroundInternalAsync(options, cancellationToken);
             progressCallback?.Report(new RunProgress(timestamp));
             return resultTensor;
         }
@@ -78,13 +78,13 @@ namespace TensorStack.Extractors.Pipelines
         /// </summary>
         /// <param name="imageInput">The image tensor.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        private async Task<ImageTensor> ExtractBackgroundInternalAsync(BackgroundMode backgroundMode, bool isTranparentSupported, ImageTensor imageInput, CancellationToken cancellationToken = default)
+        private async Task<ImageTensor> ExtractBackgroundInternalAsync(BackgroundImageOptions options, CancellationToken cancellationToken = default)
         {
             var metadata = await _model.LoadAsync(cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             // Resize Input
-            var inputTensor = imageInput;
+            var inputTensor = options.Image;
             var sampleSize = _model.SampleSize;
             if (inputTensor.Width != sampleSize || inputTensor.Height != sampleSize)
                 inputTensor = inputTensor.ResizeImage(sampleSize, sampleSize, ResizeMode.Stretch, ResizeMethod.Bicubic);
@@ -101,27 +101,27 @@ namespace TensorStack.Extractors.Pipelines
                     var outputTensor = results[0].ToTensor();
                     if (outputBuffer.Length != 4)
                         outputTensor.Reshape([1, .. outputTensor.Dimensions]);
-
+       
                     // Normalize
                     outputTensor.Normalize(_model.OutputNormalization);
 
                     // Process Image
                     var outputImage = default(ImageTensor);
-                    if (backgroundMode == BackgroundMode.MaskForeground || backgroundMode == BackgroundMode.MaskBackground)
+                    if (options.Mode == BackgroundMode.MaskForeground || options.Mode == BackgroundMode.MaskBackground)
                     {
-                        if (backgroundMode == BackgroundMode.MaskBackground)
+                        if (options.Mode == BackgroundMode.MaskBackground)
                             outputTensor.Invert();
-                        outputImage = new ImageTensor(inputTensor.Height, inputTensor.Width, -1);
+                        outputImage = new ImageTensor(inputTensor.Height, inputTensor.Width, options.MaskFill);
                     }
-                    else if (backgroundMode == BackgroundMode.RemoveBackground || backgroundMode == BackgroundMode.RemoveForeground)
+                    else if (options.Mode == BackgroundMode.RemoveBackground || options.Mode == BackgroundMode.RemoveForeground)
                     {
-                        if (backgroundMode == BackgroundMode.RemoveForeground)
+                        if (options.Mode == BackgroundMode.RemoveForeground)
                             outputTensor.Invert();
                         outputImage = inputTensor.CloneAs();
                     }
 
                     // Set Alpha Channel
-                    if (isTranparentSupported)
+                    if (options.IsTransparentSupported)
                     {
                         outputImage.UpdateAlphaChannel(outputTensor.Span);
                     }
@@ -131,8 +131,8 @@ namespace TensorStack.Extractors.Pipelines
                     }
 
                     // Resize Output
-                    if (outputImage.Width != imageInput.Width || outputImage.Height != imageInput.Height)
-                        outputImage.Resize(imageInput.Width, imageInput.Height, ResizeMode.Stretch, ResizeMethod.Bicubic);
+                    if (outputImage.Width != options.Image.Width || outputImage.Height != options.Image.Height)
+                        outputImage.Resize(options.Image.Width, options.Image.Height, ResizeMode.Stretch, ResizeMethod.Bilinear);
 
                     return outputImage;
                 }

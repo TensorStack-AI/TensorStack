@@ -14,7 +14,7 @@ namespace TensorStack.Common.Common
                 if (!File.Exists(filename))
                     return false;
 
-                File.Delete(filename);
+                FileQueue.Delete(filename);
                 return true;
             }
             catch (Exception)
