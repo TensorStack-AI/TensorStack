@@ -228,11 +228,12 @@ namespace TensorStack.Upscaler.Pipelines
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                var elapsed = Stopwatch.GetTimestamp();
                 var imageTile = imageTiles[i];
                 var upscaledTile = await ExecuteTileUpscaleAsync(metadata, inputImage, imageTile, cancellationToken);
                 ImageTiles.BlendTile(outputImage, weightSum, upscaledTile, weightMap, imageTile.X, imageTile.Y, _model.ScaleFactor);
 
-                progressCallback?.Report(new RunProgress(i + 1, imageTiles.Count));
+                progressCallback?.Report(new RunProgress(i + 1, imageTiles.Count, elapsed));
             }
             return ImageTiles.Normalize(outputImage, weightSum);
         }

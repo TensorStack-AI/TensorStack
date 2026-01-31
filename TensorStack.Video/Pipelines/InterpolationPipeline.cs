@@ -2,6 +2,7 @@
 // Licensed under the Apache 2.0 License.
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -73,20 +74,27 @@ namespace TensorStack.Video.Pipelines
                 if (frameIndex >= totalFrames)
                     break;
 
+                long timestamp;
                 if (previousFrame != null)
                 {
                     var timesteps = GetTimesteps(frameIndex, options.Multiplier, extraFramePositions);
                     foreach (var timestep in timesteps)
                     {
+                        timestamp = Stopwatch.GetTimestamp();
                         var newFrame = await RunInterpolationAsync(currentFrame, previousFrame, timestep, cancellationToken);
                         results.Add(newFrame);
                         frameIndex++;
+
+                        ReportProgress(progressCallback, frameIndex, totalFrames, timestamp);
                     }
                 }
 
+                timestamp = Stopwatch.GetTimestamp();
                 previousFrame = currentFrame.CloneAs();
                 results.Add(currentFrame);
                 frameIndex++;
+
+                ReportProgress(progressCallback, frameIndex, totalFrames, timestamp);
             }
 
             return new VideoTensor(results.Join(), newFrameRate);
@@ -104,7 +112,6 @@ namespace TensorStack.Video.Pipelines
             var frameIndex = 0;
             var totalFrames = options.FrameCount * options.Multiplier;
             var newFrameRate = options.FrameRate * options.Multiplier;
-
             var previousFrame = default(ImageTensor);
             var extraFramePositions = GetFlowEstimationKeyFrames(options.FrameCount, options.Multiplier);
             await foreach (var frame in options.Stream)
@@ -113,33 +120,30 @@ namespace TensorStack.Video.Pipelines
                 if (frameIndex >= totalFrames)
                     yield break;
 
+                long timestamp;
                 if (previousFrame != null)
                 {
                     var timesteps = GetTimesteps(frameIndex, options.Multiplier, extraFramePositions);
                     foreach (var timestep in timesteps)
                     {
+                        timestamp = Stopwatch.GetTimestamp();
                         var newFrame = await RunInterpolationAsync(currentFrame, previousFrame, timestep, cancellationToken);
                         yield return new VideoFrame(frameIndex, newFrame, newFrameRate);
                         frameIndex++;
-                        ReportProgress(progressCallback, frameIndex, totalFrames);
+
+                        ReportProgress(progressCallback, frameIndex, totalFrames, timestamp);
                     }
                 }
 
+                timestamp = Stopwatch.GetTimestamp();
                 previousFrame = currentFrame.CloneAs();
                 yield return new VideoFrame(frameIndex, currentFrame, newFrameRate);
                 frameIndex++;
 
-                ReportProgress(progressCallback, frameIndex, totalFrames);
+                ReportProgress(progressCallback, frameIndex, totalFrames, timestamp);
             }
         }
 
-        private void ReportProgress(IProgress<RunProgress> progressCallback, int value, int maximum, string message = default)
-        {
-            if (progressCallback == null)
-                return;
-
-            progressCallback?.Report(new RunProgress(value, maximum, message: message));
-        }
 
         /// <summary>
         /// Run interpolation.
@@ -220,6 +224,22 @@ namespace TensorStack.Video.Pipelines
                 .Select(i => (int)Math.Round(i * (frameCount - 1) / (double)(multiplier - 1)))
                 .Distinct()
                 .ToArray();
+        }
+
+
+        /// <summary>
+        /// Reports the progress.
+        /// </summary>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="maximum">The maximum.</param>
+        /// <param name="timestamp">The timestamp.</param>
+        private void ReportProgress(IProgress<RunProgress> progressCallback, int value, int maximum, long timestamp)
+        {
+            if (progressCallback == null)
+                return;
+
+            progressCallback?.Report(new RunProgress(value, maximum, timestamp));
         }
 
 

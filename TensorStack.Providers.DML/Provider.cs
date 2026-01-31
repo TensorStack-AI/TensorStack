@@ -1,6 +1,7 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using Microsoft.ML.OnnxRuntime;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TensorStack.Common;
@@ -22,7 +23,7 @@ namespace TensorStack.Providers
                 return;
 
             _isInitialized = true;
-            DeviceManager.Initialize(_providerName);
+            DeviceManager.Initialize(_providerName, SessionValidator);
         }
 
 
@@ -36,7 +37,7 @@ namespace TensorStack.Providers
                 return;
 
             _isInitialized = true;
-            DeviceManager.Initialize(environmentOptions, _providerName);
+            DeviceManager.Initialize(environmentOptions, _providerName, SessionValidator);
         }
 
 
@@ -181,6 +182,19 @@ namespace TensorStack.Providers
                 sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
             });
+        }
+
+
+        /// <summary>
+        /// Get SessionOptions for validation the device againts the ExecutionProvider
+        /// </summary>
+        /// <param name="device">The device.</param>
+        private static SessionOptions SessionValidator(Device device)
+        {
+            var session = new SessionOptions();
+            session.AppendExecutionProvider_DML(device.Id);
+            session.LogSeverityLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_ERROR;
+            return session;
         }
     }
 

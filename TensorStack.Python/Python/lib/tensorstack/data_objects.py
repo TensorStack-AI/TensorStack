@@ -43,6 +43,9 @@ class LoraOption:
     name: str
     strength: float
 
+    def __post_init__(self):
+        self.strength = float(self.strength)
+
 
 @dataclass(slots=True)
 class PipelineConfig:
@@ -130,13 +133,28 @@ class SchedulerOptions:
     max_shift: float = 1.15
     stochastic_sampling: bool = False
 
-    flow_shift: float = 1
+    flow_shift: float = 1.0
 
     # Sequence lengths
     base_image_seq_len: int = 256
     max_image_seq_len: int = 4096
 
     def __post_init__(self):
+        self.beta_start = float(self.beta_start)
+        self.beta_end = float(self.beta_end)
+        self.clip_sample_range = float(self.clip_sample_range)
+        self.dynamic_thresholding_ratio = float(self.dynamic_thresholding_ratio)
+        self.sample_max_value = float(self.sample_max_value)
+        self.rho = float(self.rho)
+        self.eta = float(self.eta)
+        self.s_noise = float(self.s_noise)
+        self.s_churn = float(self.s_churn)
+        self.s_tmin = float(self.s_tmin)
+        self.s_tmax = float(self.s_tmax)
+        self.shift = float(self.shift)
+        self.base_shift = float(self.base_shift)
+        self.max_shift = float(self.max_shift)
+        self.flow_shift = float(self.flow_shift)
         if self.s_tmax == 0.0:
             self.s_tmax = float("infinity")
 
@@ -162,6 +180,11 @@ class PipelineOptions:
     scheduler_options: SchedulerOptions = None
 
     def __post_init__(self):
+        self.guidance_scale = float(self.guidance_scale)
+        self.guidance_scale2 = float(self.guidance_scale2)
+        self.frame_rate = float(self.frame_rate)
+        self.strength = float(self.strength)
+        self.control_net_scale = float(self.control_net_scale)
         if (self.scheduler_options is not None and isinstance(self.scheduler_options, dict)):
             self.scheduler_options = SchedulerOptions(**self.scheduler_options)
         if (self.lora_options is not None and isinstance(self.lora_options, Sequence)):

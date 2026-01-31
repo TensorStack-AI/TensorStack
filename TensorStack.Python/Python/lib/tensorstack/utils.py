@@ -142,6 +142,7 @@ def get_pipeline_config(repo_id: str, cache_dir: str) -> Dict[str, Optional[str]
 
 
 def load_lora_weights(pipeline: Any, config: DataObjects.PipelineConfig):
+    pipeline.unload_lora_weights()
     if config.lora_adapters is not None:
         for lora in config.lora_adapters:
             pipeline.load_lora_weights(lora.path, weight_name=lora.weights, adapter_name=lora.name)
@@ -278,14 +279,20 @@ class ModelDownloadProgress:
         }
         self._print_progress(filename)
 
+
     def Clear(self):
-        """Reset all download tracking."""
+        """Clear all download tracking."""
 
         #print(f"[HUB_DOWNLOAD] | model | model | {self.total_per_model} | {self.total_per_model} | {self.total_per_model * self.total_models} | {self.total_per_model * self.total_models} | {0.00}")
         self.model_index = 0
         self.model_name = ""
         self.download_stats.clear()
      
+
+    """Reset all download tracking."""
+    def Reset(self, total_models: int):
+        self.total_models = total_models
+        self.Clear()
 
     # --------------------
     # Internal Methods
@@ -330,7 +337,9 @@ class ModelDownloadProgress:
                 # Extract model and filename
                 model, filename = (self_tqdm.desc.split("/", 1) + [None])[:2]
 
-                if model is not None and filename is not None and model == progress_tracker.model_name:
+                if model and filename and model == progress_tracker.model_name:
+                    progress_tracker.Update(filename, downloaded, total_size, speed)
+                elif model and progress_tracker.model_name == "control_net":
                     progress_tracker.Update(filename, downloaded, total_size, speed)
 
             return original_update(self_tqdm, n)

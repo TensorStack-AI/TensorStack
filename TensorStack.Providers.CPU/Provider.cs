@@ -20,7 +20,7 @@ namespace TensorStack.Providers
                 return;
 
             _isInitialized = true;
-            DeviceManager.Initialize(ProviderName);
+            DeviceManager.Initialize(ProviderName, SessionValidator);
         }
 
 
@@ -34,7 +34,7 @@ namespace TensorStack.Providers
                 return;
 
             _isInitialized = true;
-            DeviceManager.Initialize(environmentOptions, ProviderName);
+            DeviceManager.Initialize(environmentOptions, ProviderName, SessionValidator);
         }
 
 
@@ -157,6 +157,22 @@ namespace TensorStack.Providers
                 sessionOptions.AppendExecutionProvider_CPU();
                 return sessionOptions;
             });
+        }
+
+
+        /// <summary>
+        /// Get SessionOptions for validation the device againts the ExecutionProvider
+        /// </summary>
+        /// <param name="device">The device.</param>
+        private static SessionOptions SessionValidator(Device device)
+        {
+            if (device.Type != DeviceType.CPU)
+                return null;
+
+            var session = new SessionOptions();
+            session.AppendExecutionProvider_CPU();
+            session.LogSeverityLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_ERROR;
+            return session;
         }
     }
 

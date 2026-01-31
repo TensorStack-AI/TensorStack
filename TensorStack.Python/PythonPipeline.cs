@@ -26,6 +26,7 @@ namespace TensorStack.Python
         private readonly IProgress<PipelineProgress> _progressCallback;
         private PyObject _module;
         private PyObject _functionLoad;
+        private PyObject _functionReload;
         private PyObject _functionUnload;
         private PyObject _functionCancel;
         private PyObject _functionGenerate;
@@ -89,6 +90,44 @@ namespace TensorStack.Python
                         var pipelineConfigDict = _configuration.ToPythonDictionary();
                         using (var pipelineConfig = PyObject.From(pipelineConfigDict))
                         using (var pythonResult = _functionLoad.Call(pipelineConfig))
+                        {
+                            return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
+                        }
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        throw HandlePythonException(ex);
+                    }
+                }
+            });
+        }
+
+
+        /// <summary>
+        /// Reloads the pipeline.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <returns>Task&lt;System.Boolean&gt;.</returns>
+        public Task<bool> ReloadAsync(PipelineReloadOptions options)
+        {
+            return Task.Run(() =>
+            {
+                using (GIL.Acquire())
+                {
+                    try
+                    {
+                        _logger?.LogInformation("[PythonPipeline] [Reload] Reloadinf pipeline.");
+
+                        var configuration = _configuration with
+                        {
+                            ProcessType = options.ProcessType,
+                            ControlNetPath = options.ControlNetPath,
+                            LoraAdapters = options.LoraAdapters,
+                        };
+
+                        var pipelineConfigDict = configuration.ToPythonDictionary();
+                        using (var pipelineConfig = PyObject.From(pipelineConfigDict))
+                        using (var pythonResult = _functionReload.Call(pipelineConfig))
                         {
                             return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
                         }
@@ -271,6 +310,7 @@ namespace TensorStack.Python
         private void BindFunctions()
         {
             _functionLoad = _module.GetAttr("load");
+            _functionReload = _module.GetAttr("reload");
             _functionUnload = _module.GetAttr("unload");
             _functionCancel = _module.GetAttr("generateCancel");
             _functionGenerate = _module.GetAttr("generate");
@@ -285,6 +325,7 @@ namespace TensorStack.Python
         private void UnbindFunctions()
         {
             _functionLoad.Dispose();
+            _functionReload.Dispose();
             _functionUnload.Dispose();
             _functionCancel.Dispose();
             _functionGenerate.Dispose();

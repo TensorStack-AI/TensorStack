@@ -24,6 +24,13 @@ from diffusers import (
 # Globals
 _pipeline = None
 _processType = None
+_pipeline_config = None
+_quant_config_diffusers = None
+_quant_config_transformers = None
+_execution_device = None
+_device_map = None
+_control_net_path = None
+_control_net_cache = None
 _step_latent = None
 _generator = None
 _isMemoryOffload = False
@@ -40,27 +47,119 @@ _pipelineMap = {
 }
 
 
+#------------------------------------------------
+# Initialize Pipeline
+#------------------------------------------------
+def initialize(config: DataObjects.PipelineConfig):
+    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
+
+    _progress_tracker = Utils.ModelDownloadProgress(total_models=5 if config.control_net_path is not None else 4)
+    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory)
+    _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
+    _device_map = Utils.get_device_map(config)
+    return create_pipeline(config)
+
+
+#------------------------------------------------
+# Load Pipeline
+#------------------------------------------------
 def load(config_args: Dict[str, Any]) -> bool:
-    global _pipeline, _generator, _processType, _isMemoryOffload
+    global _pipeline, _generator, _processType, _execution_device, _isMemoryOffload
 
     # Config
     config = DataObjects.PipelineConfig(**config_args)
     _processType = config.process_type
-   
-    # Pipeline
-    _pipeline = create_pipeline(config)
 
-    #Lora Adapters
+    # Initialize Pipeline
+    _pipeline = initialize(config)
+
+    # Load Lora
     Utils.load_lora_weights(_pipeline, config)
 
-    # Device
-    execution_device = torch.device(f"{config.device}:{config.device_id}")
-    _generator = torch.Generator(device=execution_device)
-    _isMemoryOffload = Utils.configure_pipeline_memory(_pipeline, execution_device, config)
+    # Memory
+    _execution_device = torch.device(f"{config.device}:{config.device_id}")
+    _generator = torch.Generator(device=_execution_device)
+    _isMemoryOffload = Utils.configure_pipeline_memory(_pipeline, _execution_device, config)
+    Utils.trim_memory(_isMemoryOffload)
+    return True
+    
+
+#------------------------------------------------
+# Reload Pipeline - ProcessType, LoraAdapters and ControlNet are the only options that can be modified
+#------------------------------------------------
+def reload(config_args: Dict[str, Any]) -> bool:
+    global _pipeline, _processType
+    
+    # Config
+    config = DataObjects.PipelineConfig(**config_args)
+    _processType = config.process_type
+    _progress_tracker.Reset(total_models=5 if config.control_net_path is not None else 4)
+
+    # Rebuild Pipeline
+    _pipeline.unload_lora_weights()
+    _pipeline = create_pipeline(config)
+
+    # Load Lora
+    Utils.load_lora_weights(_pipeline, config)
+
+    # Memory
+    Utils.configure_pipeline_memory(_pipeline, _execution_device, config)
     Utils.trim_memory(_isMemoryOffload)
     return True
 
 
+#------------------------------------------------
+# Cancel Generation
+#------------------------------------------------
+def generateCancel() -> None:
+    _cancel_event.set()
+
+
+#------------------------------------------------
+# Unload Pipline
+#------------------------------------------------
+def unload() -> bool:
+    global _pipeline, _prompt_cache_key, _prompt_cache_value
+    _pipeline = None
+    _prompt_cache_key = None
+    _prompt_cache_value = None
+    Utils.trim_memory(_isMemoryOffload)
+    return True
+
+
+#------------------------------------------------
+# Get the log entires
+#------------------------------------------------
+def getLogs() -> list[str]:
+    return Utils.get_output()
+
+
+#------------------------------------------------
+# Ge the last step latent
+#------------------------------------------------
+def getStepLatent() -> Buffer:
+    return _step_latent
+
+
+#------------------------------------------------
+# Diffusers pipeline callback to caputer step artifacts
+#------------------------------------------------
+def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
+    global _step_latent
+    if _cancel_event.is_set():
+        pipe._interrupt = True
+        raise Exception("Operation Canceled")
+
+    latents = info.get("latents")
+    if latents is not None:
+        _step_latent = np.ascontiguousarray(latents.float().cpu())
+
+    return info
+
+
+#------------------------------------------------
+# Generate Image/Video
+#------------------------------------------------
 def generate(
         inference_args: Dict[str, Any],
         input_tensors: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
@@ -68,6 +167,7 @@ def generate(
     ) -> Sequence[Buffer]:
     global _prompt_cache_key, _prompt_cache_value
     _cancel_event.clear()
+    _pipeline._interrupt = False
 
     # Options
     options = DataObjects.PipelineOptions(**inference_args)
@@ -144,67 +244,27 @@ def generate(
     return [ np.ascontiguousarray(output) ]
 
 
-def generateCancel() -> None:
-    _cancel_event.set()
-
-
-def unload() -> bool:
-    global _pipeline, _prompt_cache_key, _prompt_cache_value
-    _prompt_cache_key = None
-    _prompt_cache_value = None
-    if _pipeline is not None:
-        if hasattr(_pipeline, "remove_all_hooks"):
-            _pipeline.remove_all_hooks()
-        if hasattr(_pipeline, "maybe_free_model_hooks"):
-            _pipeline.maybe_free_model_hooks()
-        for name in ("tokenizer", "tokenizer_2", "text_encoder", "text_encoder_2", "unet", "vae"):
-            if hasattr(_pipeline, name):
-                setattr(_pipeline, name, None)
-        _pipeline = None
-    Utils.trim_memory(_isMemoryOffload)
-    return True
-
-
-def getLogs() -> list[str]:
-    return Utils.get_output()
-
-
-def getStepLatent() -> Buffer:
-    return _step_latent
-
-
-def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
-    global _step_latent
-    if _cancel_event.is_set():
-        pipe._interrupt = True
-        raise Exception("Operation Canceled")
-
-    latents = info.get("latents")
-    if latents is not None:
-        _step_latent = np.ascontiguousarray(latents.float().cpu())
-
-    return info
-
-
+#------------------------------------------------
+# Create a new pipeline
+#------------------------------------------------
 def create_pipeline(config: DataObjects.PipelineConfig):
-    global _progress_tracker
-    _progress_tracker = Utils.ModelDownloadProgress(total_models=5 if config.control_net_path is not None else 4)
-
-    # Configuration
-    pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory)
-    quant_config_diffusers, uant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
-    pipeline_kwargs = { "variant": config.variant, "token": config.secure_token, "cache_dir": config.cache_directory }
+    pipeline_kwargs = { 
+        "variant": config.variant, 
+        "token": config.secure_token, 
+        "cache_dir": config.cache_directory 
+    }
 
     # Load Models
-    text_encoder = load_text_encoder(config, pipeline_config, uant_config_transformers, pipeline_kwargs)
-    text_encoder_2 = load_text_encoder_2(config, pipeline_config, uant_config_transformers, pipeline_kwargs)
-    unet = load_unet(config, pipeline_config, quant_config_diffusers, pipeline_kwargs)
-    vae = load_vae(config, pipeline_config, quant_config_diffusers, pipeline_kwargs)
-    load_control_net(config, pipeline_config, quant_config_diffusers, pipeline_kwargs)
-    _progress_tracker.Clear()
-
+    text_encoder = load_text_encoder(config, pipeline_kwargs)
+    text_encoder_2 = load_text_encoder_2(config, pipeline_kwargs)
+    unet = load_unet(config, pipeline_kwargs)
+    vae = load_vae(config, pipeline_kwargs)
+    control_net = load_control_net(config, pipeline_kwargs)
+    if control_net is not None:
+        pipeline_kwargs.update({"controlnet": control_net})
+   
     # Build Pipeline
-    device_map = Utils.get_device_map(config)
+    _progress_tracker.Clear()
     pipeline = _pipelineMap[config.process_type]
     return pipeline.from_pretrained(
         config.base_model_path,
@@ -213,19 +273,23 @@ def create_pipeline(config: DataObjects.PipelineConfig):
         unet=unet, 
         vae=vae, 
         torch_dtype=config.data_type,
-        device_map=device_map,
+        device_map=_device_map,
         local_files_only=True,
         **pipeline_kwargs
     )
 
 
-# CLIPTextModel
+#------------------------------------------------
+# Load CLIPTextModel
+#------------------------------------------------
 def load_text_encoder(
         config: DataObjects.PipelineConfig, 
-        pipeline_config: Dict[str, str], 
-        quant_config: Any, 
         pipeline_kwargs: Dict[str, str]
     ):
+
+    if _pipeline and _pipeline.text_encoder:
+        print(f"[Reload] Loading cached TextEncoder")
+        return _pipeline.text_encoder
 
     _progress_tracker.Initialize(0, "text_encoder")
     return CLIPTextModel.from_pretrained(
@@ -237,39 +301,47 @@ def load_text_encoder(
     )
 
 
-# CLIPTextModelWithProjection 
+#------------------------------------------------
+# Load CLIPTextModelWithProjection 
+#------------------------------------------------
 def load_text_encoder_2(
         config: DataObjects.PipelineConfig, 
-        pipeline_config: Dict[str, str], 
-        quant_config: Any, 
         pipeline_kwargs: Dict[str, str]
     ):
 
+    if _pipeline and _pipeline.text_encoder_2:
+        print(f"[Reload] Loading cached TextEncoder2")
+        return _pipeline.text_encoder_2
+    
     _progress_tracker.Initialize(1, "text_encoder_2")
     return CLIPTextModelWithProjection.from_pretrained(
         config.base_model_path, 
         subfolder="text_encoder_2",
         torch_dtype=config.data_type, 
-        quantization_config=quant_config, 
+        quantization_config=_quant_config_transformers, 
         use_safetensors=True,
         **pipeline_kwargs
     )
 
 
-# UNet2DConditionModel
+#------------------------------------------------
+# Load UNet2DConditionModel
+#------------------------------------------------
 def load_unet(
         config: DataObjects.PipelineConfig, 
-        pipeline_config: Dict[str, str], 
-        quant_config: Any, 
         pipeline_kwargs: Dict[str, str]
     ):
 
+    if _pipeline and _pipeline.unet:
+        print(f"[Reload] Loading cached Unet")
+        return _pipeline.unet
+    
     _progress_tracker.Initialize(2, "unet")
     checkpoint_config = config.checkpoint_config
     if checkpoint_config.model_checkpoint is not None:
         unet = UNet2DConditionModel.from_single_file(
             checkpoint_config.model_checkpoint, 
-            config=pipeline_config["unet"],
+            config=_pipeline_config["unet"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
             local_files_only=True
@@ -281,26 +353,30 @@ def load_unet(
         config.base_model_path, 
         subfolder="unet", 
         torch_dtype=config.data_type, 
-        quantization_config=quant_config, 
+        quantization_config=_quant_config_diffusers, 
         use_safetensors=True,
         **pipeline_kwargs
     )
 
 
-# AutoencoderKL
+#------------------------------------------------
+# Load AutoencoderKL
+#------------------------------------------------
 def load_vae(
         config: DataObjects.PipelineConfig, 
-        pipeline_config: Dict[str, str], 
-        quant_config: Any, 
         pipeline_kwargs: Dict[str, str]
     ):
+
+    if _pipeline and _pipeline.vae:
+        print(f"[Reload] Loading cached Vae")
+        return _pipeline.vae
 
     _progress_tracker.Initialize(3, "vae")
     checkpoint_config = config.checkpoint_config
     if checkpoint_config.vae_checkpoint is not None:
         return AutoencoderKL.from_single_file(
             checkpoint_config.vae_checkpoint, 
-            config=pipeline_config["vae"],
+            config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
             local_files_only=True
@@ -315,19 +391,30 @@ def load_vae(
     )
 
 
-# ControlNetModel
+#------------------------------------------------
+# Load ControlNetModel
+#------------------------------------------------
 def load_control_net(
         config: DataObjects.PipelineConfig, 
-        pipeline_config: Dict[str, str], 
-        quant_config: Any, 
         pipeline_kwargs: Dict[str, str]
     ):
+    global _control_net_path, _control_net_cache
 
+    if _control_net_cache and _control_net_path == config.control_net_path:
+        print(f"[Reload] Loading cached ControlNet")
+        return _control_net_cache
+
+    if config.control_net_path is None:
+        _control_net_path = None
+        _control_net_cache = None
+        return None
+    
+    _control_net_path = config.control_net_path
     _progress_tracker.Initialize(4, "control_net")
-    if config.control_net_path is not None:
-        controlnetModel = ControlNetModel.from_pretrained(
-            config.control_net_path, 
-            torch_dtype=config.data_type,
-            use_safetensors=True,
-        )
-        pipeline_kwargs.update({"controlnet": controlnetModel})
+    _control_net_cache = ControlNetModel.from_pretrained(
+        _control_net_path, 
+        torch_dtype=config.data_type,
+        use_safetensors=True,
+    )
+    return _control_net_cache
+       
