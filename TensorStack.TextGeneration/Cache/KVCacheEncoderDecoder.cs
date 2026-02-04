@@ -127,6 +127,9 @@ namespace TensorStack.TextGeneration.Cache
         /// </summary>
         public void Dispose()
         {
+            if (_values == null)
+                return;
+
             foreach (var cacheValue in _values)
                 cacheValue?.Dispose();
 

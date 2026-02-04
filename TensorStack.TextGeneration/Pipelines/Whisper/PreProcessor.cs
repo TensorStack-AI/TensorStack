@@ -36,32 +36,36 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         /// <param name="inputAudio">The input audio.</param>
         /// <param name="nFrames">The n frames.</param>
         /// <returns>Tensor&lt;System.Single&gt;[].</returns>
-        public Tensor<float>[] ProcessInput(AudioTensor audioInput, int nFrames = 3000)
+        public IReadOnlyList<Tensor<float>> ProcessInput(AudioTensor audioTensor, int chunkSize = 28, int nFrames = 3000)
         {
-            var audioData = audioInput.Span;
-            int totalFrames = 1 + (audioData.Length + _nfft - 1) / _hopLength;
-
-            var stft = STFT(audioData, totalFrames);
-            var melSpec = MelSpectrogram(stft);
-
-            // Convert to batches of [1, numMels, nFrames]
-            int numBatches = (int)Math.Ceiling((double)melSpec.RowCount / nFrames);
-            var batches = new Tensor<float>[numBatches];
-            for (int b = 0; b < numBatches; b++)
+            var batches = new List<Tensor<float>>();
+            foreach (var audioChunk in audioTensor.Chunk(chunkSize))
             {
-                var batch = new Tensor<float>([1, _numMels, nFrames]);
-                for (int t = 0; t < nFrames; t++)
-                {
-                    int srcRow = b * nFrames + t;
-                    if (srcRow >= melSpec.RowCount)
-                        break;
+                var audioData = audioChunk.Span;
+                int totalFrames = 1 + (audioData.Length + _nfft - 1) / _hopLength;
 
-                    for (int m = 0; m < _numMels; m++)
-                        batch[0, m, t] = melSpec[srcRow, m];
+                var stft = STFT(audioData, totalFrames);
+                var melSpec = MelSpectrogram(stft);
+
+                // Convert to batches of [1, numMels, nFrames]
+                int numBatches = (int)Math.Ceiling((double)melSpec.RowCount / nFrames);
+
+                for (int b = 0; b < numBatches; b++)
+                {
+                    var batch = new Tensor<float>([1, _numMels, nFrames]);
+                    for (int t = 0; t < nFrames; t++)
+                    {
+                        int srcRow = b * nFrames + t;
+                        if (srcRow >= melSpec.RowCount)
+                            break;
+
+                        for (int m = 0; m < _numMels; m++)
+                            batch[0, m, t] = melSpec[srcRow, m];
+                    }
+                    batches.Add(batch);
                 }
-                batches[b] = batch;
             }
-            return batches;
+            return batches.AsReadOnly();
         }
 
 

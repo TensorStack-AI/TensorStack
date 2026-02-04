@@ -288,10 +288,25 @@ def load_text_encoder(
     ):
 
     if _pipeline and _pipeline.text_encoder:
-        print(f"[Reload] Loading cached TextEncoder")
+        print(f"[Load] Loading cached TextEncoder")
         return _pipeline.text_encoder
 
     _progress_tracker.Initialize(0, "text_encoder")
+    checkpoint = config.checkpoint_config.text_encoder_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint TextEncoder")
+        text_encoder_checkpoint = Utils.load_component(
+            StableDiffusionXLPipeline, 
+            config.base_model_path, 
+            checkpoint, 
+            "text_encoder", 
+            config.data_type
+        )
+        if text_encoder_checkpoint:
+            return text_encoder_checkpoint
+
+    
+    print(f"[Load] Loading TextEncoder")
     return CLIPTextModel.from_pretrained(
         config.base_model_path, 
         subfolder="text_encoder", 
@@ -310,10 +325,24 @@ def load_text_encoder_2(
     ):
 
     if _pipeline and _pipeline.text_encoder_2:
-        print(f"[Reload] Loading cached TextEncoder2")
+        print(f"[Load] Loading cached TextEncoder2")
         return _pipeline.text_encoder_2
     
     _progress_tracker.Initialize(1, "text_encoder_2")
+    checkpoint = config.checkpoint_config.text_encoder_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint TextEncoder2")
+        text_encoder_checkpoint = Utils.load_component(
+            StableDiffusionXLPipeline, 
+            config.base_model_path, 
+            checkpoint, 
+            "text_encoder_2", 
+            config.data_type
+        )
+        if text_encoder_checkpoint:
+            return text_encoder_checkpoint
+
+    print(f"[Load] Loading TextEncoder2")
     return CLIPTextModelWithProjection.from_pretrained(
         config.base_model_path, 
         subfolder="text_encoder_2",
@@ -333,22 +362,24 @@ def load_unet(
     ):
 
     if _pipeline and _pipeline.unet:
-        print(f"[Reload] Loading cached Unet")
+        print(f"[Load] Loading cached Unet")
         return _pipeline.unet
     
     _progress_tracker.Initialize(2, "unet")
-    checkpoint_config = config.checkpoint_config
-    if checkpoint_config.model_checkpoint is not None:
-        unet = UNet2DConditionModel.from_single_file(
-            checkpoint_config.model_checkpoint, 
+    checkpoint= config.checkpoint_config.model_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Unet")
+        unet_checkpoint = UNet2DConditionModel.from_single_file(
+            checkpoint, 
             config=_pipeline_config["unet"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
             local_files_only=True
         )
-        Quantization.quantize_model(unet, config.quant_data_type, config.memory_mode)
-        return unet
+        Quantization.quantize_model(unet_checkpoint, config.quant_data_type, config.memory_mode)
+        return unet_checkpoint
     
+    print(f"[Load] Loading Unet")
     return UNet2DConditionModel.from_pretrained(
         config.base_model_path, 
         subfolder="unet", 
@@ -368,20 +399,24 @@ def load_vae(
     ):
 
     if _pipeline and _pipeline.vae:
-        print(f"[Reload] Loading cached Vae")
+        print(f"[Load] Loading cached Vae")
         return _pipeline.vae
 
     _progress_tracker.Initialize(3, "vae")
-    checkpoint_config = config.checkpoint_config
-    if checkpoint_config.vae_checkpoint is not None:
-        return AutoencoderKL.from_single_file(
-            checkpoint_config.vae_checkpoint, 
-            config=_pipeline_config["vae"],
-            torch_dtype=config.data_type, 
-            use_safetensors=True,
-            local_files_only=True
+    checkpoint = config.checkpoint_config.vae_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Vae")
+        vae_checkpoint = Utils.load_component(
+            StableDiffusionXLPipeline, 
+            config.base_model_path, 
+            checkpoint, 
+            "vae", 
+            config.data_type
         )
+        if vae_checkpoint:
+            return vae_checkpoint
     
+    print(f"[Load] Loading Vae")
     return AutoencoderKL.from_pretrained(
         config.base_model_path, 
         subfolder="vae", 
@@ -401,7 +436,7 @@ def load_control_net(
     global _control_net_path, _control_net_cache
 
     if _control_net_cache and _control_net_path == config.control_net_path:
-        print(f"[Reload] Loading cached ControlNet")
+        print(f"[Load] Loading cached ControlNet")
         return _control_net_cache
 
     if config.control_net_path is None:
@@ -409,6 +444,7 @@ def load_control_net(
         _control_net_cache = None
         return None
     
+    print(f"[Load] Loading ControlNet")
     _control_net_path = config.control_net_path
     _progress_tracker.Initialize(4, "control_net")
     _control_net_cache = ControlNetModel.from_pretrained(

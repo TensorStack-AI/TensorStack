@@ -8,5 +8,7 @@ namespace TensorStack.TextGeneration.Common
     {
         public bool IsReset { get; set; }
         public string Result { get; set; }
+        public int Value { get; set; }
+        public int Maximum { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using System;
+using System.Collections.Generic;
 
 namespace TensorStack.Common.Tensor
 {
@@ -45,6 +46,28 @@ namespace TensorStack.Common.Tensor
         /// Gets the duration.
         /// </summary>
         public TimeSpan Duration => TimeSpan.FromSeconds((double)Samples / SampleRate);
+
+
+        /// <summary>
+        /// Splits the Audio specified second chunks.
+        /// </summary>
+        /// <param name="seconds">The seconds.</param>
+        public IEnumerable<AudioTensor> Chunk(int seconds)
+        {
+            int channels = Channels;
+            int totalSamples = Samples;
+            int samplesPerChunk = seconds * SampleRate;
+            for (int start = 0; start < totalSamples; start += samplesPerChunk)
+            {
+                int length = Math.Min(samplesPerChunk, totalSamples - start);
+                var slice = new Tensor<float>([channels, length]);
+                for (int c = 0; c < channels; c++)
+                    for (int i = 0; i < length; i++)
+                        slice[c, i] = this[c, start + i];
+
+                yield return slice.AsAudioTensor(SampleRate);
+            }
+        }
 
 
         /// <summary>

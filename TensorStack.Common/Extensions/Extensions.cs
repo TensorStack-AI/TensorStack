@@ -155,6 +155,12 @@ namespace TensorStack.Common
             return float.IsNaN(value) ? 0f : value;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float ZeroIfInfinity(this float value)
+        {
+            return float.IsInfinity(value) ? 0f : value;
+        }
+
 
         public static bool CanBeCanceled(this CancellationTokenSource cancellationTokenSource)
         {

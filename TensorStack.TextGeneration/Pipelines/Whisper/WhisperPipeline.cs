@@ -2,6 +2,7 @@
 // Licensed under the Apache 2.0 License.
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -46,29 +47,31 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         public async Task<GenerateResult> RunAsync(WhisperOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var result = default(GenerateResult);
-            var audioSamples = _preProcessor.ProcessInput(options.AudioInput);
+            var audioSamples = _preProcessor.ProcessInput(options.AudioInput, options.ChunkSize);
+            var progress = new ChunkedProgress(audioSamples.Count, options.MaxLength, progressCallback);
             foreach (var sample in audioSamples)
             {
                 await RunEncoderAsync(sample);
-                var sequence = await GreedySearchAsync(options, progressCallback, cancellationToken);
+                var sequence = await GreedySearchAsync(options, progress.ProgressCallback, cancellationToken);
                 using (sequence)
                 {
                     if (result != null)
                     {
-                        result.Score += sequence.Score;
-                        result.PenaltyScore = sequence.PenaltyScore;
+                        result.Score += sequence.Score.ZeroIfInfinity();
+                        result.PenaltyScore = sequence.PenaltyScore.ZeroIfInfinity();
                         result.Result += Tokenizer.Decode(sequence.Tokens);
                     }
                     else
                     {
                         result = new GenerateResult
                         {
-                            Score = sequence.Score,
-                            PenaltyScore = sequence.PenaltyScore,
+                            Score = sequence.Score.ZeroIfInfinity(),
+                            PenaltyScore = sequence.PenaltyScore.ZeroIfInfinity(),
                             Result = Tokenizer.Decode(sequence.Tokens)
                         };
                     }
                 }
+                progress.ChunkComplete();
             }
             return result;
         }
@@ -83,11 +86,12 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         public async Task<GenerateResult[]> RunAsync(WhisperSearchOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var results = new List<GenerateResult>();
-            var audioSamples = _preProcessor.ProcessInput(options.AudioInput);
+            var audioSamples = _preProcessor.ProcessInput(options.AudioInput, options.ChunkSize);
+            var progress = new ChunkedProgress(audioSamples.Count, options.MaxLength, progressCallback);
             foreach (var sample in audioSamples)
             {
                 await RunEncoderAsync(sample);
-                var sequences = await BeamSearchAsync(options, progressCallback, cancellationToken);
+                var sequences = await BeamSearchAsync(options, progress.ProgressCallback, cancellationToken);
                 for (int beam = 0; beam < sequences.Length; beam++)
                 {
                     var sequence = sequences[beam];
@@ -96,8 +100,8 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
                         var existing = results.ElementAtOrDefault(beam);
                         if (existing != null)
                         {
-                            existing.Score += sequence.Score;
-                            existing.PenaltyScore = sequence.PenaltyScore;
+                            existing.Score += sequence.Score.ZeroIfInfinity();
+                            existing.PenaltyScore = sequence.PenaltyScore.ZeroIfInfinity();
                             existing.Result += Tokenizer.Decode(sequence.Tokens);
                         }
                         else
@@ -105,15 +109,16 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
                             results.Add(new GenerateResult
                             {
                                 Beam = beam,
-                                Score = sequence.Score,
-                                PenaltyScore = sequence.PenaltyScore,
+                                Score = sequence.Score.ZeroIfInfinity(),
+                                PenaltyScore = sequence.PenaltyScore.ZeroIfInfinity(),
                                 Result = Tokenizer.Decode(sequence.Tokens)
                             });
                         }
                     }
                 }
+                progress.ChunkComplete();
             }
-            return results.ToArray();
+            return [.. results];
         }
 
 
@@ -318,6 +323,45 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
             config.EncoderConfig.SetProvider(encoderProvider);
             config.DecoderConfig.SetProvider(decoderProvider);
             return new WhisperPipeline(config);
+        }
+    }
+
+
+    public class ChunkedProgress
+    {
+        private string _progressText;
+        private string _totalProgressText;
+        private Progress<GenerateProgress> _relayProgressCallback;
+
+        public ChunkedProgress(int chunks, int maxlength, IProgress<GenerateProgress> progressCallback)
+        {
+            var progressValue = 0;
+            var progressTotal = maxlength * chunks;
+            _relayProgressCallback = new Progress<GenerateProgress>(progress =>
+            {
+                _progressText += progress.Result;
+                if (progress.IsReset)
+                    _progressText = progress.Result;
+
+                progressValue++;
+                progressCallback?.Report(new GenerateProgress
+                {
+                    IsReset = progress.IsReset,
+                    Result = progress.IsReset ? _totalProgressText + _progressText : progress.Result,
+                    Value = progressValue,
+                    Maximum = progressTotal
+                });
+
+                //Debug.WriteLine(_totalProgressText + _progressText);
+            });
+        }
+
+        public Progress<GenerateProgress> ProgressCallback => _relayProgressCallback;
+
+        public void ChunkComplete()
+        {
+            _totalProgressText += _progressText;
+            _progressText = string.Empty;
         }
     }
 }

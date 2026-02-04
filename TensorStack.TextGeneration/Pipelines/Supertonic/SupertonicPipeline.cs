@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -14,7 +15,7 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
     /// <summary>
     /// Supertonic TTS Pipeline.
     /// </summary>
-    public class SupertonicPipeline : IPipeline<AudioTensor, SupertonicOptions, GenerateProgress>
+    public class SupertonicPipeline : IPipeline<AudioTensor, SupertonicOptions, RunProgress>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SupertonicPipeline"/> class.
@@ -72,7 +73,7 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
         /// <param name="options">The options.</param>
         /// <param name="progressCallback">The progress callback.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public async Task<AudioTensor> RunAsync(SupertonicOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        public async Task<AudioTensor> RunAsync(SupertonicOptions options, IProgress<RunProgress> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var totalDuration = 0.0f;
             var audioBuffer = new List<float>();
@@ -81,9 +82,18 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
             var silenceBuffer = new float[silenceLength];
 
             // Process text
-            foreach (var textIds in Processor.GetTextIds(options.TextInput))
+            var textChunks = Processor.GetTextIds(options.TextInput);
+            var progress = 0;
+            var progressTotal = options.Steps * textChunks.Count;
+            var relayProgressCallback = new Action<long>((timestamp) =>
             {
-                var result = await RunInferenceAsync(textIds, voiceStyle, options.Seed, options.Steps, options.Speed);
+                progress++;
+                progressCallback?.Report(new RunProgress(progress, progressTotal, timestamp));
+            });
+
+            foreach (var textIds in textChunks)
+            {
+                var result = await RunInferenceAsync(textIds, voiceStyle, options.Seed, options.Steps, options.Speed, relayProgressCallback, cancellationToken);
                 if (audioBuffer.Count == 0)
                 {
                     audioBuffer.AddRange(result.Audio.Memory.Span);
@@ -112,7 +122,7 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
         /// <param name="totalStep">The total step.</param>
         /// <param name="speed">The speed.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        private async Task<InferenceResult> RunInferenceAsync(Tensor<long> textIds, VoiceStyle style, int seed, int totalStep, float speed = 1.05f, CancellationToken cancellationToken = default)
+        private async Task<InferenceResult> RunInferenceAsync(Tensor<long> textIds, VoiceStyle style, int seed, int totalStep, float speed = 1.05f, Action<long> progressCallback = null, CancellationToken cancellationToken = default)
         {
             var predictionResult = await PredictAsync(textIds, style.Dropout, cancellationToken);
             var duration = predictionResult.Memory.Span[0] / speed;
@@ -120,7 +130,9 @@ namespace TensorStack.TextGeneration.Pipelines.Supertonic
             var latents = PrepareLatents(seed, duration);
             for (int step = 0; step < totalStep; step++)
             {
+                var timestamp = Stopwatch.GetTimestamp();
                 latents = await EstimateAsync(latents, encoderResult, style.Global, step, totalStep, cancellationToken);
+                progressCallback?.Invoke(timestamp);
             }
             var decoderResult = await DecodeAsync(latents, cancellationToken);
             return new InferenceResult(decoderResult, duration);

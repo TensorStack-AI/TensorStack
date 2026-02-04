@@ -17,6 +17,7 @@ from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
 from transformers import (
     AutoConfig
 )
+from diffusers.loaders import FromSingleFileMixin
 from diffusers import (
     DiffusionPipeline, 
     DDIMScheduler,
@@ -158,6 +159,25 @@ def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
         weights = list(lora_map.values())
         pipeline.set_adapters(names, adapter_weights=weights)
 
+
+def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype):
+    try:
+        components = ("scheduler", "tokenizer", "tokenizer_2", "text_encoder", "text_encoder_2", "transformer", "transformer_2", "unet", "vae")
+        skip_args = {c: None for c in components if c != component_name}
+        pipe = pipeline.from_single_file(
+            model_path,
+            config=base_model_path,
+            torch_dtype=data_type, 
+            use_safetensors=True,
+            local_files_only=True,
+            **skip_args
+        )
+
+        return getattr(pipe, component_name, None)
+
+    except Exception:
+        return None
+    
 
 def imageFromInput(
     inputData: Optional[Sequence[float]],

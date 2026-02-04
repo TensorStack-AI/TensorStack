@@ -11,6 +11,7 @@ namespace TensorStack.TextGeneration.Pipelines.Whisper
         public TaskType Task { get; set; }
         public LanguageType Language { get; set; }
         public AudioTensor AudioInput{ get; set; }
+        public int ChunkSize { get; set; } = 20;
     }
 
 
