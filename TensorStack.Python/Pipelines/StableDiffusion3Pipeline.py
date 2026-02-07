@@ -9,13 +9,16 @@ import numpy as np
 from threading import Event
 from collections.abc import Buffer
 from typing import Dict, Sequence, List, Tuple, Optional, Union, Any
-from transformers import T5EncoderModel
+from transformers import CLIPTextModelWithProjection, T5EncoderModel
 from diffusers import ( 
-    AutoencoderKLCogVideoX, 
-    CogVideoXTransformer3DModel,
-    CogVideoXPipeline, 
-    CogVideoXImageToVideoPipeline, 
-    CogVideoXVideoToVideoPipeline
+    AutoencoderKL, 
+    SD3ControlNetModel, 
+    SD3Transformer2DModel,
+    StableDiffusion3Pipeline,
+    StableDiffusion3Img2ImgPipeline,
+    StableDiffusion3InpaintPipeline,
+    StableDiffusion3ControlNetPipeline,
+    StableDiffusion3ControlNetInpaintingPipeline,
 )
 
 # Globals
@@ -36,9 +39,11 @@ _prompt_cache_value = None
 _progress_tracker: Utils.ModelDownloadProgress = None
 _cancel_event = Event()
 _pipelineMap = {
-    "TextToVideo": CogVideoXPipeline,
-    "ImageToVideo": CogVideoXImageToVideoPipeline,
-    "VideoToVideo": CogVideoXVideoToVideoPipeline,
+    "TextToImage": StableDiffusion3Pipeline,
+    "ImageToImage": StableDiffusion3Img2ImgPipeline,
+    "ImageInpaint": StableDiffusion3InpaintPipeline,
+    "ControlNetImage": StableDiffusion3ControlNetPipeline,
+    "ControlNetImageToImage": StableDiffusion3ControlNetInpaintingPipeline,
 }
 
 
@@ -48,7 +53,7 @@ _pipelineMap = {
 def initialize(config: DataObjects.PipelineConfig):
     global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
 
-    _progress_tracker = Utils.ModelDownloadProgress(total_models=4 if config.control_net_path is not None else 3)
+    _progress_tracker = Utils.ModelDownloadProgress(total_models=6 if config.control_net_path is not None else 5)
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     _device_map = Utils.get_device_map(config)
@@ -84,11 +89,11 @@ def load(config_args: Dict[str, Any]) -> bool:
 #------------------------------------------------
 def reload(config_args: Dict[str, Any]) -> bool:
     global _pipeline, _processType
-
+    
     # Config
     config = DataObjects.PipelineConfig(**config_args)
     _processType = config.process_type
-    _progress_tracker.Reset(total_models=4 if config.control_net_path is not None else 3)
+    _progress_tracker.Reset(total_models=5 if config.control_net_path is not None else 4)
 
     # Rebuild Pipeline
     _pipeline.unload_lora_weights()
@@ -137,7 +142,7 @@ def getStepLatent() -> Buffer:
 
 
 #------------------------------------------------
-# Diffusers pipeline callback to capture step artifacts
+# Diffusers pipeline callback to caputer step artifacts
 #------------------------------------------------
 def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
     global _step_latent
@@ -163,7 +168,7 @@ def generate(
     global _prompt_cache_key, _prompt_cache_value
     _cancel_event.clear()
     _pipeline._interrupt = False
-    
+
     # Options
     options = DataObjects.PipelineOptions(**inference_args)
 
@@ -178,43 +183,63 @@ def generate(
     control_image = Utils.prepare_images(control_tensors)
 
     # Prompt Cache
-    prompt_cache_key = (options.prompt, options.negative_prompt,)
+    prompt_cache_key = (options.prompt, options.negative_prompt)
     if _prompt_cache_key != prompt_cache_key:
         with torch.no_grad():
             _prompt_cache_value = _pipeline.encode_prompt(
                 prompt=options.prompt,
-                negative_prompt=options.negative_prompt,
-                do_classifier_free_guidance=options.guidance_scale > 1,
-                num_videos_per_prompt=1,
+                prompt_2=options.prompt,
+                prompt_3=options.prompt,
                 device=_pipeline._execution_device,
-                max_sequence_length=226
+                num_images_per_prompt=1,
+                do_classifier_free_guidance=options.guidance_scale > 1,
+                negative_prompt=options.negative_prompt,
+                negative_prompt_2=options.negative_prompt,
+                negative_prompt_3=options.negative_prompt
             )
             _prompt_cache_key = prompt_cache_key
 
     # Pipeline Options
-    (prompt_embeds, negative_prompt_embeds) = _prompt_cache_value
+    (prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds) = _prompt_cache_value
     pipeline_options = {
         "prompt_embeds": prompt_embeds,
         "negative_prompt_embeds": negative_prompt_embeds,
+        "pooled_prompt_embeds": pooled_prompt_embeds,
+        "negative_pooled_prompt_embeds": negative_pooled_prompt_embeds,
         "height": options.height,
         "width": options.width,
         "generator": _generator.manual_seed(options.seed),
         "guidance_scale": options.guidance_scale,
         "num_inference_steps": options.steps,
-        "num_frames": options.frames,
-        "num_videos_per_prompt": 1,
         "output_type": "np",
         "callback_on_step_end": _progress_callback,
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
-    if _processType == "ImageToVideo":
-        pipeline_options.update({ "image": image, "use_dynamic_cfg": True })
+
+    if _processType in ("ImageToImage","ControlNetImageToImage"):
+        pipeline_options.update({ "image": image, "strength": options.strength})
+
+    if _processType == "ImageInpaint":
+        pipeline_options.update({ "image": image[0], "mask_image": image[1], "strength": options.strength})
+
+    if _processType == "ControlNetImage":
+        pipeline_options.update({ "image": control_image })
+
+    if _processType == "ControlNetImageToImage":
+        pipeline_options.update({ "control_image": control_image })
+
+    if _processType in ("ControlNetImage", "ControlNetImageToImage"):
+        pipeline_options.update({
+            "control_guidance_start": 0.0,
+            "control_guidance_end": 1.0,
+            "controlnet_conditioning_scale": options.control_net_scale
+        })
 
     # Run Pipeline
     output = _pipeline(**pipeline_options)[0]
 
-    # (Frames, Channel, Height, Width)
-    output = output.transpose(0, 1, 4, 2, 3).squeeze(axis=0).astype(np.float32)
+    # (Batch, Channel, Height, Width)
+    output = output.transpose(0, 3, 1, 2).astype(np.float32)
 
     # Cleanup
     Utils.trim_memory(_isMemoryOffload)
@@ -233,11 +258,13 @@ def create_pipeline(config: DataObjects.PipelineConfig):
 
     # Load Models
     text_encoder = load_text_encoder(config, pipeline_kwargs)
+    text_encoder_2 = load_text_encoder_2(config, pipeline_kwargs)
+    text_encoder_3 = load_text_encoder_3(config, pipeline_kwargs)
     transformer = load_transformer(config, pipeline_kwargs)
     vae = load_vae(config, pipeline_kwargs)
-    # control_net = load_control_net(config, pipeline_kwargs)
-    # if control_net is not None:
-    #     pipeline_kwargs.update({"controlnet": control_net})
+    control_net = load_control_net(config, pipeline_kwargs)
+    if control_net is not None:
+        pipeline_kwargs.update({"controlnet": control_net})
    
     # Build Pipeline
     _progress_tracker.Clear()
@@ -245,6 +272,8 @@ def create_pipeline(config: DataObjects.PipelineConfig):
     return pipeline.from_pretrained(
         config.base_model_path,
         text_encoder=text_encoder,
+        text_encoder_2=text_encoder_2, 
+        text_encoder_3=text_encoder_3,
         transformer=transformer, 
         vae=vae, 
         torch_dtype=config.data_type,
@@ -255,7 +284,7 @@ def create_pipeline(config: DataObjects.PipelineConfig):
 
 
 #------------------------------------------------
-# Load T5EncoderModel
+# Load CLIPTextModelWithProjection
 #------------------------------------------------
 def load_text_encoder(
         config: DataObjects.PipelineConfig, 
@@ -263,15 +292,89 @@ def load_text_encoder(
     ):
 
     if _pipeline and _pipeline.text_encoder:
-        print(f"[Reload] Loading cached TextEncoder")
+        print(f"[Load] Loading cached TextEncoder")
         return _pipeline.text_encoder
 
     _progress_tracker.Initialize(0, "text_encoder")
+    checkpoint = config.checkpoint_config.text_encoder_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint TextEncoder")
+        text_encoder_checkpoint = Utils.load_component(
+            StableDiffusion3Pipeline, 
+            config.base_model_path, 
+            checkpoint, 
+            "text_encoder", 
+            config.data_type
+        )
+        if text_encoder_checkpoint:
+            return text_encoder_checkpoint
+
+    
+    print(f"[Load] Loading TextEncoder")
+    return CLIPTextModelWithProjection.from_pretrained(
+        config.base_model_path, 
+        subfolder="text_encoder", 
+        torch_dtype=config.data_type, 
+        use_safetensors=True,
+        **pipeline_kwargs
+    )
+
+
+#------------------------------------------------
+# Load CLIPTextModelWithProjection 
+#------------------------------------------------
+def load_text_encoder_2(
+        config: DataObjects.PipelineConfig, 
+        pipeline_kwargs: Dict[str, str]
+    ):
+
+    if _pipeline and _pipeline.text_encoder_2:
+        print(f"[Load] Loading cached TextEncoder2")
+        return _pipeline.text_encoder_2
+    
+    _progress_tracker.Initialize(1, "text_encoder_2")
+    checkpoint = config.checkpoint_config.text_encoder_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint TextEncoder2")
+        text_encoder_checkpoint = Utils.load_component(
+            StableDiffusion3Pipeline, 
+            config.base_model_path, 
+            checkpoint, 
+            "text_encoder_2", 
+            config.data_type
+        )
+        if text_encoder_checkpoint:
+            return text_encoder_checkpoint
+
+    print(f"[Load] Loading TextEncoder2")
+    return CLIPTextModelWithProjection.from_pretrained(
+        config.base_model_path, 
+        subfolder="text_encoder_2",
+        torch_dtype=config.data_type, 
+        quantization_config=_quant_config_transformers, 
+        use_safetensors=True,
+        **pipeline_kwargs
+    )
+
+
+#------------------------------------------------
+# Load T5EncoderModel
+#------------------------------------------------
+def load_text_encoder_3(
+        config: DataObjects.PipelineConfig, 
+        pipeline_kwargs: Dict[str, str]
+    ):
+
+    if _pipeline and _pipeline.text_encoder_3:
+        print(f"[Reload] Loading cached TextEncoder2")
+        return _pipeline.text_encoder_3
+
+    _progress_tracker.Initialize(2, "text_encoder_3")
     checkpoint_config = config.checkpoint_config
     if checkpoint_config.text_encoder_checkpoint is not None:
         text_encoder = T5EncoderModel.from_single_file(
             checkpoint_config.text_encoder_checkpoint, 
-            config=_pipeline_config["text_encoder"],
+            config=_pipeline_config["text_encoder_3"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
             local_files_only=True
@@ -281,7 +384,7 @@ def load_text_encoder(
     
     return T5EncoderModel.from_pretrained(
         config.base_model_path, 
-        subfolder="text_encoder",
+        subfolder="text_encoder_3",
         torch_dtype=config.data_type, 
         quantization_config=_quant_config_transformers, 
         use_safetensors=True,
@@ -290,7 +393,7 @@ def load_text_encoder(
 
 
 #------------------------------------------------
-# Load CogVideoXTransformer3DModel
+# Load SD3Transformer2DModel
 #------------------------------------------------
 def load_transformer(
         config: DataObjects.PipelineConfig, 
@@ -298,24 +401,26 @@ def load_transformer(
     ):
 
     if _pipeline and _pipeline.transformer:
-        print(f"[Reload] Loading cached Transformer")
+        print(f"[Load] Loading cached Transformer")
         return _pipeline.transformer
-
-    _progress_tracker.Initialize(1, "transformer")
-    checkpoint_config = config.checkpoint_config
-    if checkpoint_config.model_checkpoint is not None:
-        transformer = CogVideoXTransformer3DModel.from_single_file(
-            checkpoint_config.model_checkpoint, 
+    
+    _progress_tracker.Initialize(3, "transformer")
+    checkpoint= config.checkpoint_config.model_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Transformer")
+        transformer_checkpoint = SD3Transformer2DModel.from_single_file(
+            checkpoint, 
             config=_pipeline_config["transformer"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
             local_files_only=True,
             quantization_config=Quantization.get_single_file_config(config)
         )
-        Quantization.quantize_model(config, transformer)
-        return transformer
+        Quantization.quantize_model(config, transformer_checkpoint)
+        return transformer_checkpoint
     
-    return CogVideoXTransformer3DModel.from_pretrained(
+    print(f"[Load] Loading Transformer")
+    return SD3Transformer2DModel.from_pretrained(
         config.base_model_path, 
         subfolder="transformer", 
         torch_dtype=config.data_type, 
@@ -326,7 +431,7 @@ def load_transformer(
 
 
 #------------------------------------------------
-# Load AutoencoderKLCogVideoX
+# Load AutoencoderKL
 #------------------------------------------------
 def load_vae(
         config: DataObjects.PipelineConfig, 
@@ -334,21 +439,25 @@ def load_vae(
     ):
 
     if _pipeline and _pipeline.vae:
-        print(f"[Reload] Loading cached Vae")
+        print(f"[Load] Loading cached Vae")
         return _pipeline.vae
 
-    _progress_tracker.Initialize(2, "vae")
-    checkpoint_config = config.checkpoint_config
-    if checkpoint_config.vae_checkpoint is not None:
-        return AutoencoderKLCogVideoX.from_single_file(
-            checkpoint_config.vae_checkpoint, 
-            config=_pipeline_config["vae"],
-            torch_dtype=config.data_type, 
-            use_safetensors=True,
-            local_files_only=True
+    _progress_tracker.Initialize(4, "vae")
+    checkpoint = config.checkpoint_config.vae_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Vae")
+        vae_checkpoint = Utils.load_component(
+            StableDiffusion3Pipeline, 
+            config.base_model_path, 
+            checkpoint, 
+            "vae", 
+            config.data_type
         )
+        if vae_checkpoint:
+            return vae_checkpoint
     
-    return AutoencoderKLCogVideoX.from_pretrained(
+    print(f"[Load] Loading Vae")
+    return AutoencoderKL.from_pretrained(
         config.base_model_path, 
         subfolder="vae", 
         torch_dtype=config.data_type, 
@@ -357,29 +466,31 @@ def load_vae(
     )
 
 
-# #------------------------------------------------
-# # Load ControlNetModel
-# #------------------------------------------------
-# def load_control_net(
-#         config: DataObjects.PipelineConfig, 
-#         pipeline_kwargs: Dict[str, str]
-#     ):
-#     global _control_net_path, _control_net_cache
+#------------------------------------------------
+# Load SD3ControlNetModel
+#------------------------------------------------
+def load_control_net(
+        config: DataObjects.PipelineConfig, 
+        pipeline_kwargs: Dict[str, str]
+    ):
+    global _control_net_path, _control_net_cache
 
-#     if _control_net_cache and _control_net_path == config.control_net_path:
-#         print(f"[Reload] Loading cached ControlNet")
-#         return _control_net_cache
+    if _control_net_cache and _control_net_path == config.control_net_path:
+        print(f"[Load] Loading cached ControlNet")
+        return _control_net_cache
 
-#     if config.control_net_path is None:
-#         _control_net_path = None
-#         _control_net_cache = None
-#         return None
+    if config.control_net_path is None:
+        _control_net_path = None
+        _control_net_cache = None
+        return None
     
-#     _control_net_path = config.control_net_path
-#     _progress_tracker.Initialize(3, "control_net")
-#     _control_net_cache = ControlNetModel.from_pretrained(
-#         _control_net_path, 
-#         torch_dtype=config.data_type,
-#         use_safetensors=True,
-#     )
-#     return _control_net_cache
+    print(f"[Load] Loading ControlNet")
+    _control_net_path = config.control_net_path
+    _progress_tracker.Initialize(5, "control_net")
+    _control_net_cache = SD3ControlNetModel.from_pretrained(
+        _control_net_path, 
+        torch_dtype=config.data_type,
+        use_safetensors=True,
+    )
+    return _control_net_cache
+       

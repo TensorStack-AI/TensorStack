@@ -1,5 +1,6 @@
 import torch
 from typing import Any
+import tensorstack.data_objects as DataObjects
 from transformers import (
     TorchAoConfig as TransformersTorchAoConfig,
     QuantoConfig as TransformersQuantoConfig
@@ -7,7 +8,8 @@ from transformers import (
 from diffusers import (
     PipelineQuantizationConfig,
     TorchAoConfig as DiffusersTorchAoConfig,
-    QuantoConfig as DiffusersQuantoConfig
+    QuantoConfig as DiffusersQuantoConfig,
+    GGUFQuantizationConfig as DiffusersGGUFConfig
 )
 
 try:
@@ -49,17 +51,24 @@ def get_quantize_model_config(dtype: torch.dtype, quant_dtype: torch.dtype, memo
     return None, None
 
 
-def quantize_model(model: Any, quant_dtype: torch.dtype, memory_mode: str):
-    if not is_quantization_supported(model.dtype, quant_dtype, memory_mode):
+def get_single_file_config(config: DataObjects.PipelineConfig):
+    return DiffusersGGUFConfig(compute_dtype=config.data_type) if config.is_gguf else None
+
+
+def quantize_model(config: DataObjects.PipelineConfig, model: Any):
+    if config.is_gguf:
+        return
+
+    if not is_quantization_supported(model.dtype, config.quant_data_type, config.memory_mode):
         return
 
     if _HAS_TORCHAO:
-        if quant_dtype == torch.int8:
-            print(f"[Quantize] Quantizing model from '{model.dtype}' to '{quant_dtype}'")
+        if config.quant_data_type == torch.int8:
+            print(f"[Quantize] Quantizing model from '{model.dtype}' to '{config.quant_data_type}'")
             quantize_(model, Int8WeightOnlyConfig())
     elif _HAS_QUANTO:
-        if quant_dtype == torch.int8:
-            print(f"[Quantize] Quantizing model from '{model.dtype}' to '{quant_dtype}'")
+        if config.quant_data_type == torch.int8:
+            print(f"[Quantize] Quantizing model from '{model.dtype}' to '{config.quant_data_type}'")
             quantize(model, weights=qint8)
             freeze(model)
 

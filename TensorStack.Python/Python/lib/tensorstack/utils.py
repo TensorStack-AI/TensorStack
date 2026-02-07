@@ -118,20 +118,20 @@ def get_device_map(config: DataObjects.PipelineConfig):
     return "balanced" if config.memory_mode == "MultiDevice" else None
 
 
-def get_pipeline_config(repo_id: str, cache_dir: str) -> Dict[str, Optional[str]]:
+def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict[str, Optional[str]]:
     """
     Download all known pipeline component configs for a repo and return their local paths.
     Components not present will have value None.
     """
 
     config_paths: Dict[str, Optional[str]] = {}
-    components = ["text_encoder", "text_encoder_2", "transformer", "transformer_2", "unet", "vae", "controlnet", "scheduler"]
-    DiffusionPipeline.from_pretrained(repo_id, text_encoder=None, text_encoder_2=None, unet=None, vae=None, transformer=None, torch_dtype=None, cache_dir=cache_dir)
+    components = ["text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "controlnet", "scheduler"]
+    DiffusionPipeline.from_pretrained(repo_id, text_encoder=None, text_encoder_2=None, unet=None, vae=None, transformer=None, torch_dtype=None, cache_dir=cache_dir, token=secure_token)
     for comp in components:
         try:
             # All components: attempt to download config.json from the subfolder
             file_name = "config.json" if comp != "scheduler" else "scheduler_config.json"
-            path = hf_hub_download(repo_id, f"{comp}/{file_name}", cache_dir=cache_dir)
+            path = hf_hub_download(repo_id, f"{comp}/{file_name}", cache_dir=cache_dir, token=secure_token)
             if os.path.exists(path):
                 config_paths[comp] = path
             else:

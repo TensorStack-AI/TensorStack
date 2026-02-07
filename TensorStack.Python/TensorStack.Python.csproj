@@ -104,6 +104,12 @@
     <None Include="Pipelines\StableDiffusionXLPipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--StableDiffusion3Pipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\StableDiffusion3Pipeline.py" Pack="true" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\StableDiffusion3Pipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--WanPipeline-->
   <ItemGroup>
     <Content Include="Pipelines\WanPipeline.py" Pack="true" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />

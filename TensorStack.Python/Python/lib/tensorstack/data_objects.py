@@ -54,6 +54,7 @@ class PipelineConfig:
     pipeline: str
     process_type: str
     memory_mode: str
+    is_gguf: bool = False 
 
     # Optional
     control_net_path: Optional[str] = None
@@ -82,6 +83,12 @@ class PipelineConfig:
             self.checkpoint_config = CheckpointConfig(**self.checkpoint_config)
         elif self.checkpoint_config is None:
             self.checkpoint_config = CheckpointConfig()
+
+        model_ckpt = getattr(self.checkpoint_config, "model_checkpoint", None)
+        self.is_gguf = (
+            (model_ckpt is not None and str(model_ckpt).lower().endswith(".gguf")) or
+            (getattr(self, "base_model_path", None) is not None and str(self.base_model_path).lower().endswith(".gguf"))
+        )
 
 
 @dataclass(slots=True)

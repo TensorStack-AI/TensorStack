@@ -54,7 +54,7 @@ def initialize(config: DataObjects.PipelineConfig):
     global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=5 if config.control_net_path is not None else 4)
-    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory)
+    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     _device_map = Utils.get_device_map(config)
     return create_pipeline(config)
@@ -374,9 +374,10 @@ def load_unet(
             config=_pipeline_config["unet"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
-            local_files_only=True
+            local_files_only=True,
+            quantization_config=Quantization.get_single_file_config(config)
         )
-        Quantization.quantize_model(unet_checkpoint, config.quant_data_type, config.memory_mode)
+        Quantization.quantize_model(config, unet_checkpoint)
         return unet_checkpoint
     
     print(f"[Load] Loading Unet")
