@@ -143,6 +143,9 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
 
 
 def load_lora_weights(pipeline: Any, config: DataObjects.PipelineConfig):
+    if not hasattr(pipeline, "load_lora_weights") or not hasattr(pipeline, "unload_lora_weights"):
+        return
+
     pipeline.unload_lora_weights()
     if config.lora_adapters is not None:
         for lora in config.lora_adapters:

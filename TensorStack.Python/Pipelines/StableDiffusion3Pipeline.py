@@ -29,7 +29,7 @@ _quant_config_diffusers = None
 _quant_config_transformers = None
 _execution_device = None
 _device_map = None
-_control_net_path = None
+_control_net_name = None
 _control_net_cache = None
 _step_latent = None
 _generator = None
@@ -53,7 +53,7 @@ _pipelineMap = {
 def initialize(config: DataObjects.PipelineConfig):
     global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
 
-    _progress_tracker = Utils.ModelDownloadProgress(total_models=6 if config.control_net_path is not None else 5)
+    _progress_tracker = Utils.ModelDownloadProgress(total_models=6 if config.control_net.name is not None else 5)
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     _device_map = Utils.get_device_map(config)
@@ -93,7 +93,7 @@ def reload(config_args: Dict[str, Any]) -> bool:
     # Config
     config = DataObjects.PipelineConfig(**config_args)
     _processType = config.process_type
-    _progress_tracker.Reset(total_models=5 if config.control_net_path is not None else 4)
+    _progress_tracker.Reset(total_models=5 if config.control_net.name is not None else 4)
 
     # Rebuild Pipeline
     _pipeline.unload_lora_weights()
@@ -478,22 +478,22 @@ def load_control_net(
         config: DataObjects.PipelineConfig, 
         pipeline_kwargs: Dict[str, str]
     ):
-    global _control_net_path, _control_net_cache
+    global _control_net_name, _control_net_cache
 
-    if _control_net_cache and _control_net_path == config.control_net_path:
+    if _control_net_cache and _control_net_name == config.control_net.name:
         print(f"[Load] Loading cached ControlNet")
         return _control_net_cache
 
-    if config.control_net_path is None:
-        _control_net_path = None
+    if config.control_net.name is None:
+        _control_net_name = None
         _control_net_cache = None
         return None
     
     print(f"[Load] Loading ControlNet")
-    _control_net_path = config.control_net_path
+    _control_net_name = config.control_net.name
     _progress_tracker.Initialize(5, "control_net")
     _control_net_cache = SD3ControlNetModel.from_pretrained(
-        _control_net_path, 
+        config.control_net.path, 
         torch_dtype=config.data_type,
         use_safetensors=True,
     )

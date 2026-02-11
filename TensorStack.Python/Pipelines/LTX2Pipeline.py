@@ -27,7 +27,7 @@ _quant_config_diffusers = None
 _quant_config_transformers = None
 _execution_device = None
 _device_map = None
-_control_net_path = None
+_control_net_name = None
 _control_net_cache = None
 _step_latent = None
 _generator = None
@@ -48,7 +48,7 @@ _pipelineMap = {
 def initialize(config: DataObjects.PipelineConfig):
     global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
 
-    _progress_tracker = Utils.ModelDownloadProgress(total_models=4 if config.control_net_path is not None else 3)
+    _progress_tracker = Utils.ModelDownloadProgress(total_models=4 if config.control_net.name is not None else 3)
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     _device_map = Utils.get_device_map(config)
@@ -88,7 +88,7 @@ def reload(config_args: Dict[str, Any]) -> bool:
     # Config
     config = DataObjects.PipelineConfig(**config_args)
     _processType = config.process_type
-    _progress_tracker.Reset(total_models=4 if config.control_net_path is not None else 3)
+    _progress_tracker.Reset(total_models=4 if config.control_net.name is not None else 3)
 
     # Rebuild Pipeline
     _pipeline.unload_lora_weights()
@@ -284,14 +284,15 @@ def load_text_encoder(
     ):
 
     if _pipeline and _pipeline.text_encoder:
-        print(f"[Reload] Loading cached TextEncoder")
+        print(f"[Load] Loading cached TextEncoder")
         return _pipeline.text_encoder
 
     _progress_tracker.Initialize(0, "text_encoder")
-    checkpoint_config = config.checkpoint_config
-    if checkpoint_config.text_encoder_checkpoint is not None:
+    checkpoint = config.checkpoint_config.text_encoder_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint TextEncoder")
         text_encoder = Gemma3ForConditionalGeneration.from_single_file(
-            checkpoint_config.text_encoder_checkpoint, 
+            checkpoint, 
             config=_pipeline_config["text_encoder"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
@@ -301,6 +302,7 @@ def load_text_encoder(
         Quantization.quantize_model(config, text_encoder)
         return text_encoder
     
+    print(f"[Load] Loading TextEncoder")
     return Gemma3ForConditionalGeneration.from_pretrained(
         config.base_model_path, 
         subfolder="text_encoder",
@@ -320,14 +322,15 @@ def load_transformer(
     ):
 
     if _pipeline and _pipeline.transformer:
-        print(f"[Reload] Loading cached Transformer")
+        print(f"[Load] Loading cached Transformer")
         return _pipeline.transformer
 
     _progress_tracker.Initialize(1, "transformer")
-    checkpoint_config = config.checkpoint_config
-    if checkpoint_config.model_checkpoint is not None:
+    checkpoint = config.checkpoint_config.model_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Transformer")
         transformer = LTX2VideoTransformer3DModel.from_single_file(
-            checkpoint_config.model_checkpoint, 
+            checkpoint, 
             config=_pipeline_config["transformer"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
@@ -338,6 +341,7 @@ def load_transformer(
         Quantization.quantize_model(config, transformer)
         return transformer
     
+    print(f"[Load] Loading Transformer")
     return LTX2VideoTransformer3DModel.from_pretrained(
         config.base_model_path, 
         subfolder="transformer", 
@@ -357,14 +361,15 @@ def load_vae_video(
     ):
 
     if _pipeline and _pipeline.vae:
-        print(f"[Reload] Loading cached Vae Video")
+        print(f"[Load] Loading cached Vae Video")
         return _pipeline.vae
 
     _progress_tracker.Initialize(2, "vae")
-    checkpoint_config = config.checkpoint_config
-    if checkpoint_config.vae_checkpoint is not None:
+    checkpoint = config.checkpoint_config.vae_checkpoint 
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Vae Video")
         return AutoencoderKLLTX2Video.from_single_file(
-            checkpoint_config.vae_checkpoint, 
+            checkpoint, 
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
@@ -372,6 +377,7 @@ def load_vae_video(
             token=config.secure_token,
         )
     
+    print(f"[Load] Loading Vae Video")
     return AutoencoderKLLTX2Video.from_pretrained(
         config.base_model_path, 
         subfolder="vae", 
@@ -390,14 +396,15 @@ def load_vae_audio(
     ):
 
     if _pipeline and _pipeline.vae:
-        print(f"[Reload] Loading cached Vae Audio")
+        print(f"[Load] Loading cached Vae Audio")
         return _pipeline.vae
 
     _progress_tracker.Initialize(3, "audio_vae")
-    checkpoint_config = config.checkpoint_config
-    if checkpoint_config.vae_checkpoint is not None:
+    checkpoint = config.checkpoint_config.vae_checkpoint 
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Vae Audio")
         return AutoencoderKLLTX2Audio.from_single_file(
-            checkpoint_config.vae_checkpoint, 
+            checkpoint, 
             config=_pipeline_config["audio_vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
@@ -405,6 +412,7 @@ def load_vae_audio(
             token=config.secure_token,
         )
     
+    print(f"[Load] Loading Vae Audio")
     return AutoencoderKLLTX2Audio.from_pretrained(
         config.base_model_path, 
         subfolder="audio_vae", 
@@ -421,21 +429,21 @@ def load_vae_audio(
 #         config: DataObjects.PipelineConfig, 
 #         pipeline_kwargs: Dict[str, str]
 #     ):
-#     global _control_net_path, _control_net_cache
+#     global _control_net_name, _control_net_cache
 
-#     if _control_net_cache and _control_net_path == config.control_net_path:
-#         print(f"[Reload] Loading cached ControlNet")
+#     if _control_net_cache and _control_net_name == config.control_net.name:
+#         print(f"[Load] Loading cached ControlNet")
 #         return _control_net_cache
 
-#     if config.control_net_path is None:
-#         _control_net_path = None
+#     if config.control_net.name is None:
+#         _control_net_name = None
 #         _control_net_cache = None
 #         return None
     
-#     _control_net_path = config.control_net_path
+#     _control_net_name = config.control_net.name
 #     _progress_tracker.Initialize(3, "control_net")
 #     _control_net_cache = ControlNetModel.from_pretrained(
-#         _control_net_path, 
+#         config.control_net.path, 
 #         torch_dtype=config.data_type,
 #         use_safetensors=True,
 #     )

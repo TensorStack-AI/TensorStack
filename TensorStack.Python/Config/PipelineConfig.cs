@@ -15,9 +15,6 @@ namespace TensorStack.Python.Config
         [JsonPropertyName("process_type")]
         public ProcessType ProcessType { get; set; }
 
-        [JsonPropertyName("control_net_path")]
-        public string ControlNetPath { get; set; }
-
         [JsonPropertyName("device")]
         public string Device { get; set; } = "cuda";
 
@@ -41,6 +38,9 @@ namespace TensorStack.Python.Config
 
         [JsonPropertyName("lora_adapters")]
         public List<LoraConfig> LoraAdapters { get; set; }
+
+        [JsonPropertyName("control_net")]
+        public ControlNetConfig ControlNet { get; set; }
 
         [JsonPropertyName("memory_mode")]
         public MemoryModeType MemoryMode { get; set; }

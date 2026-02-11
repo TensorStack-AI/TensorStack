@@ -9,8 +9,8 @@ namespace TensorStack.Python.Common
         [JsonPropertyName("process_type")]
         public ProcessType ProcessType { get; set; }
 
-        [JsonPropertyName("control_net_path")]
-        public string ControlNetPath { get; set; }
+        [JsonPropertyName("control_net")]
+        public ControlNetConfig ControlNet { get; set; }
 
         [JsonPropertyName("lora_adapters")]
         public List<LoraConfig> LoraAdapters { get; set; }

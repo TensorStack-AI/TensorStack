@@ -121,7 +121,7 @@ namespace TensorStack.Python
                         var configuration = _configuration with
                         {
                             ProcessType = options.ProcessType,
-                            ControlNetPath = options.ControlNetPath,
+                            ControlNet = options.ControlNet,
                             LoraAdapters = options.LoraAdapters,
                         };
 

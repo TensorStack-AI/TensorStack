@@ -39,6 +39,12 @@ class LoraConfig:
 
 
 @dataclass(slots=True)
+class ControlNetConfig:
+    path: Optional[str] = None
+    name: Optional[str] = None
+
+
+@dataclass(slots=True)
 class LoraOption:
     name: str
     strength: float
@@ -56,9 +62,6 @@ class PipelineConfig:
     memory_mode: str
     is_gguf: bool = False 
 
-    # Optional
-    control_net_path: Optional[str] = None
-
     # Device
     device: str = "cuda"
     device_id: int = 0
@@ -72,6 +75,7 @@ class PipelineConfig:
     secure_token: Optional[str] = None
 
     lora_adapters: Optional[Sequence[LoraConfig]] = None
+    control_net: Optional[ControlNetConfig] = None
     checkpoint_config: Optional[CheckpointConfig] = None
   
     def __post_init__(self):
@@ -83,6 +87,11 @@ class PipelineConfig:
             self.checkpoint_config = CheckpointConfig(**self.checkpoint_config)
         elif self.checkpoint_config is None:
             self.checkpoint_config = CheckpointConfig()
+        if (self.control_net is not None and isinstance(self.control_net, dict)):
+            self.control_net = ControlNetConfig(**self.control_net)
+        elif self.control_net is None:
+            self.control_net = ControlNetConfig()
+
 
         model_ckpt = getattr(self.checkpoint_config, "model_checkpoint", None)
         self.is_gguf = (
