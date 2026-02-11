@@ -80,6 +80,12 @@
     <None Include="Pipelines\Flux2Pipeline.py" Pack="false" />
   </ItemGroup>
 
+    <!--Flux2Pipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\Flux2Pipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\Flux2Pipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--Kandinsky5Pipeline-->
   <ItemGroup>
     <Content Include="Pipelines\Kandinsky5Pipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
