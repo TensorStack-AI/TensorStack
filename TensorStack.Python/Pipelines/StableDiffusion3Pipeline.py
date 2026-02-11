@@ -304,7 +304,8 @@ def load_text_encoder(
             config.base_model_path, 
             checkpoint, 
             "text_encoder", 
-            config.data_type
+            config.data_type,
+            config.secure_token
         )
         if text_encoder_checkpoint:
             return text_encoder_checkpoint
@@ -341,7 +342,8 @@ def load_text_encoder_2(
             config.base_model_path, 
             checkpoint, 
             "text_encoder_2", 
-            config.data_type
+            config.data_type,
+            config.secure_token
         )
         if text_encoder_checkpoint:
             return text_encoder_checkpoint
@@ -377,7 +379,8 @@ def load_text_encoder_3(
             config=_pipeline_config["text_encoder_3"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
-            local_files_only=True
+            local_files_only=False,
+            token=config.secure_token,
         )
         Quantization.quantize_model(config, text_encoder)
         return text_encoder
@@ -413,7 +416,8 @@ def load_transformer(
             config=_pipeline_config["transformer"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
-            local_files_only=True,
+            local_files_only=False,
+            token=config.secure_token,
             quantization_config=Quantization.get_single_file_config(config)
         )
         Quantization.quantize_model(config, transformer_checkpoint)
@@ -451,7 +455,8 @@ def load_vae(
             config.base_model_path, 
             checkpoint, 
             "vae", 
-            config.data_type
+            config.data_type,
+            config.secure_token
         )
         if vae_checkpoint:
             return vae_checkpoint

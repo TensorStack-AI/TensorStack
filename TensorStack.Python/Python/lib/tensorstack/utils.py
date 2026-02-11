@@ -160,7 +160,7 @@ def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
         pipeline.set_adapters(names, adapter_weights=weights)
 
 
-def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype):
+def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype, secure_token: str):
     try:
         components = ("scheduler", "tokenizer", "tokenizer_2", "text_encoder", "text_encoder_2", "transformer", "transformer_2", "unet", "vae")
         skip_args = {c: None for c in components if c != component_name}
@@ -169,7 +169,8 @@ def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_pa
             config=base_model_path,
             torch_dtype=data_type, 
             use_safetensors=True,
-            local_files_only=True,
+            local_files_only=False,
+            token=secure_token,
             **skip_args
         )
 
@@ -327,6 +328,9 @@ class ModelDownloadProgress:
             model_progress = sum(x["downloaded"] / max(x["total"], 0.001) for x in current_files) / len(current_files)
 
         scaled_model_progress = int(model_progress * self.total_per_model)
+        if scaled_model_progress <= 0 or filename == "Loading checkpoint shards":
+            return
+
         overall_progress = self.model_index * self.total_per_model + scaled_model_progress
         max_progress = self.total_models * self.total_per_model
 
@@ -359,8 +363,8 @@ class ModelDownloadProgress:
 
                 if model and filename and model == progress_tracker.model_name:
                     progress_tracker.Update(filename, downloaded, total_size, speed)
-                elif model and progress_tracker.model_name == "control_net":
-                    progress_tracker.Update(filename, downloaded, total_size, speed)
+                elif model and progress_tracker.model_name:
+                    progress_tracker.Update(model, downloaded, total_size, speed)
 
             return original_update(self_tqdm, n)
 

@@ -281,7 +281,8 @@ def load_text_encoder(
             config=_pipeline_config["text_encoder"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
-            local_files_only=True
+            local_files_only=False,
+            token=config.secure_token,
         )
         Quantization.quantize_model(config, text_encoder)
         return text_encoder
@@ -316,7 +317,8 @@ def load_transformer(
             config=_pipeline_config["transformer"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
-            local_files_only=True,
+            local_files_only=False,
+            token=config.secure_token,
             quantization_config=Quantization.get_single_file_config(config)
         )
         Quantization.quantize_model(config, transformer)
@@ -352,7 +354,8 @@ def load_vae(
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
-            local_files_only=True
+            local_files_only=False,
+            token=config.secure_token,
         )
     
     return AutoencoderKLQwenImage.from_pretrained(
@@ -388,5 +391,7 @@ def load_control_net(
         _control_net_path, 
         torch_dtype=config.data_type,
         use_safetensors=True,
+        local_files_only=False,
+        token=config.secure_token,
     )
     return _control_net_cache

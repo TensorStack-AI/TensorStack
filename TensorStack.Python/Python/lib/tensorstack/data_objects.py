@@ -185,6 +185,7 @@ class PipelineOptions:
     scheduler: str = "ddim"
     lora_options: Optional[Sequence[LoraOption]] = None 
     scheduler_options: SchedulerOptions = None
+    temp_filename: str = None
 
     def __post_init__(self):
         self.guidance_scale = float(self.guidance_scale)

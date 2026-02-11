@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Text.Json.Serialization;
 using TensorStack.Common;
 
 namespace TensorStack.Python.Config
@@ -28,6 +27,8 @@ namespace TensorStack.Python.Config
             "hf-xet==1.2.0",
             "torchsde==0.2.6",
             "optimum-quanto==0.2.7",
+            "gguf==0.17.1",
+            "av==16.1.0"
         ];
 
 

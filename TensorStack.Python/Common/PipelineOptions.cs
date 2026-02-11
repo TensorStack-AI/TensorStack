@@ -55,6 +55,9 @@ namespace TensorStack.Python.Common
         [JsonPropertyName("lora_options")]
         public List<LoraOptions> LoraOptions { get; set; }
 
+        [JsonPropertyName("temp_filename")]
+        public string TempFileName { get; set; }
+
 
         [JsonIgnore]
         public ImageTensor InputImage
