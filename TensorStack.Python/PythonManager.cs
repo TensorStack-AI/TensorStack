@@ -52,10 +52,12 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="isRebuild">Delete and rebuild the environment</param>
         /// <param name="isReinstall">Delete and rebuild the environment and base Python installation</param>
-        public Task<IPythonEnvironment> CreateAsync(bool isRebuild = false, bool isReinstall = false, IProgress<PipelineProgress> progressCallback = null)
+        public Task<IPythonEnvironment> CreateAsync(EnvironmentMode mode, IProgress<PipelineProgress> progressCallback = null)
         {
             return Task.Run(async () =>
             {
+                var isRebuild = mode == EnvironmentMode.Rebuild;
+                var isReinstall = mode == EnvironmentMode.Reinstall;
                 await DownloadAsync(isReinstall, progressCallback);
                 if (isReinstall || isRebuild)
                     await DeleteAsync();

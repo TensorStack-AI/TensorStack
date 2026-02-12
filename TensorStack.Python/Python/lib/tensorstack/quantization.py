@@ -22,11 +22,12 @@ except Exception:
 
 
 try:
-    from optimum.quanto import freeze, qint8, quantize
+    from optimum.quanto import freeze, qint8, qfloat8, quantize
     _HAS_QUANTO = True
 except Exception:
     freeze = None
     qint8 = None
+    qfloat8 = None
     quantize = None
     _HAS_QUANTO = False
 
@@ -47,6 +48,9 @@ def get_quantize_model_config(dtype: torch.dtype, quant_dtype: torch.dtype, memo
         if quant_dtype == torch.int8:
             print(f"[Quantize] Quantizing model from '{dtype}' to '{quant_dtype}'")
             return DiffusersQuantoConfig(weights_dtype="int8"), TransformersQuantoConfig(weights_dtype="int8")
+        elif quant_dtype == torch.float8_e4m3fn:
+            print(f"[Quantize] Quantizing model from '{dtype}' to '{quant_dtype}'")
+            return DiffusersQuantoConfig(weights_dtype="float8"), TransformersQuantoConfig(weights_dtype="float8")
                 
     return None, None
 
@@ -66,40 +70,16 @@ def quantize_model(config: DataObjects.PipelineConfig, model: Any):
         if config.quant_data_type == torch.int8:
             print(f"[Quantize] Quantizing model from '{model.dtype}' to '{config.quant_data_type}'")
             quantize_(model, Int8WeightOnlyConfig())
+
     elif _HAS_QUANTO:
         if config.quant_data_type == torch.int8:
             print(f"[Quantize] Quantizing model from '{model.dtype}' to '{config.quant_data_type}'")
             quantize(model, weights=qint8)
             freeze(model)
-
-
-def get_quantize_pipeline_config(
-        dtype: torch.dtype, 
-        quant_dtype: torch.dtype,
-        memory_mode: str,
-        diffusers: list[str],
-        transformers: list[str]
-    ):
-    if not is_quantization_supported(dtype, quant_dtype, memory_mode):
-        return None
-
-    quant_mapping = {}
-    if quant_dtype == torch.int8:
-        diffusers_cfg, transformers_cfg = get_quantize_model_config(dtype, quant_dtype, memory_mode)
-        if diffusers_cfg is None and transformers_cfg is None:
-            return None
-
-        for name in diffusers:
-            quant_mapping[name] = diffusers_cfg
-
-        for name in transformers:
-            quant_mapping[name] = transformers_cfg
-
-    if not quant_mapping:
-        return None
-    
-    print(f"[Quantize] Quantizing model from '{dtype}' to '{quant_dtype}'")
-    return PipelineQuantizationConfig(quant_mapping=quant_mapping)
+        elif config.quant_data_type == torch.float8_e4m3fn:
+            print(f"[Quantize] Quantizing model from '{model.dtype}' to '{config.quant_data_type}'")
+            quantize(model, weights=qfloat8)
+            freeze(model)
 
 
 def is_quantization_supported(dtype: torch.dtype, quant_dtype: torch.dtype, memory_mode: str) -> bool:

@@ -7,6 +7,8 @@ def get_data_type(dtype: str):
         return torch.float8_e5m2
     if dtype == "float8_e4m3fn":
         return torch.float8_e4m3fn
+    if dtype == "float8":
+        return torch.float8_e4m3fn
     if dtype == "float16":
         return torch.float16
     if dtype == "bfloat16":

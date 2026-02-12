@@ -216,10 +216,8 @@ def generate(
     # Run Pipeline
     output_video, output_audio = _pipeline(**pipeline_options)
 
-    video = (output_video * 255).round().astype("uint8")
-    video = torch.from_numpy(video)
     encode_video(
-        video[0],
+        output_video.squeeze(),
         fps=options.frame_rate,
         audio=output_audio[0].float().cpu(),
         audio_sample_rate=_pipeline.vocoder.config.output_sampling_rate,  # should be 24000
