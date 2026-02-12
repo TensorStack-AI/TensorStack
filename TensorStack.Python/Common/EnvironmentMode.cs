@@ -3,8 +3,9 @@
     public enum EnvironmentMode
     {
         Create = 0,
-        Update = 1,
-        Rebuild = 2,
-        Reinstall = 3
+        Load = 1,
+        Update = 2,
+        Rebuild = 3,
+        Reinstall = 4
     }
 }

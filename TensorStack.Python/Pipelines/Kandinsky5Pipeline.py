@@ -52,11 +52,23 @@ _pipelineMap = {
 def initialize(config: DataObjects.PipelineConfig):
     global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
 
-    _progress_tracker = Utils.ModelDownloadProgress(total_models=5 if config.control_net.name is not None else 4)
+    _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     _device_map = Utils.get_device_map(config)
     return create_pipeline(config)
+
+
+#------------------------------------------------
+# Download Pipeline
+#------------------------------------------------
+def download(config: DataObjects.PipelineConfig):
+    global _progress_tracker, _pipeline_config
+
+    _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
+    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
+    create_pipeline(config, True)
+    return True
 
 
 #------------------------------------------------
@@ -92,7 +104,7 @@ def reload(config_args: Dict[str, Any]) -> bool:
     # Config
     config = DataObjects.PipelineConfig(**config_args)
     _processType = config.process_type
-    _progress_tracker.Reset(total_models=5 if config.control_net.name is not None else 4)
+    _progress_tracker.Reset(total_models=get_model_count(config))
 
     # Rebuild Pipeline
     _pipeline.unload_lora_weights()
@@ -154,6 +166,13 @@ def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
         _step_latent = np.ascontiguousarray(latents.float().cpu())
 
     return info
+
+
+#------------------------------------------------
+# Get pipeline model count
+#------------------------------------------------
+def get_model_count(config: DataObjects.PipelineConfig):
+    return 5 if config.control_net.name is not None else 4
 
 
 #------------------------------------------------
@@ -222,7 +241,7 @@ def generate(
 #------------------------------------------------
 # Create a new pipeline
 #------------------------------------------------
-def create_pipeline(config: DataObjects.PipelineConfig):
+def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = False):
     global _is_video_pipeline
     pipeline_kwargs = { 
         "variant": config.variant, 
@@ -234,20 +253,23 @@ def create_pipeline(config: DataObjects.PipelineConfig):
         _is_video_pipeline = True
 
     # Load Models
-    text_encoder = load_text_encoder(config, pipeline_kwargs)
-    text_encoder_2 = load_text_encoder_2(config, pipeline_kwargs)
-    transformer = load_transformer(config, pipeline_kwargs)
+    text_encoder = load_text_encoder(config, pipeline_kwargs, download_only)
+    text_encoder_2 = load_text_encoder_2(config, pipeline_kwargs, download_only)
+    transformer = load_transformer(config, pipeline_kwargs, download_only)
     vae = (
-        load_vae_video(config, pipeline_kwargs) 
+        load_vae_video(config, pipeline_kwargs, download_only) 
         if _is_video_pipeline 
-        else load_vae_image(config, pipeline_kwargs)
+        else load_vae_image(config, pipeline_kwargs, download_only)
     )
     # control_net = load_control_net(config, pipeline_kwargs)
     # if control_net is not None:
     #     pipeline_kwargs.update({"controlnet": control_net})
    
-    # Build Pipeline
     _progress_tracker.Clear()
+    if download_only:
+        return None
+
+    # Build Pipeline
     pipeline = _pipelineMap[config.process_type]
     return pipeline.from_pretrained(
         config.base_model_path,
@@ -267,7 +289,8 @@ def create_pipeline(config: DataObjects.PipelineConfig):
 #------------------------------------------------
 def load_text_encoder(
         config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str]
+        pipeline_kwargs: Dict[str, str],
+        download_only: bool
     ):
 
     if _pipeline and _pipeline.text_encoder:
@@ -286,7 +309,9 @@ def load_text_encoder(
             local_files_only=False,
             token=config.secure_token,
         )
-        Quantization.quantize_model(config, text_encoder)
+        
+        if not download_only:
+            Quantization.quantize_model(config, text_encoder)
         return text_encoder
     
     print(f"[Load] Loading TextEncoder")
@@ -305,7 +330,8 @@ def load_text_encoder(
 #------------------------------------------------
 def load_text_encoder_2(
         config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str]
+        pipeline_kwargs: Dict[str, str],
+        download_only: bool
     ):
 
     if _pipeline and _pipeline.text_encoder_2:
@@ -328,7 +354,8 @@ def load_text_encoder_2(
 #------------------------------------------------
 def load_transformer(
         config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str]
+        pipeline_kwargs: Dict[str, str],
+        download_only: bool
     ):
 
     if _pipeline and _pipeline.transformer:
@@ -348,7 +375,9 @@ def load_transformer(
             token=config.secure_token,
             quantization_config=Quantization.get_single_file_config(config)
         )
-        Quantization.quantize_model(config, transformer)
+        
+        if not download_only:
+            Quantization.quantize_model(config, transformer)
         return transformer
     
     print(f"[Load] Loading Transformer")
@@ -367,7 +396,8 @@ def load_transformer(
 #------------------------------------------------
 def load_vae_image(
         config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str]
+        pipeline_kwargs: Dict[str, str],
+        download_only: bool
     ):
 
     if _pipeline and _pipeline.vae:
@@ -402,7 +432,8 @@ def load_vae_image(
 #------------------------------------------------
 def load_vae_video(
         config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str]
+        pipeline_kwargs: Dict[str, str],
+        download_only: bool
     ):
 
     if _pipeline and _pipeline.text_encoder:
@@ -437,7 +468,8 @@ def load_vae_video(
 # #------------------------------------------------
 # def load_control_net(
 #         config: DataObjects.PipelineConfig, 
-#         pipeline_kwargs: Dict[str, str]
+#         pipeline_kwargs: Dict[str, str],
+#         download_only: bool
 #     ):
 #     global _control_net_name, _control_net_cache
 
