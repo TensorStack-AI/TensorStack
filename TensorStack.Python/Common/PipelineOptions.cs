@@ -58,6 +58,15 @@ namespace TensorStack.Python.Common
         [JsonPropertyName("temp_filename")]
         public string TempFileName { get; set; }
 
+        [JsonPropertyName("frame_chunk")]
+        public int FrameChunk { get; set; }
+
+        [JsonPropertyName("frame_chunk_overlap")]
+        public int FrameChunkOverlap { get; set; }
+
+        [JsonPropertyName("noise_condition")]
+        public int NoiseCondition { get; set; }
+
 
         [JsonIgnore]
         public ImageTensor InputImage

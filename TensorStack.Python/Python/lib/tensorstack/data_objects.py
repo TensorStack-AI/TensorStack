@@ -197,6 +197,9 @@ class PipelineOptions:
     lora_options: Optional[Sequence[LoraOption]] = None 
     scheduler_options: SchedulerOptions = None
     temp_filename: str = None
+    frame_chunk: int = 0
+    frame_chunk_overlap: int = 0
+    noise_condition: int = 0
 
     def __post_init__(self):
         self.guidance_scale = float(self.guidance_scale)
@@ -204,6 +207,7 @@ class PipelineOptions:
         self.frame_rate = float(self.frame_rate)
         self.strength = float(self.strength)
         self.control_net_scale = float(self.control_net_scale)
+        self.frame_chunk = self.frames if self.frame_chunk == 0 else self.frame_chunk
         if (self.scheduler_options is not None and isinstance(self.scheduler_options, dict)):
             self.scheduler_options = SchedulerOptions(**self.scheduler_options)
         if (self.lora_options is not None and isinstance(self.lora_options, Sequence)):

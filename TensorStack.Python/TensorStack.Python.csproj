@@ -110,6 +110,12 @@
     <None Include="Pipelines\QwenImagePipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--SkyReelsV2Pipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\SkyReelsV2Pipeline.py" Pack="true" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\SkyReelsV2Pipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--StableDiffusionXLPipeline-->
   <ItemGroup>
     <Content Include="Pipelines\StableDiffusionXLPipeline.py" Pack="true" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
