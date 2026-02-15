@@ -61,6 +61,7 @@ namespace TensorStack.Python.Config
             Environment = "default-cuda",
             Directory = "PythonRuntime",
             Variables = new Dictionary<string, string> {
+                {"CUDA_VISIBLE_DEVICES", "0,1" },
                 {"DIFFUSERS_GGUF_CUDA_KERNELS", "true" }
             },
             Requirements =

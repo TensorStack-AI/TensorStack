@@ -14,7 +14,8 @@ from diffusers import (
     AutoencoderKLWan, 
     WanTransformer3DModel,
     WanPipeline, 
-    WanImageToVideoPipeline
+    WanImageToVideoPipeline,
+    WanVideoToVideoPipeline
 )
 
 # Globals
@@ -37,6 +38,7 @@ _cancel_event = Event()
 _pipelineMap = {
     "TextToVideo": WanPipeline,
     "ImageToVideo": WanImageToVideoPipeline,
+    "VideoToVideo": WanVideoToVideoPipeline
 }
 
 #------------------------------------------------
@@ -72,6 +74,8 @@ def load(config_args: Dict[str, Any]) -> bool:
 
     # Config
     config = DataObjects.PipelineConfig(**config_args)
+    _execution_device = Utils.get_execution_device(config.device, config.device_id, config.device_bus_id)
+    _generator = torch.Generator(device=_execution_device)
     _processType = config.process_type
 
     # Initialize Pipeline
@@ -81,8 +85,6 @@ def load(config_args: Dict[str, Any]) -> bool:
     Utils.load_lora_weights(_pipeline, config)
 
     # Memory
-    _execution_device = torch.device(f"{config.device}:{config.device_id}")
-    _generator = torch.Generator(device=_execution_device)
     _isMemoryOffload = Utils.configure_pipeline_memory(_pipeline, _execution_device, config)
     Utils.trim_memory(_isMemoryOffload)
     return True
@@ -192,8 +194,9 @@ def generate(
     Utils.set_lora_weights(_pipeline, options)
 
     # Input Images
-    image = Utils.prepare_images(input_tensors)
-    control_image = Utils.prepare_images(control_tensors)
+    images = Utils.prepare_images(input_tensors)
+    control_images = Utils.prepare_images(control_tensors)
+    print(f"[generate] Input Received - Tensors: {Utils.get_len(images)}, Control Tensors: {Utils.get_len(control_images)}")
 
     # Prompt Cache
     # No caching implemented
@@ -207,13 +210,16 @@ def generate(
         "generator": _generator.manual_seed(options.seed),
         "guidance_scale": options.guidance_scale,
         "num_inference_steps": options.steps,
-        "num_frames": options.frames,
         "output_type": "np",
         "callback_on_step_end": _progress_callback,
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
+    if _processType in ("TextToVideo", "ImageToVideo"):
+        pipeline_options.update({ "num_frames": options.frames })
     if _processType == "ImageToVideo":
-        pipeline_options.update({ "image": image })
+        pipeline_options.update({ "image": images })
+    if _processType == "VideoToVideo":
+        pipeline_options.update({ "video": images, "strength": options.strength })
 
     # Run Pipeline
     output = _pipeline(**pipeline_options)[0]
@@ -375,7 +381,7 @@ def load_vae(
     return AutoencoderKLWan.from_pretrained(
         config.base_model_path, 
         subfolder="vae", 
-        torch_dtype=config.data_type, 
+        torch_dtype=torch.float32, 
         use_safetensors=True,
         **pipeline_kwargs
     )

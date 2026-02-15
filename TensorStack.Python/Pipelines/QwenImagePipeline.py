@@ -80,6 +80,8 @@ def load(config_args: Dict[str, Any]) -> bool:
 
     # Config
     config = DataObjects.PipelineConfig(**config_args)
+    _execution_device = Utils.get_execution_device(config.device, config.device_id, config.device_bus_id)
+    _generator = torch.Generator(device=_execution_device)
     _processType = config.process_type
 
     # Initialize Pipeline
@@ -89,8 +91,6 @@ def load(config_args: Dict[str, Any]) -> bool:
     Utils.load_lora_weights(_pipeline, config)
 
     # Memory
-    _execution_device = torch.device(f"{config.device}:{config.device_id}")
-    _generator = torch.Generator(device=_execution_device)
     _isMemoryOffload = Utils.configure_pipeline_memory(_pipeline, _execution_device, config)
     Utils.trim_memory(_isMemoryOffload)
     return True
@@ -198,8 +198,9 @@ def generate(
     Utils.set_lora_weights(_pipeline, options)
 
     # Input Images
-    image = Utils.prepare_images(input_tensors)
-    control_image = Utils.prepare_images(control_tensors)
+    images = Utils.prepare_images(input_tensors)
+    control_images = Utils.prepare_images(control_tensors)
+    print(f"[generate] Input Received - Tensors: {Utils.get_len(images)}, Control Tensors: {Utils.get_len(control_images)}")
 
     # Prompt Cache
     # No caching implemented
@@ -219,21 +220,21 @@ def generate(
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
     if _processType in ("ImageToImage"):
-        pipeline_options.update({ "image": image })
+        pipeline_options.update({ "image": images })
 
     if _processType == "ImageToImage":
         pipeline_options.update({ "strength": options.strength })
 
     if _processType == "ImageInpaint":
-        pipeline_options.update({ "image": image[0], "mask_image": image[1], "strength": options.strength})
+        pipeline_options.update({ "image": images[0], "mask_image": images[1], "strength": options.strength})
 
     if _processType in ("ImageToImage", "ImageEdit"):
-        pipeline_options.update({ "image": image,  "num_images_per_prompt": 1 })
+        pipeline_options.update({ "image": images,  "num_images_per_prompt": 1 })
 
     if _processType == "ControlNetImage":
         pipeline_options.update({
             "controlnet_conditioning_scale": options.control_net_scale,
-            "control_image": control_image
+            "control_image": control_images
         })
 
     # Run Pipeline

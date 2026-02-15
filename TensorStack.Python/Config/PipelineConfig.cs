@@ -21,6 +21,9 @@ namespace TensorStack.Python.Config
         [JsonPropertyName("device_id")]
         public int DeviceId { get; set; }
 
+        [JsonPropertyName("device_bus_id")]
+        public int DeviceBusId { get; set; }
+
         [JsonPropertyName("data_type")]
         public DataType DataType { get; set; } = DataType.Bfloat16;
 

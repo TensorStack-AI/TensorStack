@@ -114,6 +114,33 @@ def configure_pipeline_memory(
     return config.memory_mode in ("OffloadCPU", "OffloadModel", "LowMemOffloadModel")
 
 
+def get_execution_device(device: str, device_id: int, device_bus_id: int):
+    device_props = None
+    device_index = None
+    execution_device = None
+    num_devices = torch.cuda.device_count()
+    for i in range(num_devices):
+        props = torch.cuda.get_device_properties(i)
+        print(f"[Load] Found Device - Name: {props.name}, Index: {i}, PCIBusId: {props.pci_bus_id}, Arch: {getattr(props, 'gcnArchName', 'N/A')}")
+
+        # Priority 1: Match by PCI Bus ID
+        if device_bus_id > 0 and props.pci_bus_id == device_bus_id:
+            device_index = i
+            device_props = props
+
+        # Priority 2: Fallback to Index if Bus ID is 0 or unavailabl
+        elif device_bus_id <= 0 and i == device_id:
+            device_index = i
+            device_props = props
+
+    if device_props is not None:
+        execution_device = f"{device}:{device_index}"
+        print(f"[Load] Selected Device - Name: {device_props.name}, Index: {device_index},  PCIBusId: {device_props.pci_bus_id}, Arch: {getattr(device_props, 'gcnArchName', 'N/A')}, ExecutionDevice: {execution_device}")
+        return execution_device
+
+    raise ValueError(f"Selected Device Not Found - Device: {device}, DeviceId: {device_id}, PCIBusId: {device_bus_id}")
+
+
 def get_device_map(config: DataObjects.PipelineConfig):
     return "balanced" if config.memory_mode == "MultiDevice" else None
 
@@ -240,6 +267,14 @@ def trim_memory(isMemoryOffload: bool):
 
 def isSingleFile(modelPath: str):
     return modelPath.lower().endswith((".safetensors", ".gguf"))
+
+
+def get_len(obj):
+    if obj is None:
+        return 0
+    if hasattr(obj, '__len__'):
+        return len(obj)
+    return 1
 
 
 class MemoryStdout:

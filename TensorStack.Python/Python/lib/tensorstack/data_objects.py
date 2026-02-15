@@ -67,6 +67,7 @@ class PipelineConfig:
     # Device
     device: str = "cuda"
     device_id: int = 0
+    device_bus_id: int = 0
 
     data_type: Union[str, torch.dtype] = "bfloat16"
     quant_data_type: Union[str, torch.dtype] = "bfloat16"

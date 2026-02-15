@@ -75,6 +75,8 @@ def load(config_args: Dict[str, Any]) -> bool:
 
     # Config
     config = DataObjects.PipelineConfig(**config_args)
+    _execution_device = Utils.get_execution_device(config.device, config.device_id, config.device_bus_id)
+    _generator = torch.Generator(device=_execution_device)
     _processType = config.process_type
 
     # Initialize Pipeline
@@ -84,8 +86,6 @@ def load(config_args: Dict[str, Any]) -> bool:
     Utils.load_lora_weights(_pipeline, config)
 
     # Memory
-    _execution_device = torch.device(f"{config.device}:{config.device_id}")
-    _generator = torch.Generator(device=_execution_device)
     _isMemoryOffload = Utils.configure_pipeline_memory(_pipeline, _execution_device, config)
     Utils.trim_memory(_isMemoryOffload)
     return True
@@ -193,8 +193,9 @@ def generate(
     Utils.set_lora_weights(_pipeline, options)
 
     # Input Images
-    image = Utils.prepare_images(input_tensors)
-    control_image = Utils.prepare_images(control_tensors)
+    images = Utils.prepare_images(input_tensors)
+    control_images = Utils.prepare_images(control_tensors)
+    print(f"[generate] Input Received - Tensors: {Utils.get_len(images)}, Control Tensors: {Utils.get_len(control_images)}")
 
     # Prompt Cache
     prompt_cache_key = (options.prompt, options.negative_prompt,)
@@ -227,7 +228,7 @@ def generate(
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
     if _processType == "ImageToVideo":
-        pipeline_options.update({ "image": image, "use_dynamic_cfg": True })
+        pipeline_options.update({ "image": images, "use_dynamic_cfg": True })
 
     # Run Pipeline
     output = _pipeline(**pipeline_options)[0]
