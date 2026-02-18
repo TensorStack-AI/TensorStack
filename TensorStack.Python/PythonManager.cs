@@ -27,7 +27,7 @@ namespace TensorStack.Python
         /// Initializes a new instance of the <see cref="PythonManager"/> class.
         /// </summary>
         /// <param name="config">The configuration.</param>
-        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="baseDirectory">The base directory.</param>
         /// <param name="logger">The logger.</param>
         public PythonManager(EnvironmentConfig config, string baseDirectory, ILogger logger = default)
         {
@@ -41,6 +41,19 @@ namespace TensorStack.Python
         }
 
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PythonManager"/> class.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="logger">The logger.</param>
+        public PythonManager(EnvironmentConfig config, ILogger logger = default)
+            : this(config, AppDomain.CurrentDomain.BaseDirectory, logger) { }
+
+
+        /// <summary>
+        /// Load an existing environment.
+        /// </summary>
+        /// <param name="progressCallback">The progress callback.</param>
         public async Task<IPythonEnvironment> LoadAsync(IProgress<PipelineProgress> progressCallback = null)
         {
             return await LoadInternalAsync(progressCallback);
@@ -49,6 +62,7 @@ namespace TensorStack.Python
 
         /// <summary>
         /// Creates the Python Virtual Environment.
+        /// If the environment already exists it is loaded after package manager is run (update)
         /// </summary>
         /// <param name="isRebuild">Delete and rebuild the environment</param>
         /// <param name="isReinstall">Delete and rebuild the environment and base Python installation</param>

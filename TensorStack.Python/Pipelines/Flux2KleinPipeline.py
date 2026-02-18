@@ -24,6 +24,7 @@ _quant_config_diffusers = None
 _quant_config_transformers = None
 _execution_device = None
 _device_map = None
+_pipeline_device_map = None
 _control_net_name = None
 _control_net_cache = None
 _step_latent = None
@@ -44,12 +45,13 @@ _pipelineMap = {
 # Initialize Pipeline
 #------------------------------------------------
 def initialize(config: DataObjects.PipelineConfig):
-    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
+    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map, _pipeline_device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
-    _device_map = Utils.get_device_map(config)
+    _device_map = Utils.get_device_map(config, _execution_device)
+    _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
     return create_pipeline(config)
 
 
@@ -272,8 +274,9 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
         transformer=transformer, 
         vae=vae, 
         torch_dtype=config.data_type,
-        device_map=_device_map,
+        device_map=_pipeline_device_map,
         local_files_only=True,
+        low_cpu_mem_usage=True, 
         **pipeline_kwargs
     )
 
@@ -292,14 +295,17 @@ def load_text_encoder(
         return _pipeline.text_encoder
 
     _progress_tracker.Initialize(0, "text_encoder")
+    text_encoder_config = _pipeline_config["text_encoder"]
     checkpoint = config.checkpoint_config.text_encoder_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint TextEncoder")
         text_encoder = Qwen3ForCausalLM.from_single_file(
             checkpoint, 
-            config=_pipeline_config["text_encoder"],
+            config=text_encoder_config,
             torch_dtype=config.data_type, 
             use_safetensors=True, 
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
@@ -308,13 +314,19 @@ def load_text_encoder(
             Quantization.quantize_model(config, text_encoder)
         return text_encoder
     
-    print(f"[Load] Loading TextEncoder")
+    text_encoder_json = Utils.load_json(text_encoder_config)
+    text_encoder_subfolder = "Qwen-3-8B" if text_encoder_json["hidden_size"] == 4096 else "Qwen-3-4B"
+    
+    print(f"[Load] Loading TextEncoder ({text_encoder_subfolder})")
     return Qwen3ForCausalLM.from_pretrained(
-        config.base_model_path, 
-        subfolder="text_encoder",
+        "TensorStack/TextEncoder", 
+        subfolder=text_encoder_subfolder,
+        config=text_encoder_config,
         torch_dtype=config.data_type, 
         quantization_config=_quant_config_transformers, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -341,6 +353,8 @@ def load_transformer(
             config=_pipeline_config["transformer"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
             quantization_config=Quantization.get_single_file_config(config)
@@ -357,6 +371,8 @@ def load_transformer(
         torch_dtype=config.data_type, 
         quantization_config=_quant_config_diffusers, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -383,16 +399,20 @@ def load_vae(
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
     
     print(f"[Load] Loading Vae")
     return AutoencoderKLFlux2.from_pretrained(
-        config.base_model_path, 
-        subfolder="vae", 
+        "TensorStack/AutoEncoder", 
+        subfolder="Flux2",
         torch_dtype=config.data_type, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -423,5 +443,7 @@ def load_vae(
 #         config.control_net.path, 
 #         torch_dtype=config.data_type,
 #         use_safetensors=True,
+#         low_cpu_mem_usage=True, 
+#         device_map=_device_map,
 #     )
 #     return _control_net_cache

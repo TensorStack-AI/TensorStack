@@ -1,4 +1,5 @@
 import os
+import json
 import gc
 import sys
 import ctypes
@@ -12,7 +13,7 @@ from tqdm import tqdm
 import tensorstack.data_objects as DataObjects
 from PIL import Image
 from dataclasses import asdict
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, snapshot_download
 from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
 from transformers import (
     AutoConfig
@@ -119,6 +120,7 @@ def get_execution_device(device: str, device_id: int, device_bus_id: int):
     device_index = None
     execution_device = None
     num_devices = torch.cuda.device_count()
+    print(f"[Load] Request Device - Device: {device}, DeviceId: {device_id}, PCIBusId: {device_bus_id}")
     for i in range(num_devices):
         props = torch.cuda.get_device_properties(i)
         print(f"[Load] Found Device - Name: {props.name}, Index: {i}, PCIBusId: {props.pci_bus_id}, Arch: {getattr(props, 'gcnArchName', 'N/A')}")
@@ -135,14 +137,22 @@ def get_execution_device(device: str, device_id: int, device_bus_id: int):
 
     if device_props is not None:
         execution_device = f"{device}:{device_index}"
-        print(f"[Load] Selected Device - Name: {device_props.name}, Index: {device_index},  PCIBusId: {device_props.pci_bus_id}, Arch: {getattr(device_props, 'gcnArchName', 'N/A')}, ExecutionDevice: {execution_device}")
+        print(f"[Load] Selected Device - Name: {device_props.name}, Index: {device_index}, PCIBusId: {device_props.pci_bus_id}, Arch: {getattr(device_props, 'gcnArchName', 'N/A')}, ExecutionDevice: {execution_device}")
         return execution_device
 
     raise ValueError(f"Selected Device Not Found - Device: {device}, DeviceId: {device_id}, PCIBusId: {device_bus_id}")
 
 
-def get_device_map(config: DataObjects.PipelineConfig):
-    return "balanced" if config.memory_mode == "MultiDevice" else None
+def get_device_map(config: DataObjects.PipelineConfig, execution_device: str):
+    if config.memory_mode == "MultiDevice":
+        return "cuda"
+    return None
+
+
+def get_pipeline_device_map(config: DataObjects.PipelineConfig, execution_device: str):
+    if config.memory_mode == "MultiDevice":
+        return "balanced"
+    return None
 
 
 def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict[str, Optional[str]]:
@@ -150,10 +160,9 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
     Download all known pipeline component configs for a repo and return their local paths.
     Components not present will have value None.
     """
-
     config_paths: Dict[str, Optional[str]] = {}
-    components = ["text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "controlnet", "scheduler"]
-    DiffusionPipeline.from_pretrained(repo_id, text_encoder=None, text_encoder_2=None, unet=None, vae=None, transformer=None, torch_dtype=None, cache_dir=cache_dir, token=secure_token)
+    components = ["text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "vocoder", "audio_vae", "connectors", "scheduler"]
+    DiffusionPipeline.from_pretrained(repo_id, text_encoder=None, text_encoder_2=None, text_encoder_3=None, transformer=None, transformer_2=None, unet=None, vae=None, vocoder=None, audio_vae=None, connectors=None, torch_dtype=None, cache_dir=cache_dir, token=secure_token)
     for comp in components:
         try:
             # All components: attempt to download config.json from the subfolder
@@ -166,6 +175,14 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
         except Exception:
             config_paths[comp] = None
 
+    # Any Extra files
+    allow_patterns = ["**/*.json", "*.json", "*.txt", "**/*.txt", "**/*.model"]
+    snapshot_download(
+        repo_id,
+        cache_dir=cache_dir,
+        token=secure_token,
+        allow_patterns=allow_patterns,
+    )
     return config_paths
 
 
@@ -190,15 +207,17 @@ def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
         pipeline.set_adapters(names, adapter_weights=weights)
 
 
-def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype, secure_token: str):
+def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype, secure_token: str, device_map: Any):
     try:
-        components = ("scheduler", "tokenizer", "tokenizer_2", "text_encoder", "text_encoder_2", "transformer", "transformer_2", "unet", "vae")
+        components = ("scheduler", "tokenizer", "tokenizer_2","tokenizer_3", "text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "audio_vae", "vocoder", "connectors")
         skip_args = {c: None for c in components if c != component_name}
         pipe = pipeline.from_single_file(
             model_path,
             config=base_model_path,
             torch_dtype=data_type, 
             use_safetensors=True,
+            low_cpu_mem_usage=True, 
+            device_map=device_map,
             local_files_only=False,
             token=secure_token,
             **skip_args
@@ -209,6 +228,26 @@ def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_pa
     except Exception:
         return None
     
+
+def load_json(file_path):
+    """
+    Safely loads a JSON file and returns a dictionary.
+    Returns None or an empty dict if the file is missing or invalid.
+    """
+    if not os.path.exists(file_path):
+        print(f"Error: The file '{file_path}' does not exist.")
+        return {}
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to decode JSON. {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+    
+    return {}
+
 
 def imageFromInput(
     inputData: Optional[Sequence[float]],
@@ -328,15 +367,15 @@ class ModelDownloadProgress:
             if fn.startswith(model_name):
                 del self.download_stats[fn]
 
-    def Update(self, filename: str, downloaded: float, total: float, speed: float):
+    def Update(self, key: str, filename: str, downloaded: float, total: float, speed: float):
         """Update a file's progress (MB)."""
-        self.download_stats[filename] = {
+        self.download_stats[key] = {
             "downloaded": downloaded, 
             "total": total, 
             "speed": speed, 
             "model": self.model_name 
         }
-        self._print_progress(filename)
+        self._print_progress(key, filename)
 
 
     def Clear(self):
@@ -356,7 +395,7 @@ class ModelDownloadProgress:
     # --------------------
     # Internal Methods
     # --------------------
-    def _print_progress(self, filename: str):
+    def _print_progress(self, key:str, filename: str):
         current_files = [x for x in self.download_stats.values() if x["model"] == self.model_name]
         if not current_files:
             avg_speed = 0.0
@@ -397,12 +436,14 @@ class ModelDownloadProgress:
                 )
 
                 # Extract model and filename
-                model, filename = (self_tqdm.desc.split("/", 1) + [None])[:2]
+                #model, filename = (self_tqdm.desc.split("/", 1) + [None])[:2]
+                model, *filename = self_tqdm.desc.split("/", 1)
+                filename = filename[0] if filename else None
 
                 if model and filename and model == progress_tracker.model_name:
-                    progress_tracker.Update(filename, downloaded, total_size, speed)
+                    progress_tracker.Update(self_tqdm.desc, filename, downloaded, total_size, speed)
                 elif model and progress_tracker.model_name:
-                    progress_tracker.Update(model, downloaded, total_size, speed)
+                    progress_tracker.Update(self_tqdm.desc, model, downloaded, total_size, speed)
 
             return original_update(self_tqdm, n)
 

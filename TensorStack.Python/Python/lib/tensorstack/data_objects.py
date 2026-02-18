@@ -21,8 +21,6 @@ def get_data_type(dtype: str):
         return torch.int32
     if dtype == "int64":
         return torch.int64
-    if dtype == "float8":
-        return torch.float8_e4m3fn
     return torch.float
 
 

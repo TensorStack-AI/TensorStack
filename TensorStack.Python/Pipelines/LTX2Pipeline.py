@@ -17,6 +17,8 @@ from diffusers import (
     LTX2Pipeline,
     LTX2ImageToVideoPipeline
 )
+from diffusers.pipelines.ltx2.vocoder import LTX2Vocoder
+from diffusers.pipelines.ltx2.connectors import LTX2TextConnectors
 from diffusers.pipelines.ltx2.export_utils import encode_video
 
 # Globals
@@ -27,6 +29,7 @@ _quant_config_diffusers = None
 _quant_config_transformers = None
 _execution_device = None
 _device_map = None
+_pipeline_device_map = None
 _control_net_name = None
 _control_net_cache = None
 _step_latent = None
@@ -46,12 +49,13 @@ _pipelineMap = {
 # Initialize Pipeline
 #------------------------------------------------
 def initialize(config: DataObjects.PipelineConfig):
-    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
+    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map, _pipeline_device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
-    _device_map = Utils.get_device_map(config)
+    _device_map = Utils.get_device_map(config, _execution_device)
+    _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
     return create_pipeline(config)
 
 
@@ -168,7 +172,7 @@ def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
 # Get pipeline model count
 #------------------------------------------------
 def get_model_count(config: DataObjects.PipelineConfig):
-    return 4 if config.control_net.name is not None else 3
+    return 6 if config.control_net.name is not None else 5
 
 
 #------------------------------------------------
@@ -273,6 +277,8 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
     transformer = load_transformer(config, pipeline_kwargs, download_only)
     vae = load_vae_video(config, pipeline_kwargs, download_only)
     audio_vae = load_vae_audio(config, pipeline_kwargs, download_only)
+    vocoder = load_vocoder(config, pipeline_kwargs, download_only)
+    connectors = load_connectors(config, pipeline_kwargs, download_only)
     # control_net = load_control_net(config, pipeline_kwargs, download_only)
     # if control_net is not None:
     #     pipeline_kwargs.update({"controlnet": control_net})
@@ -289,9 +295,12 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
         transformer=transformer, 
         vae=vae, 
         audio_vae=audio_vae,
+        vocoder=vocoder,
+        connectors=connectors,
         torch_dtype=config.data_type,
-        device_map=_device_map,
+        device_map=_pipeline_device_map,
         local_files_only=True,
+        low_cpu_mem_usage=True,
         **pipeline_kwargs
     )
 
@@ -318,6 +327,8 @@ def load_text_encoder(
             config=_pipeline_config["text_encoder"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
@@ -328,11 +339,14 @@ def load_text_encoder(
     
     print(f"[Load] Loading TextEncoder")
     return Gemma3ForConditionalGeneration.from_pretrained(
-        config.base_model_path, 
-        subfolder="text_encoder",
+        "TensorStack/TextEncoder", 
+        subfolder="Gemma-3-12B-IT",
+        config=_pipeline_config["text_encoder"],
         torch_dtype=config.data_type, 
         quantization_config=_quant_config_transformers, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -359,6 +373,8 @@ def load_transformer(
             config=_pipeline_config["transformer"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
             quantization_config=Quantization.get_single_file_config(config)
@@ -375,6 +391,8 @@ def load_transformer(
         torch_dtype=config.data_type, 
         quantization_config=_quant_config_diffusers, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -401,16 +419,20 @@ def load_vae_video(
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
     
     print(f"[Load] Loading Vae Video")
     return AutoencoderKLLTX2Video.from_pretrained(
-        config.base_model_path, 
-        subfolder="vae", 
+        "TensorStack/AutoEncoder", 
+        subfolder="LTX2",
         torch_dtype=config.data_type, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -437,6 +459,8 @@ def load_vae_audio(
             config=_pipeline_config["audio_vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
@@ -447,9 +471,94 @@ def load_vae_audio(
         subfolder="audio_vae", 
         torch_dtype=config.data_type, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
+
+#------------------------------------------------
+# Load Vocoder
+#------------------------------------------------
+def load_vocoder(
+        config: DataObjects.PipelineConfig, 
+        pipeline_kwargs: Dict[str, str],
+        download_only: bool
+    ):
+
+    if _pipeline and _pipeline.vocoder:
+        print(f"[Load] Loading cached Vocoder")
+        return _pipeline.vocoder
+
+    _progress_tracker.Initialize(4, "vocoder")
+    checkpoint = config.checkpoint_config.model_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Vocoder")
+        vocoder_checkpoint = Utils.load_component(
+            LTX2Pipeline, 
+            config.base_model_path, 
+            checkpoint, 
+            "vocoder", 
+            config.data_type,
+            config.secure_token,
+            _device_map
+        )
+        if vocoder_checkpoint:
+            return vocoder_checkpoint
+
+    
+    print(f"[Load] Loading Vocoder")
+    return LTX2Vocoder.from_pretrained(
+        config.base_model_path, 
+        subfolder="vocoder", 
+        torch_dtype=config.data_type, 
+        use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
+        **pipeline_kwargs
+    )
+
+
+#------------------------------------------------
+# Load Connectors
+#------------------------------------------------
+def load_connectors(
+        config: DataObjects.PipelineConfig, 
+        pipeline_kwargs: Dict[str, str],
+        download_only: bool
+    ):
+
+    if _pipeline and _pipeline.connectors:
+        print(f"[Load] Loading cached Connectors")
+        return _pipeline.connectors
+
+    _progress_tracker.Initialize(5, "connectors")
+    checkpoint = config.checkpoint_config.model_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Connectors")
+        connectors_checkpoint = Utils.load_component(
+            LTX2Pipeline, 
+            config.base_model_path, 
+            checkpoint, 
+            "connectors", 
+            config.data_type,
+            config.secure_token,
+            _device_map
+        )
+        if connectors_checkpoint:
+            return connectors_checkpoint
+
+    
+    print(f"[Load] Loading Connectors")
+    return LTX2TextConnectors.from_pretrained(
+        config.base_model_path, 
+        subfolder="connectors", 
+        torch_dtype=config.data_type, 
+        use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
+        **pipeline_kwargs
+    )
 
 # #------------------------------------------------
 # # Load ControlNetModel
@@ -476,5 +585,7 @@ def load_vae_audio(
 #         config.control_net.path, 
 #         torch_dtype=config.data_type,
 #         use_safetensors=True,
+#         low_cpu_mem_usage=True, 
+#         device_map=_device_map,
 #     )
 #     return _control_net_cache

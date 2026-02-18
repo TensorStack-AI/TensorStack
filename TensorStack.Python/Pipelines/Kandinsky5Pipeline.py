@@ -28,6 +28,7 @@ _quant_config_diffusers = None
 _quant_config_transformers = None
 _execution_device = None
 _device_map = None
+_pipeline_device_map = None
 _control_net_name = None
 _control_net_cache = None
 _step_latent = None
@@ -50,12 +51,13 @@ _pipelineMap = {
 # Initialize Pipeline
 #------------------------------------------------
 def initialize(config: DataObjects.PipelineConfig):
-    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map
+    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map, _pipeline_device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
-    _device_map = Utils.get_device_map(config)
+    _device_map = Utils.get_device_map(config, _execution_device)
+    _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
     return create_pipeline(config)
 
 
@@ -279,8 +281,9 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
         transformer=transformer, 
         vae=vae, 
         torch_dtype=config.data_type,
-        device_map=_device_map,
+        device_map=_pipeline_device_map,
         local_files_only=True,
+        low_cpu_mem_usage=True, 
         **pipeline_kwargs
     )
 
@@ -307,6 +310,8 @@ def load_text_encoder(
             config=_pipeline_config["text_encoder"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
@@ -317,11 +322,14 @@ def load_text_encoder(
     
     print(f"[Load] Loading TextEncoder")
     return Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        config.base_model_path, 
-        subfolder="text_encoder",
+        "TensorStack/TextEncoder", 
+        subfolder="Qwen-2.5-VL-7B",
+        config=_pipeline_config["text_encoder"],
         torch_dtype=config.data_type, 
         quantization_config=_quant_config_transformers, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -342,10 +350,13 @@ def load_text_encoder_2(
     print(f"[Load] Loading TextEncoder2")
     _progress_tracker.Initialize(1, "text_encoder_2")
     return CLIPTextModel.from_pretrained(
-        config.base_model_path, 
-        subfolder="text_encoder_2", 
+        "TensorStack/TextEncoder", 
+        subfolder="CLIP-VIT-L", 
+        config=_pipeline_config["text_encoder_2"],
         torch_dtype=config.data_type, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -372,6 +383,8 @@ def load_transformer(
             config=_pipeline_config["transformer"],
             torch_dtype=config.data_type, 
             use_safetensors=True, 
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
             quantization_config=Quantization.get_single_file_config(config)
@@ -388,6 +401,8 @@ def load_transformer(
         torch_dtype=config.data_type, 
         quantization_config=_quant_config_diffusers, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -414,16 +429,21 @@ def load_vae_image(
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
     
     print(f"[Load] Loading Vae")
     return AutoencoderKL.from_pretrained(
-        config.base_model_path, 
-        subfolder="vae", 
+        "TensorStack/AutoEncoder", 
+        subfolder="Kandinsky5Image",
+        config=_pipeline_config["vae"],
         torch_dtype=config.data_type, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -450,16 +470,20 @@ def load_vae_video(
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
             use_safetensors=True,
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
     
     print(f"[Load] Loading Vae")
     return AutoencoderKLHunyuanVideo.from_pretrained(
-        config.base_model_path, 
-        subfolder="vae", 
+        "TensorStack/AutoEncoder", 
+        subfolder="Kandinsky5Video",
         torch_dtype=config.data_type, 
         use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
         **pipeline_kwargs
     )
 
@@ -490,5 +514,7 @@ def load_vae_video(
 #         config.control_net.path, 
 #         torch_dtype=config.data_type,
 #         use_safetensors=True,
+#         low_cpu_mem_usage=True, 
+#         device_map=_device_map,
 #     )
 #     return _control_net_cache
