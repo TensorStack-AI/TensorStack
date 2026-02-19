@@ -81,7 +81,7 @@ def load(config_args: Dict[str, Any]) -> bool:
 
     # Config
     config = DataObjects.PipelineConfig(**config_args)
-    _execution_device = Utils.get_execution_device(config.device, config.device_id, config.device_bus_id)
+    _execution_device = Utils.get_execution_device(config)
     _generator = torch.Generator(device=_execution_device)
     _processType = config.process_type
 
@@ -439,7 +439,6 @@ def load_vae_image(
     return AutoencoderKL.from_pretrained(
         "TensorStack/AutoEncoder", 
         subfolder="Kandinsky5Image",
-        config=_pipeline_config["vae"],
         torch_dtype=config.data_type, 
         use_safetensors=True,
         low_cpu_mem_usage=True, 

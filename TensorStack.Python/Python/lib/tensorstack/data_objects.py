@@ -69,6 +69,9 @@ class PipelineConfig:
 
     data_type: Union[str, torch.dtype] = "bfloat16"
     quant_data_type: Union[str, torch.dtype] = "bfloat16"
+    
+    is_optimize_device_enabled: bool = False
+    is_optimize_channels_enabled: bool = False
 
     # HF / loading
     variant: Optional[str] = None

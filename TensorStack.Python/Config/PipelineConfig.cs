@@ -30,6 +30,12 @@ namespace TensorStack.Python.Config
         [JsonPropertyName("quant_data_type")]
         public DataType QuantDataType { get; set; } = DataType.Bfloat16;
 
+        [JsonPropertyName("is_optimize_device_enabled")]
+        public bool IsOptimizeDeviceEnabled { get; set; } = false;
+
+        [JsonPropertyName("is_optimize_channels_enabled")]
+        public bool IsOptimizeChannelsEnabled { get; set; } = false;
+
         [JsonPropertyName("variant")]
         public string Variant { get; set; }
 

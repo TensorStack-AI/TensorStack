@@ -82,7 +82,7 @@ def load(config_args: Dict[str, Any]) -> bool:
 
     # Config
     config = DataObjects.PipelineConfig(**config_args)
-    _execution_device = Utils.get_execution_device(config.device, config.device_id, config.device_bus_id)
+    _execution_device = Utils.get_execution_device(config)
     _generator = torch.Generator(device=_execution_device)
     _processType = config.process_type
 

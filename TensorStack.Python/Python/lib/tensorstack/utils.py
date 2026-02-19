@@ -5,22 +5,15 @@ import sys
 import ctypes
 import ctypes.wintypes
 import torch
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
 import threading
-import numpy as np
 from tqdm import tqdm
 import tensorstack.data_objects as DataObjects
 from PIL import Image
 from dataclasses import asdict
 from huggingface_hub import hf_hub_download, snapshot_download
 from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
-from transformers import (
-    AutoConfig
-)
 from diffusers.loaders import FromSingleFileMixin
 from diffusers import (
-    DiffusionPipeline, 
     DDIMScheduler,
     DDPMScheduler,
     LMSDiscreteScheduler,
@@ -78,6 +71,9 @@ _SCHEDULER_MAP = {
 }
 
 
+#------------------------------------------------
+# CCreate a scheduler with the specifed options and configuration
+#------------------------------------------------
 def create_scheduler(
     scheduler_name: str,
     scheduler_options: DataObjects.SchedulerOptions,
@@ -90,18 +86,24 @@ def create_scheduler(
     return scheduler_cls.from_config(config)
 
 
+#------------------------------------------------
+# Configure pipeline RAM/VRAM offloading
+#------------------------------------------------
 def configure_pipeline_memory(
     pipeline: Any,
     execution_device: str,
     config: DataObjects.PipelineConfig,
 ) -> bool:
-    
+
     if config.memory_mode in("OffloadCPU", "LowMemDevice", "LowMemOffloadModel"):
         vae = getattr(pipeline, "vae", None)
         if callable(getattr(vae, "enable_tiling", None)):
             vae.enable_tiling()
         if callable(getattr(vae, "enable_slicing", None)):
             vae.enable_slicing()
+
+    if config.memory_mode != "MultiDevice":
+        optimize_pipeline(pipeline, config)
 
     if config.memory_mode in("Device", "LowMemDevice"):
         pipeline.to(execution_device)
@@ -115,55 +117,159 @@ def configure_pipeline_memory(
     return config.memory_mode in ("OffloadCPU", "OffloadModel", "LowMemOffloadModel")
 
 
-def get_execution_device(device: str, device_id: int, device_bus_id: int):
+#------------------------------------------------
+# Configure pipeline memory format NCHW or NHWC
+#------------------------------------------------
+def optimize_pipeline(pipeline: Any, config: DataObjects.PipelineConfig):
+    if not config.is_optimize_channels_enabled:
+        print(f"[Load] Optimize Channels Last: disabled")
+        return
+
+    if hasattr(pipeline, "unet"):
+        print(f"[Load] Optimize Channels Last: channels_last")
+        pipeline.vae.to(memory_format=torch.channels_last)
+        pipeline.unet.to(memory_format=torch.channels_last)
+        
+    elif hasattr(pipeline, "transformer"):
+        if config.process_type in ("TextToVideo", "ImageToVideo", "VideoToVideo"):
+            #pipeline.vae.to(memory_format=torch.channels_last_3d)
+            print(f"[Load] Optimize Channels Last: channels_last_3d")
+            pipeline.transformer.to(memory_format=torch.channels_last_3d)
+        else:
+            print(f"[Load] Optimize Channels Last: channels_last")
+            pipeline.vae.to(memory_format=torch.channels_last)
+            pipeline.transformer.to(memory_format=torch.channels_last)
+
+
+#------------------------------------------------
+# Get the execution device
+#------------------------------------------------
+def get_execution_device(config: DataObjects.PipelineConfig):
     device_props = None
     device_index = None
     execution_device = None
     num_devices = torch.cuda.device_count()
-    print(f"[Load] Request Device - Device: {device}, DeviceId: {device_id}, PCIBusId: {device_bus_id}")
+    print(f"[Load] Request Device - Device: {config.device}, DeviceId: {config.device_id}, PCIBusId: {config.device_bus_id}")
     for i in range(num_devices):
         props = torch.cuda.get_device_properties(i)
         print(f"[Load] Found Device - Name: {props.name}, Index: {i}, PCIBusId: {props.pci_bus_id}, Arch: {getattr(props, 'gcnArchName', 'N/A')}")
 
         # Priority 1: Match by PCI Bus ID
-        if device_bus_id > 0 and props.pci_bus_id == device_bus_id:
+        if config.device_bus_id > 0 and props.pci_bus_id == config.device_bus_id:
             device_index = i
             device_props = props
 
-        # Priority 2: Fallback to Index if Bus ID is 0 or unavailabl
-        elif device_bus_id <= 0 and i == device_id:
+        # Priority 2: Fallback to Index if Bus ID is 0 or unavailable
+        elif config.device_bus_id <= 0 and i == config.device_id:
             device_index = i
             device_props = props
 
     if device_props is not None:
-        execution_device = f"{device}:{device_index}"
+        execution_device = f"{config.device}:{device_index}"
         print(f"[Load] Selected Device - Name: {device_props.name}, Index: {device_index}, PCIBusId: {device_props.pci_bus_id}, Arch: {getattr(device_props, 'gcnArchName', 'N/A')}, ExecutionDevice: {execution_device}")
+        optimize_execution_device(config)
         return execution_device
 
-    raise ValueError(f"Selected Device Not Found - Device: {device}, DeviceId: {device_id}, PCIBusId: {device_bus_id}")
+    raise ValueError(f"Selected Device Not Found - Device: {config.device}, DeviceId: {config.device_id}, PCIBusId: {config.device_bus_id}")
 
 
+#------------------------------------------------
+# Set device specific optimizations
+#------------------------------------------------
+def optimize_execution_device(config: DataObjects.PipelineConfig):
+    if not config.is_optimize_device_enabled:
+        print(f"[Load] Optimize Device: disabled")
+        return
+
+    if not torch.cuda.is_available():
+        return
+
+    gpu_name = torch.cuda.get_device_name()
+    major, minor = torch.cuda.get_device_capability()
+    print(f"[Load] Optimize Device: {gpu_name} (Capability {major}.{minor})")
+
+    # --- 1. SET MATMUL PRECISION ---
+    if major >= 10: # Blackwell (RTX 4500)
+        # Blackwell's 5th Gen Tensor Cores and TMEM path excel at "medium"
+        # which utilizes the new FP4/FP6/FP8 pathways more aggressively.
+        torch.set_float32_matmul_precision('medium')
+    elif major >= 8: # Ampere/Ada (RTX 3090)
+        # Ampere cards are better suited for "high" (TF32)
+        torch.set_float32_matmul_precision('high')
+    else:
+        torch.set_float32_matmul_precision('highest')
+
+    # --- 2. REDUCED PRECISION REDUCTION ---
+    # This flag allows the GPU to use less precise math for sum-reductions
+    # Blackwell has dedicated hardware for this that is significantly faster.
+    if major >= 10:
+        torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True
+    else:
+        # On 3090 (8.6), this can sometimes cause "NaN" or black images in SDXL.
+        torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = False
+
+    # --- 3. CUDNN TF32 (For Convolutions) ---
+    if major >= 8:
+        torch.backends.cudnn.allow_tf32 = True
+
+
+#------------------------------------------------
+# Get the model device_map
+#------------------------------------------------
 def get_device_map(config: DataObjects.PipelineConfig, execution_device: str):
     if config.memory_mode == "MultiDevice":
         return "cuda"
     return None
 
 
+#------------------------------------------------
+# Get the pipeline device_map
+#------------------------------------------------
 def get_pipeline_device_map(config: DataObjects.PipelineConfig, execution_device: str):
     if config.memory_mode == "MultiDevice":
         return "balanced"
     return None
 
 
+#------------------------------------------------
+# Download/Load all config files needed to setup the pipeline, If files exists they are loaded form the cache
+#------------------------------------------------
 def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict[str, Optional[str]]:
     """
     Download all known pipeline component configs for a repo and return their local paths.
     Components not present will have value None.
     """
     config_paths: Dict[str, Optional[str]] = {}
-    components = ["text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "vocoder", "audio_vae", "connectors", "scheduler"]
-    DiffusionPipeline.from_pretrained(repo_id, text_encoder=None, text_encoder_2=None, text_encoder_3=None, transformer=None, transformer_2=None, unet=None, vae=None, vocoder=None, audio_vae=None, connectors=None, torch_dtype=None, cache_dir=cache_dir, token=secure_token)
-    for comp in components:
+
+    # Any Extra files
+    allow_patterns = ["**/*.json", "*.json", "*.txt", "**/*.txt", "**/*.model", "**/*.jinja"]
+    ignore_patterns = ["**/*.safetensors.index.json"]
+    snapshot_download(
+        repo_id,
+        cache_dir=cache_dir,
+        token=secure_token,
+        allow_patterns=allow_patterns,
+        ignore_patterns=ignore_patterns,
+    )
+
+    known_components = [
+        "text_encoder", 
+        "text_encoder_2", 
+        "text_encoder_3", 
+        "transformer", 
+        "transformer_2", 
+        "unet", 
+        "vae", 
+        "vocoder", 
+        "audio_vae", 
+        "connectors", 
+        "latent_upsampler", 
+        "processor", 
+        "image_processor", 
+        "image_encoder", 
+        "scheduler"
+    ]
+    for comp in known_components:
         try:
             # All components: attempt to download config.json from the subfolder
             file_name = "config.json" if comp != "scheduler" else "scheduler_config.json"
@@ -175,17 +281,12 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
         except Exception:
             config_paths[comp] = None
 
-    # Any Extra files
-    allow_patterns = ["**/*.json", "*.json", "*.txt", "**/*.txt", "**/*.model"]
-    snapshot_download(
-        repo_id,
-        cache_dir=cache_dir,
-        token=secure_token,
-        allow_patterns=allow_patterns,
-    )
     return config_paths
 
 
+#------------------------------------------------
+# Load the LoRA weights into the specified pipeline
+#------------------------------------------------
 def load_lora_weights(pipeline: Any, config: DataObjects.PipelineConfig):
     if not hasattr(pipeline, "load_lora_weights") or not hasattr(pipeline, "unload_lora_weights"):
         return
@@ -196,6 +297,9 @@ def load_lora_weights(pipeline: Any, config: DataObjects.PipelineConfig):
             pipeline.load_lora_weights(lora.path, weight_name=lora.weights, adapter_name=lora.name)
 
 
+#------------------------------------------------
+# Set the LoRA weights for inference
+#------------------------------------------------
 def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
     if config.lora_options is not None:
         lora_map = { 
@@ -207,6 +311,10 @@ def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
         pipeline.set_adapters(names, adapter_weights=weights)
 
 
+#------------------------------------------------
+# Try exctract and load an individual pipeline component from a single file
+# If weights for the specified componenet do not exist None is returned
+#------------------------------------------------
 def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype, secure_token: str, device_map: Any):
     try:
         components = ("scheduler", "tokenizer", "tokenizer_2","tokenizer_3", "text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "audio_vae", "vocoder", "connectors")
@@ -227,8 +335,11 @@ def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_pa
 
     except Exception:
         return None
-    
 
+
+#------------------------------------------------
+# Load a json file to dict
+#------------------------------------------------
 def load_json(file_path):
     """
     Safely loads a JSON file and returns a dictionary.
@@ -249,6 +360,9 @@ def load_json(file_path):
     return {}
 
 
+#------------------------------------------------
+# Create a PIL image from and input buffer and shape
+#------------------------------------------------
 def imageFromInput(
     inputData: Optional[Sequence[float]],
     inputShape: Optional[Sequence[int]],
@@ -266,6 +380,9 @@ def imageFromInput(
     return Image.fromarray(t.numpy())
 
 
+#------------------------------------------------
+# Prepare the input image/video tensors
+#------------------------------------------------
 def prepare_images(
     lst: Optional[List[Tuple[Sequence[float], Sequence[int]]]]
 ) -> Optional[Union[Image.Image, List[Image.Image]]]:
@@ -282,6 +399,9 @@ def prepare_images(
     return [make_tensor(pair) for pair in lst]
 
 
+#------------------------------------------------
+# Run garbage collection and empty cuda cache
+#------------------------------------------------
 def trim_memory(isMemoryOffload: bool):
     gc.collect()
     torch.cuda.empty_cache()
@@ -304,10 +424,16 @@ def trim_memory(isMemoryOffload: bool):
         )
 
 
+#------------------------------------------------
+# Is model path a single file
+#------------------------------------------------
 def isSingleFile(modelPath: str):
     return modelPath.lower().endswith((".safetensors", ".gguf"))
 
 
+#------------------------------------------------
+# Get length
+#------------------------------------------------
 def get_len(obj):
     if obj is None:
         return 0
@@ -316,6 +442,24 @@ def get_len(obj):
     return 1
 
 
+#------------------------------------------------
+# Redirect the modules stderr and stdout
+#------------------------------------------------
+def redirect_output():
+    sys.stderr = MemoryStdout()
+    sys.stdout = MemoryStdout()
+
+
+#------------------------------------------------
+# Get stderr and stdout log history
+#------------------------------------------------
+def get_output() -> list[str]:
+    return sys.stderr.get_log_history() + sys.stdout.get_log_history()
+
+
+#------------------------------------------------
+# Helper class to intercept Stdout
+#------------------------------------------------
 class MemoryStdout:
     def __init__(self, callback=None):
         self.callback = callback
@@ -338,6 +482,9 @@ class MemoryStdout:
         return logs_copy
 
 
+#------------------------------------------------
+# Helper class to parse diffusers progress to try get meaningful information
+#------------------------------------------------
 class ModelDownloadProgress:
     def __init__(self, total_models: int, total_per_model: int = 1000):
         self.total_per_model = total_per_model
@@ -450,11 +597,3 @@ class ModelDownloadProgress:
         tqdm.update = patched_update
         self._patched = True
 
-
-def redirect_output():
-    sys.stderr = MemoryStdout()
-    sys.stdout = MemoryStdout()
-
-
-def get_output() -> list[str]:
-    return sys.stderr.get_log_history() + sys.stdout.get_log_history()
