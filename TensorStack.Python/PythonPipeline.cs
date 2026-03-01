@@ -184,7 +184,7 @@ namespace TensorStack.Python
 
                         var pipelineConfigDict = _configuration.ToPythonDictionary();
                         using (var pipelineConfig = PyObject.From(pipelineConfigDict))
-                        using (var pythonResult = _functionDownload.Call())
+                        using (var pythonResult = _functionDownload.Call(pipelineConfig))
                         {
                             return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
                         }

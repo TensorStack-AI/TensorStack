@@ -64,9 +64,11 @@ def initialize(config: DataObjects.PipelineConfig):
 #------------------------------------------------
 # Download Pipeline
 #------------------------------------------------
-def download(config: DataObjects.PipelineConfig):
-    global _progress_tracker, _pipeline_config
-
+def download(config_args: Dict[str, Any]):
+    global _progress_tracker, _pipeline_config, _device_map
+   
+    _device_map = "meta"
+    config = DataObjects.PipelineConfig(**config_args)
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
     create_pipeline(config, True)
