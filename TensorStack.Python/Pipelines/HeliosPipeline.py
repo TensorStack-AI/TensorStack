@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import tensorstack.utils as Utils
 import tensorstack.export as Export
 import tensorstack.data_objects as DataObjects
@@ -10,16 +10,13 @@ import numpy as np
 from threading import Event
 from collections.abc import Buffer
 from typing import Dict, Sequence, List, Tuple, Optional, Union, Any
-from transformers import Gemma3ForConditionalGeneration
+from transformers import UMT5EncoderModel
 from diffusers import ( 
-    AutoencoderKLLTX2Audio, 
-    AutoencoderKLLTX2Video, 
-    LTX2VideoTransformer3DModel,
-    LTX2Pipeline,
-    LTX2ImageToVideoPipeline
+    AutoencoderKLWan, 
+    HeliosTransformer3DModel,
+    HeliosPipeline,
+    HeliosPyramidPipeline
 )
-from diffusers.pipelines.ltx2.vocoder import LTX2Vocoder
-from diffusers.pipelines.ltx2.connectors import LTX2TextConnectors
 
 # Globals
 _pipeline = None
@@ -40,10 +37,10 @@ _prompt_cache_value = None
 _progress_tracker: Utils.ModelDownloadProgress = None
 _cancel_event = Event()
 _pipelineMap = {
-    "TextToVideo": LTX2Pipeline,
-    "ImageToVideo": LTX2ImageToVideoPipeline
+    "TextToVideo": HeliosPyramidPipeline,
+    "ImageToVideo": HeliosPyramidPipeline,
+    "VideoToVideo": HeliosPyramidPipeline
 }
-
 
 #------------------------------------------------
 # Initialize Pipeline
@@ -174,7 +171,7 @@ def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
 # Get pipeline model count
 #------------------------------------------------
 def get_model_count(config: DataObjects.PipelineConfig):
-    return 6 if config.control_net.name is not None else 5
+    return 4 if config.control_net.name is not None else 3
 
 
 #------------------------------------------------
@@ -217,45 +214,70 @@ def generate(
             _prompt_cache_key = prompt_cache_key
 
     # Pipeline Options
-    (prompt_embeds, prompt_attention_mask, negative_prompt_embeds, negative_prompt_attention_mask) = _prompt_cache_value
+    (prompt_embeds, negative_prompt_embeds) = _prompt_cache_value
     pipeline_options = {
         "prompt_embeds": prompt_embeds,
-        "prompt_attention_mask": prompt_attention_mask,
         "negative_prompt_embeds": negative_prompt_embeds,
-        "negative_prompt_attention_mask": negative_prompt_attention_mask,
         "height": options.height,
         "width": options.width,
+        "num_frames": options.frames,
         "generator": _generator.manual_seed(options.seed),
         "guidance_scale": options.guidance_scale,
-        "num_inference_steps": options.steps,
-        "num_frames": options.frames,
-        "frame_rate": options.frame_rate,
-        "num_videos_per_prompt": 1,
-        "return_dict": False,
+      
+        # ------------ Stage 1 ------------
+        "history_sizes": [16, 2, 1],
+        "num_latent_frames_per_chunk": 9,
+        "keep_first_frame": True,
+        "is_skip_first_chunk": False,
+
+        # ------------ Stage 2 ------------
+        "pyramid_num_inference_steps_list": [options.steps, options.steps, options.steps],
+
+        # ------------ CFG Zero ------------
+        "use_zero_init": True,
+        "zero_steps": 1,
+
+        # ------------ DMD ------------
+        "is_amplify_first_chunk": False,
+
         "output_type": "np",
         "callback_on_step_end": _progress_callback,
         "callback_on_step_end_tensor_inputs": ["latents"],
     }
     if _processType == "ImageToVideo":
-        pipeline_options.update({ "image": images })
+        pipeline_options.update({ 
+            "image": images,
+            "image_latents": None,
+            "fake_image_latents": None,
+            "add_noise_to_image_latents": True,
+            "image_noise_sigma_min":  0.111,
+            "image_noise_sigma_max":  0.135,
+         })
+        
+    if _processType == "VideoToVideo":
+        pipeline_options.update({ 
+            "video": images,
+            "video_latents": None,
+            "add_noise_to_video_latents": True,
+            "video_noise_sigma_min": 0.111,
+            "video_noise_sigma_max": 0.135,
+        })
 
     # Run Pipeline
-    output_video, output_audio = _pipeline(**pipeline_options)
+    output = _pipeline(**pipeline_options)[0]
 
     # Export Video
     Export.encode_video(
-        output_video.squeeze(),
+        video=output.squeeze(), 
         fps=options.frame_rate,
-        output_path=options.temp_filename,
-        audio=output_audio[0].float().cpu(),
-        audio_sample_rate=_pipeline.vocoder.config.output_sampling_rate,  # should be 24000
+        output_path=options.temp_filename
     )
 
     # Cleanup
     Utils.trim_memory(_isMemoryOffload)
 
     # (Frames, Channel, Height, Width)
-    return []
+    return [ ]
 
 
 #------------------------------------------------
@@ -271,14 +293,11 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
     # Load Models
     text_encoder = load_text_encoder(config, pipeline_kwargs, download_only)
     transformer = load_transformer(config, pipeline_kwargs, download_only)
-    vae = load_vae_video(config, pipeline_kwargs, download_only)
-    audio_vae = load_vae_audio(config, pipeline_kwargs, download_only)
-    vocoder = load_vocoder(config, pipeline_kwargs, download_only)
-    connectors = load_connectors(config, pipeline_kwargs, download_only)
+    vae = load_vae(config, pipeline_kwargs, download_only)
     # control_net = load_control_net(config, pipeline_kwargs, download_only)
     # if control_net is not None:
     #     pipeline_kwargs.update({"controlnet": control_net})
-   
+
     _progress_tracker.Clear()
     if download_only:
         return None
@@ -290,19 +309,16 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
         text_encoder=text_encoder,
         transformer=transformer, 
         vae=vae, 
-        audio_vae=audio_vae,
-        vocoder=vocoder,
-        connectors=connectors,
         torch_dtype=config.data_type,
         device_map=_pipeline_device_map,
         local_files_only=True,
-        low_cpu_mem_usage=True,
+        low_cpu_mem_usage=True, 
         **pipeline_kwargs
     )
 
 
 #------------------------------------------------
-# Load Gemma3ForConditionalGeneration
+# Load UMT5EncoderModel
 #------------------------------------------------
 def load_text_encoder(
         config: DataObjects.PipelineConfig, 
@@ -318,11 +334,11 @@ def load_text_encoder(
     checkpoint = config.checkpoint_config.text_encoder_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint TextEncoder")
-        text_encoder = Gemma3ForConditionalGeneration.from_single_file(
+        text_encoder = UMT5EncoderModel.from_single_file(
             checkpoint, 
             config=_pipeline_config["text_encoder"],
             torch_dtype=config.data_type, 
-            use_safetensors=True, 
+            use_safetensors=True,
             low_cpu_mem_usage=True, 
             device_map=_device_map,
             local_files_only=False,
@@ -334,9 +350,9 @@ def load_text_encoder(
         return text_encoder
     
     print(f"[Load] Loading TextEncoder")
-    return Gemma3ForConditionalGeneration.from_pretrained(
+    return UMT5EncoderModel.from_pretrained(
         "TensorStack/TextEncoder", 
-        subfolder="Gemma-3-12B-IT",
+        subfolder="UMT5-XXL",
         config=_pipeline_config["text_encoder"],
         torch_dtype=config.data_type, 
         quantization_config=_quant_config_transformers, 
@@ -348,7 +364,7 @@ def load_text_encoder(
 
 
 #------------------------------------------------
-# Load LTX2VideoTransformer3DModel
+# Load HeliosTransformer3DModel
 #------------------------------------------------
 def load_transformer(
         config: DataObjects.PipelineConfig, 
@@ -364,7 +380,7 @@ def load_transformer(
     checkpoint = config.checkpoint_config.model_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint Transformer")
-        transformer = LTX2VideoTransformer3DModel.from_single_file(
+        transformer = HeliosTransformer3DModel.from_single_file(
             checkpoint, 
             config=_pipeline_config["transformer"],
             torch_dtype=config.data_type, 
@@ -381,7 +397,7 @@ def load_transformer(
         return transformer
     
     print(f"[Load] Loading Transformer")
-    return LTX2VideoTransformer3DModel.from_pretrained(
+    return HeliosTransformer3DModel.from_pretrained(
         config.base_model_path, 
         subfolder="transformer", 
         torch_dtype=config.data_type, 
@@ -394,23 +410,23 @@ def load_transformer(
 
 
 #------------------------------------------------
-# Load AutoencoderKLLTX2Video
+# Load AutoencoderKLWan
 #------------------------------------------------
-def load_vae_video(
+def load_vae(
         config: DataObjects.PipelineConfig, 
         pipeline_kwargs: Dict[str, str],
         download_only: bool
     ):
 
     if _pipeline and _pipeline.vae:
-        print(f"[Load] Loading cached Vae Video")
+        print(f"[Load] Loading cached Vae")
         return _pipeline.vae
 
     _progress_tracker.Initialize(2, "vae")
-    checkpoint = config.checkpoint_config.vae_checkpoint 
+    checkpoint = config.checkpoint_config.vae_checkpoint
     if checkpoint:
-        print(f"[Load] Loading checkpoint Vae Video")
-        return AutoencoderKLLTX2Video.from_single_file(
+        print(f"[Load] Loading checkpoint Vae")
+        return AutoencoderKLWan.from_single_file(
             checkpoint, 
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
@@ -421,140 +437,17 @@ def load_vae_video(
             token=config.secure_token,
         )
     
-    print(f"[Load] Loading Vae Video")
-    return AutoencoderKLLTX2Video.from_pretrained(
+    print(f"[Load] Loading Vae")
+    return AutoencoderKLWan.from_pretrained(
         "TensorStack/AutoEncoder", 
-        subfolder="LTX2",
-        torch_dtype=config.data_type, 
+        subfolder="Wan21",
+        torch_dtype=torch.float32, 
         use_safetensors=True,
         low_cpu_mem_usage=True, 
         device_map=_device_map,
         **pipeline_kwargs
     )
 
-
-#------------------------------------------------
-# Load AutoencoderKLLTX2Audio
-#------------------------------------------------
-def load_vae_audio(
-        config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str],
-        download_only: bool
-    ):
-
-    if _pipeline and _pipeline.audio_vae:
-        print(f"[Load] Loading cached Vae Audio")
-        return _pipeline.audio_vae
-
-    _progress_tracker.Initialize(3, "audio_vae")
-    checkpoint = config.checkpoint_config.vae_checkpoint 
-    if checkpoint:
-        print(f"[Load] Loading checkpoint Vae Audio")
-        return AutoencoderKLLTX2Audio.from_single_file(
-            checkpoint, 
-            config=_pipeline_config["audio_vae"],
-            torch_dtype=config.data_type, 
-            use_safetensors=True,
-            low_cpu_mem_usage=True, 
-            device_map=_device_map,
-            local_files_only=False,
-            token=config.secure_token,
-        )
-    
-    print(f"[Load] Loading Vae Audio")
-    return AutoencoderKLLTX2Audio.from_pretrained(
-        config.base_model_path, 
-        subfolder="audio_vae", 
-        torch_dtype=config.data_type, 
-        use_safetensors=True,
-        low_cpu_mem_usage=True, 
-        device_map=_device_map,
-        **pipeline_kwargs
-    )
-
-
-#------------------------------------------------
-# Load Vocoder
-#------------------------------------------------
-def load_vocoder(
-        config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str],
-        download_only: bool
-    ):
-
-    if _pipeline and _pipeline.vocoder:
-        print(f"[Load] Loading cached Vocoder")
-        return _pipeline.vocoder
-
-    _progress_tracker.Initialize(4, "vocoder")
-    checkpoint = config.checkpoint_config.model_checkpoint
-    if checkpoint:
-        print(f"[Load] Loading checkpoint Vocoder")
-        vocoder_checkpoint = Utils.load_component(
-            LTX2Pipeline, 
-            config.base_model_path, 
-            checkpoint, 
-            "vocoder", 
-            config.data_type,
-            config.secure_token,
-            _device_map
-        )
-        if vocoder_checkpoint:
-            return vocoder_checkpoint
-
-    
-    print(f"[Load] Loading Vocoder")
-    return LTX2Vocoder.from_pretrained(
-        config.base_model_path, 
-        subfolder="vocoder", 
-        torch_dtype=config.data_type, 
-        use_safetensors=True,
-        low_cpu_mem_usage=True, 
-        device_map=_device_map,
-        **pipeline_kwargs
-    )
-
-
-#------------------------------------------------
-# Load Connectors
-#------------------------------------------------
-def load_connectors(
-        config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str],
-        download_only: bool
-    ):
-
-    if _pipeline and _pipeline.connectors:
-        print(f"[Load] Loading cached Connectors")
-        return _pipeline.connectors
-
-    _progress_tracker.Initialize(5, "connectors")
-    checkpoint = config.checkpoint_config.model_checkpoint
-    if checkpoint:
-        print(f"[Load] Loading checkpoint Connectors")
-        connectors_checkpoint = Utils.load_component(
-            LTX2Pipeline, 
-            config.base_model_path, 
-            checkpoint, 
-            "connectors", 
-            config.data_type,
-            config.secure_token,
-            _device_map
-        )
-        if connectors_checkpoint:
-            return connectors_checkpoint
-
-    
-    print(f"[Load] Loading Connectors")
-    return LTX2TextConnectors.from_pretrained(
-        config.base_model_path, 
-        subfolder="connectors", 
-        torch_dtype=config.data_type, 
-        use_safetensors=True,
-        low_cpu_mem_usage=True, 
-        device_map=_device_map,
-        **pipeline_kwargs
-    )
 
 # #------------------------------------------------
 # # Load ControlNetModel
@@ -575,8 +468,9 @@ def load_connectors(
 #         _control_net_cache = None
 #         return None
     
+#     print(f"[Load] Loading ControlNet")
 #     _control_net_name = config.control_net.name
-#     _progress_tracker.Initialize(3, "control_net")
+#     _progress_tracker.Initialize(4, "control_net")
 #     _control_net_cache = ControlNetModel.from_pretrained(
 #         config.control_net.path, 
 #         torch_dtype=config.data_type,

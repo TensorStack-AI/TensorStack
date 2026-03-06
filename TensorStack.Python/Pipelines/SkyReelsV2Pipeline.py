@@ -1,5 +1,6 @@
 ﻿import sys
 import tensorstack.utils as Utils
+import tensorstack.export as Export
 import tensorstack.data_objects as DataObjects
 import tensorstack.quantization as Quantization
 Utils.redirect_output()
@@ -248,12 +249,18 @@ def generate(
     # Run Pipeline
     output = _pipeline(**pipeline_options)[0]
 
-    # (Frames, Channel, Height, Width)
-    output = output.transpose(0, 1, 4, 2, 3).squeeze(axis=0).astype(np.float32)
+    # Export Video
+    Export.encode_video(
+        video=output.squeeze(), 
+        fps=options.frame_rate,
+        output_path=options.temp_filename
+    )
 
     # Cleanup
     Utils.trim_memory(_isMemoryOffload)
-    return [ np.ascontiguousarray(output) ]
+
+    # (Frames, Channel, Height, Width)
+    return [ ]
 
 
 

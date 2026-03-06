@@ -38,7 +38,9 @@ from diffusers import (
     FlowMatchLCMScheduler,
     IPNDMScheduler,
     CogVideoXDDIMScheduler, 
-    CogVideoXDPMScheduler
+    CogVideoXDPMScheduler,
+    HeliosScheduler,
+    HeliosDMDScheduler
 )
 
 _SCHEDULER_MAP = {
@@ -67,7 +69,9 @@ _SCHEDULER_MAP = {
     "flowmatchlcm": FlowMatchLCMScheduler,
     "ipndm": IPNDMScheduler,
     "cogvideoxddim": CogVideoXDDIMScheduler,
-    "cogvideoxdpms": CogVideoXDPMScheduler
+    "cogvideoxdpms": CogVideoXDPMScheduler,
+    "helios": HeliosScheduler,
+    "heliosdmd": HeliosDMDScheduler
 }
 
 

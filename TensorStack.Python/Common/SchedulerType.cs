@@ -103,7 +103,15 @@ namespace TensorStack.Python.Common
 
         // CogVideoXDPMScheduler
         [Display(Name = "CogVideoX DPM")]
-        CogVideoXDPM = 53
+        CogVideoXDPM = 53,
+
+        // HeliosScheduler
+        [Display(Name = "Helios")]
+        Helios = 54,
+
+        // HeliosDMDScheduler
+        [Display(Name = "Helios DMD")]
+        HeliosDMD = 55
     }
 
 
