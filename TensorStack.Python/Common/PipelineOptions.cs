@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text.Json.Serialization;
 using TensorStack.Common.Tensor;
+using TensorStack.Python.Scheduler;
 
 namespace TensorStack.Python.Common
 {
@@ -45,9 +46,6 @@ namespace TensorStack.Python.Common
 
         [JsonPropertyName("control_net_scale")]
         public float ControlNetScale { get; set; } = 1;
-
-        [JsonPropertyName("scheduler")]
-        public SchedulerType Scheduler { get; set; }
 
         [JsonPropertyName("scheduler_options")]
         public SchedulerOptions SchedulerOptions { get; set; }

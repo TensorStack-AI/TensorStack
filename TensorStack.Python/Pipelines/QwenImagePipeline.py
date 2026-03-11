@@ -196,7 +196,7 @@ def generate(
     options = DataObjects.PipelineOptions(**inference_args)
 
     #scheduler
-    _pipeline.scheduler = Utils.create_scheduler(options.scheduler, options.scheduler_options, _pipeline.scheduler.config)
+    _pipeline.scheduler = Utils.create_scheduler(options.scheduler_options)
 
     #Lora Adapters
     Utils.set_lora_weights(_pipeline, options)

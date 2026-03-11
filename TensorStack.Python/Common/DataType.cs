@@ -17,6 +17,9 @@ namespace TensorStack.Python.Common
         Float8 = 3,
 
         [JsonStringEnumMemberName("int8")]
-        Int8 = 6
+        Int8 = 6,
+
+        [JsonStringEnumMemberName("int4")]
+        Int4 = 7
     }
 }

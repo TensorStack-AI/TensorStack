@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from typing import Optional, Union, Sequence
+from dataclasses import dataclass, fields
+from typing import Optional, Union, Sequence, get_args, get_origin
 import torch
 
 def get_data_type(dtype: str):
@@ -21,6 +21,10 @@ def get_data_type(dtype: str):
         return torch.int32
     if dtype == "int64":
         return torch.int64
+    if dtype == "float32":
+        return torch.float32
+    if dtype == "int4":
+        return torch.int
     return torch.float
 
 
@@ -106,77 +110,97 @@ class PipelineConfig:
 
 @dataclass(slots=True)
 class SchedulerOptions:
-    # Core
-    num_train_timesteps: int = 1000
-    steps_offset: int = 0
+    Scheduler: str
+    num_train_timesteps: Optional[int] = None 
+    original_inference_steps: Optional[int] = None 
+    base_image_seq_len: Optional[int] = None 
+    max_image_seq_len: Optional[int ] = None 
 
-    # IsTimestep
-    beta_start: float = 0.00085
-    beta_end: float = 0.012
-    beta_schedule: str = "scaled_linear"        # BetaScheduleType
-    prediction_type: str = "epsilon"            # PredictionType
-    variance_type: Optional[str] = None          # VarianceType
-    timestep_spacing: str = "linspace"           # TimestepSpacingType
+    beta_schedule: Optional[str] = None             # BetaScheduleType
+    beta_start: Optional[float] = None 
+    beta_end: Optional[float] = None 
+  
+    prediction_type: Optional[str] = None           # PredictionType
+    timestep_spacing: Optional[str] = None          # TimestepSpacingType
+    steps_offset: Optional[int] = None 
 
-    # IsClipSample
-    clip_sample: bool = False
-    clip_sample_range: float = 1.0
+    clip_sample: Optional[bool] = None 
+    clip_sample_range: Optional[float] = None 
+    sample_max_value: Optional[float] = None 
 
-    # IsThreshold
-    thresholding: bool = False
-    dynamic_thresholding_ratio: float = 0.995
-    sample_max_value: float = 1.0
+    thresholding: Optional[bool] = None 
+    dynamic_thresholding_ratio: Optional[float] = None 
+    variance_type: Optional[str] = None             # VarianceType
+  
+    use_karras_sigmas: Optional[bool] = None 
+    use_beta_sigmas: Optional[bool] = None 
+    use_exponential_sigmas: Optional[bool] = None 
+    use_flow_sigmas: Optional[bool ] = None 
 
-    # IsKarras
-    use_karras_sigmas: bool = False
     sigma_min: Optional[float] = None
     sigma_max: Optional[float] = None
-    rho: float = 7.0
+    final_sigmas_type: Optional[str] = None         # FinalSigmasType
 
-    # IsMultiStep
-    solver_order: int = 2
-    solver_type: str = "midpoint"                # SolverType
-    algorithm_type: str = "dpmsolver++"          # AlgorithmType
-    lower_order_final: bool = True
+    interpolation_type: Optional[str] = None        # InterpolationType
+    timestep_type: Optional[str] = None             # TimestepType
+    rescale_betas_zero_snr: Optional[bool] = None 
+    set_alpha_to_one: Optional[bool] = None 
+    timestep_scaling: Optional[float] = None 
 
-    # IsStochastic
-    eta: float = 0.0
-    s_noise: float = 1.0
-    s_churn: float = 0.0
-    s_tmin: float = 0.0
-    s_tmax: float = 0.0   # 0 == +inf
+    shift: Optional[float] = None 
+    base_shift: Optional[float] = None 
+    max_shift: Optional[float] = None 
+    shift_terminal: Optional[float] = None
+    use_dynamic_shifting: Optional[bool] = None 
+    flow_shift: Optional[float] = None 
+    snr_shift_scale: Optional[float] = None 
 
-    # IsFlowMatch
-    shift: float = 1.0
-    use_dynamic_shifting: bool = False
-    base_shift: float = 0.5
-    max_shift: float = 1.15
-    stochastic_sampling: bool = False
+    time_shift_type: Optional[str] = None           # TimeShiftType
+    rho: Optional[float] = None 
 
-    flow_shift: float = 1.0
+    solver_order: Optional[int] = None 
+    solver_type: Optional[str] = None               # SolverType
+    algorithm_type: Optional[str] = None            # AlgorithmType
+    lower_order_final: Optional[bool] = None 
 
-    # Sequence lengths
-    base_image_seq_len: int = 256
-    max_image_seq_len: int = 4096
+    stochastic_sampling: Optional[bool] = None 
+    eta: Optional[float] = None 
+    s_noise: Optional[float] = None 
+
+    invert_sigmas: Optional[bool] = None 
+    skip_prk_steps: Optional[bool] = None 
+    predict_x0: Optional[bool] = None 
+    euler_at_final: Optional[bool] = None 
+
+    use_lu_lambdas: Optional[bool] = None 
+    noise_sampler_seed: Optional[int] = None
+    sigma_data: Optional[float] = None 
+    sigma_schedule: Optional[str] = None            # SigmaScheduleType
+    upscale_mode: Optional[str] = None              # UpscaleModeType
+
+    stages: Optional[int] = None 
+    gamma: Optional[float] = None 
+    predictor_order: Optional[int] = None 
+    corrector_order: Optional[int] = None 
+
+    scale_factors: Optional[Sequence[float]] = None 
+    stage_range: Optional[Sequence[float]] = None 
+    disable_corrector: Optional[Sequence[int]] = None 
+
+    s: Optional[float] = None 
+    scaler: Optional[float] = None 
 
     def __post_init__(self):
-        self.beta_start = float(self.beta_start)
-        self.beta_end = float(self.beta_end)
-        self.clip_sample_range = float(self.clip_sample_range)
-        self.dynamic_thresholding_ratio = float(self.dynamic_thresholding_ratio)
-        self.sample_max_value = float(self.sample_max_value)
-        self.rho = float(self.rho)
-        self.eta = float(self.eta)
-        self.s_noise = float(self.s_noise)
-        self.s_churn = float(self.s_churn)
-        self.s_tmin = float(self.s_tmin)
-        self.s_tmax = float(self.s_tmax)
-        self.shift = float(self.shift)
-        self.base_shift = float(self.base_shift)
-        self.max_shift = float(self.max_shift)
-        self.flow_shift = float(self.flow_shift)
-        if self.s_tmax == 0.0:
-            self.s_tmax = float("infinity")
+        for field in fields(self):
+            value = getattr(self, field.name)
+            if value is None:
+                continue
+            origin = get_origin(field.type)
+            args = get_args(field.type)
+            if field.type is float or (origin is Union and float in args):
+                setattr(self, field.name, float(value))
+            elif (origin is Sequence or (origin is Union and any(get_origin(a) is Sequence for a in args))):
+                setattr(self, field.name, [float(x) for x in value])
 
 
 
@@ -195,7 +219,6 @@ class PipelineOptions:
     frame_rate: float = 0.0
     strength: float = 1.0
     control_net_scale: float = 1.0
-    scheduler: str = "ddim"
     lora_options: Optional[Sequence[LoraOption]] = None 
     scheduler_options: SchedulerOptions = None
     temp_filename: str = None

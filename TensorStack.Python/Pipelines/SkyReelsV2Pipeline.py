@@ -190,11 +190,9 @@ def generate(
 
     # Options
     options = DataObjects.PipelineOptions(**inference_args)
-    scheduler_options = options.scheduler_options
 
     #scheduler
-    scheduler_options.flow_shift  = 8.0 if options.height > 480 else 5.0 # 8.0 for 720P, 5.0 for 480P
-    _pipeline.scheduler = Utils.create_scheduler(options.scheduler, scheduler_options, _pipeline.scheduler.config)
+    _pipeline.scheduler = Utils.create_scheduler(options.scheduler_options)
 
     #Lora Adapters
     Utils.set_lora_weights(_pipeline, options)

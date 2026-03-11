@@ -29,7 +29,6 @@ from diffusers import (
     HeunDiscreteScheduler,
     UniPCMultistepScheduler,
     DPMSolverMultistepScheduler,
-    DPMSolverMultistepInverseScheduler,
     DPMSolverSinglestepScheduler,
     DPMSolverSDEScheduler,
     DEISMultistepScheduler,
@@ -40,7 +39,10 @@ from diffusers import (
     CogVideoXDDIMScheduler, 
     CogVideoXDPMScheduler,
     HeliosScheduler,
-    HeliosDMDScheduler
+    HeliosDMDScheduler,
+    TCDScheduler,
+    SCMScheduler,
+    SASolverScheduler,
 )
 
 _SCHEDULER_MAP = {
@@ -54,40 +56,44 @@ _SCHEDULER_MAP = {
     "kdpm2ancestral": KDPM2AncestralDiscreteScheduler,
     "ddpmwuerstchen": DDPMWuerstchenScheduler,
     "lcm": LCMScheduler,
-    "flowmatcheulerdiscrete": FlowMatchEulerDiscreteScheduler,
-    "flowmatchheundiscrete": FlowMatchHeunDiscreteScheduler,
+    "flowmatcheuler": FlowMatchEulerDiscreteScheduler,
+    "flowmatchheun": FlowMatchHeunDiscreteScheduler,
     "pndm": PNDMScheduler,
     "heun": HeunDiscreteScheduler,
-    "unipc": UniPCMultistepScheduler,
-    "dpmm": DPMSolverMultistepScheduler,
-    "dpmminverse": DPMSolverMultistepInverseScheduler,
-    "dpms": DPMSolverSinglestepScheduler,
-    "dpmsde": DPMSolverSDEScheduler,
-    "deism": DEISMultistepScheduler,
-    "edm": EDMEulerScheduler,
-    "edmm": EDMDPMSolverMultistepScheduler,
+    "unipcmultistep": UniPCMultistepScheduler,
+    "dpmsolvermultistep": DPMSolverMultistepScheduler,
+    "dpmsolversinglestep": DPMSolverSinglestepScheduler,
+    "dpmsolversde": DPMSolverSDEScheduler,
+    "deismultistep": DEISMultistepScheduler,
+    "edmeuler": EDMEulerScheduler,
+    "edmdpmsolvermultistep": EDMDPMSolverMultistepScheduler,
     "flowmatchlcm": FlowMatchLCMScheduler,
     "ipndm": IPNDMScheduler,
     "cogvideoxddim": CogVideoXDDIMScheduler,
     "cogvideoxdpms": CogVideoXDPMScheduler,
     "helios": HeliosScheduler,
-    "heliosdmd": HeliosDMDScheduler
+    "heliosdmd": HeliosDMDScheduler,
+    "tcd": TCDScheduler,
+    "scm": SCMScheduler,
+    "sasolver": SASolverScheduler
 }
 
 
 #------------------------------------------------
-# CCreate a scheduler with the specifed options and configuration
+# Create a scheduler with the specifed options and configuration
 #------------------------------------------------
 def create_scheduler(
-    scheduler_name: str,
     scheduler_options: DataObjects.SchedulerOptions,
-    scheduler_config: Dict[str, Any] = None
+    scheduler_overrides: Dict[str, Any] = None
 ):
-    scheduler_cls = _SCHEDULER_MAP[scheduler_name.lower()]
-    config = dict(scheduler_config) if scheduler_config is not None else {}
-    overrides = {k: v for k, v in asdict(scheduler_options).items() if v is not None}
-    config.update(overrides)
-    return scheduler_cls.from_config(config)
+    scheduler_cls = _SCHEDULER_MAP[scheduler_options.Scheduler.lower()]
+    options = {k: v for k, v in asdict(scheduler_options).items() if v is not None}
+    overrides = dict(scheduler_overrides) if scheduler_overrides is not None else {}
+    options.pop("Scheduler")
+    options.update(overrides)
+
+    print(f"[Scheduler]: {scheduler_cls.__name__}, {options}")
+    return scheduler_cls.from_config(options)
 
 
 #------------------------------------------------
@@ -223,7 +229,7 @@ def optimize_execution_device(config: DataObjects.PipelineConfig):
 def get_device_map(config: DataObjects.PipelineConfig, execution_device: str):
     if config.memory_mode == "MultiDevice":
         return "cuda"
-    return None
+    return "cuda"
 
 
 #------------------------------------------------
@@ -254,6 +260,7 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
         token=secure_token,
         allow_patterns=allow_patterns,
         ignore_patterns=ignore_patterns,
+        user_agent="TensorStack-Diffuse"
     )
 
     known_components = [
@@ -277,7 +284,13 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
         try:
             # All components: attempt to download config.json from the subfolder
             file_name = "config.json" if comp != "scheduler" else "scheduler_config.json"
-            path = hf_hub_download(repo_id, f"{comp}/{file_name}", cache_dir=cache_dir, token=secure_token)
+            path = hf_hub_download(
+                repo_id, 
+                f"{comp}/{file_name}", 
+                cache_dir=cache_dir, 
+                token=secure_token,
+                user_agent="TensorStack-Diffuse"
+            )
             if os.path.exists(path):
                 config_paths[comp] = path
             else:

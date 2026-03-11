@@ -172,7 +172,7 @@ def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
 # Get pipeline model count
 #------------------------------------------------
 def get_model_count(config: DataObjects.PipelineConfig):
-    return 4 if config.control_net.name is not None else 3
+    return 5 if config.control_net.name is not None else 4
 
 
 #------------------------------------------------
@@ -189,11 +189,9 @@ def generate(
     
     # Options
     options = DataObjects.PipelineOptions(**inference_args)
-    scheduler_options = options.scheduler_options
 
     #scheduler
-    scheduler_options.flow_shift  = 5.0 if options.height > 480 else 3.0 # 5.0 for 720P, 3.0 for 480P
-    _pipeline.scheduler = Utils.create_scheduler(options.scheduler, scheduler_options, _pipeline.scheduler.config)
+    _pipeline.scheduler = Utils.create_scheduler(options.scheduler_options)
 
     #Lora Adapters
     Utils.set_lora_weights(_pipeline, options)
@@ -214,6 +212,7 @@ def generate(
         "width": options.width,
         "generator": _generator.manual_seed(options.seed),
         "guidance_scale": options.guidance_scale,
+        "guidance_scale_2": options.guidance_scale2 if options.guidance_scale2 > 0 else None,
         "num_inference_steps": options.steps,
         "output_type": "np",
         "callback_on_step_end": _progress_callback,
@@ -256,6 +255,7 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
     # Load Models
     text_encoder = load_text_encoder(config, pipeline_kwargs, download_only)
     transformer = load_transformer(config, pipeline_kwargs, download_only)
+    transformer_2 = load_transformer_2(config, pipeline_kwargs, download_only)
     vae = load_vae(config, pipeline_kwargs, download_only)
     # control_net = load_control_net(config, pipeline_kwargs, download_only)
     # if control_net is not None:
@@ -271,6 +271,7 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
         config.base_model_path,
         text_encoder=text_encoder,
         transformer=transformer, 
+        transformer_2=transformer_2,
         vae=vae, 
         torch_dtype=config.data_type,
         device_map=_pipeline_device_map,
@@ -373,6 +374,56 @@ def load_transformer(
 
 
 #------------------------------------------------
+# Load WanTransformer3DModel
+#------------------------------------------------
+def load_transformer_2(
+        config: DataObjects.PipelineConfig, 
+        pipeline_kwargs: Dict[str, str],
+        download_only: bool
+    ):
+
+    default_config = _pipeline_config["transformer_2"]
+    if default_config is None:
+        return None
+
+    if _pipeline and _pipeline.transformer_2:
+        print(f"[Load] Loading cached Transformer2")
+        return _pipeline.transformer_2
+
+    _progress_tracker.Initialize(2, "transformer_2")
+    checkpoint = config.checkpoint_config.model_checkpoint
+    if checkpoint:
+        print(f"[Load] Loading checkpoint Transformer2")
+        transformer = WanTransformer3DModel.from_single_file(
+            checkpoint, 
+            config=default_config,
+            torch_dtype=config.data_type, 
+            use_safetensors=True, 
+            low_cpu_mem_usage=True, 
+            device_map=_device_map,
+            local_files_only=False,
+            token=config.secure_token,
+            quantization_config=Quantization.get_single_file_config(config)
+        )
+        
+        if not download_only:
+            Quantization.quantize_model(config, transformer)
+        return transformer
+    
+    print(f"[Load] Loading Transformer2")
+    return WanTransformer3DModel.from_pretrained(
+        config.base_model_path, 
+        subfolder="transformer_2", 
+        torch_dtype=config.data_type, 
+        quantization_config=_quant_config_diffusers, 
+        use_safetensors=True,
+        low_cpu_mem_usage=True, 
+        device_map=_device_map,
+        **pipeline_kwargs
+    )
+
+
+#------------------------------------------------
 # Load AutoencoderKL
 #------------------------------------------------
 def load_vae(
@@ -385,7 +436,7 @@ def load_vae(
         print(f"[Load] Loading cached Vae")
         return _pipeline.vae
 
-    _progress_tracker.Initialize(2, "vae")
+    _progress_tracker.Initialize(3, "vae")
     checkpoint = config.checkpoint_config.vae_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint Vae")
