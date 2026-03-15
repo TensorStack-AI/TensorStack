@@ -29,7 +29,7 @@ namespace TensorStack.StableDiffusion.Models
         /// <summary>
         /// Gets the configuration.
         /// </summary>
-        protected TransformerModelConfig Configuration { get; }
+        public TransformerModelConfig Configuration { get; }//temp
 
         /// <summary>
         /// Gets the Transformer.

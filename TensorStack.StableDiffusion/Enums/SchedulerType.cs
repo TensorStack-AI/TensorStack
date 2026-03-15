@@ -6,6 +6,9 @@ namespace TensorStack.StableDiffusion.Enums
 {
     public enum SchedulerType
     {
+        [Display(Name = "None")]
+        None = -1,
+
         [Display(Name = "LMS")]
         LMS = 0,
 
