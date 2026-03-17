@@ -2,6 +2,7 @@
 import tensorstack.utils as Utils
 import tensorstack.data_objects as DataObjects
 import tensorstack.quantization as Quantization
+from tensorstack.enums import QuantTarget
 Utils.redirect_output()
 
 import torch
@@ -25,8 +26,6 @@ from diffusers import (
 _pipeline = None
 _processType = None
 _pipeline_config = None
-_quant_config_diffusers = None
-_quant_config_transformers = None
 _execution_device = None
 _device_map = None
 _pipeline_device_map = None
@@ -52,11 +51,10 @@ _pipelineMap = {
 # Initialize Pipeline
 #------------------------------------------------
 def initialize(config: DataObjects.PipelineConfig):
-    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map, _pipeline_device_map
+    global _progress_tracker, _pipeline_config, _device_map, _pipeline_device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
-    _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     _device_map = Utils.get_device_map(config, _execution_device)
     _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
     return create_pipeline(config)
@@ -195,10 +193,13 @@ def generate(
     # Options
     options = DataObjects.PipelineOptions(**inference_args)
 
-    #scheduler
+    # Scheduler
     _pipeline.scheduler = Utils.create_scheduler(options.scheduler_options)
 
-    #Lora Adapters
+    # AutoEncoder
+    Utils.configure_vae_memory(_pipeline, options.enable_vae_tiling, options.enable_vae_slicing)
+
+    # Lora Adapters
     Utils.set_lora_weights(_pipeline, options)
 
     # Input Images
@@ -206,13 +207,35 @@ def generate(
     control_images = Utils.prepare_images(control_tensors)
     print(f"[generate] Input Received - Tensors: {Utils.get_len(images)}, Control Tensors: {Utils.get_len(control_images)}")
 
-    # Prompt Cache
-    # No caching implemented
+    prompt_cache_key = (options.prompt, options.negative_prompt, options.guidance_scale > 1)
+    if _prompt_cache_key != prompt_cache_key:
+        print(f"[Generate] Encoding prompt")
+        with torch.no_grad():
+            negative_prompt_value = (None, None)
+            prompt_value = _pipeline.encode_prompt(
+                prompt=options.prompt,
+                device=_pipeline._execution_device,
+                max_sequence_length=1024
+            )
+            if options.guidance_scale > 1:
+                negative_prompt_value = _pipeline.encode_prompt(
+                    prompt=options.negative_prompt,
+                    device=_pipeline._execution_device,
+                    max_sequence_length=1024
+                )
+
+            _prompt_cache_value = (prompt_value, negative_prompt_value)
+            _prompt_cache_key = prompt_cache_key   
 
     # Pipeline Options
+    (prompt_cache, negative_prompt_cache) = _prompt_cache_value
+    (prompt_embeds, prompt_embeds_mask) = prompt_cache
+    (negative_prompt_embeds, negative_prompt_embeds_mask) = negative_prompt_cache
     pipeline_options = {
-        "prompt": options.prompt,
-        "negative_prompt": options.negative_prompt,
+        "prompt_embeds": prompt_embeds,
+        "prompt_embeds_mask": prompt_embeds_mask,
+        "negative_prompt_embeds": negative_prompt_embeds,
+        "negative_prompt_embeds_mask": negative_prompt_embeds_mask,
         "height": options.height,
         "width": options.width,
         "generator": _generator.manual_seed(options.seed),
@@ -315,24 +338,29 @@ def load_text_encoder(
             device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TEXT_ENCODER), 
         )
         
         if not download_only:
             Quantization.quantize_model(config, text_encoder)
+
+        Utils.trim_memory(True)
         return text_encoder
     
     print(f"[Load] Loading TextEncoder")
-    return Qwen2_5_VLForConditionalGeneration.from_pretrained(
+    text_encoder = Qwen2_5_VLForConditionalGeneration.from_pretrained(
         "TensorStack/TextEncoder", 
         subfolder="Qwen-2.5-VL-7B",
         config=_pipeline_config["text_encoder"],
         torch_dtype=config.data_type, 
-        quantization_config=_quant_config_transformers, 
+        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER), 
         use_safetensors=True,
         low_cpu_mem_usage=True, 
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return text_encoder
 
 
 #------------------------------------------------
@@ -361,24 +389,28 @@ def load_transformer(
             device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
-            quantization_config=Quantization.get_single_file_config(config)
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER), 
         )
         
         if not download_only:
             Quantization.quantize_model(config, transformer)
+
+        Utils.trim_memory(True)
         return transformer
     
     print(f"[Load] Loading Transformer")
-    return QwenImageTransformer2DModel.from_pretrained(
+    transformer = QwenImageTransformer2DModel.from_pretrained(
         config.base_model_path, 
         subfolder="transformer", 
         torch_dtype=config.data_type, 
-        quantization_config=_quant_config_diffusers, 
+        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TRANSFORMER),
         use_safetensors=True,
         low_cpu_mem_usage=True, 
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return transformer
 
 
 #------------------------------------------------
@@ -398,7 +430,7 @@ def load_vae(
     checkpoint = config.checkpoint_config.vae_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint Vae")
-        return AutoencoderKLQwenImage.from_single_file(
+        auto_encoder = AutoencoderKLQwenImage.from_single_file(
             checkpoint, 
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
@@ -408,9 +440,11 @@ def load_vae(
             local_files_only=False,
             token=config.secure_token,
         )
+        Utils.trim_memory(True)
+        return auto_encoder
     
     print(f"[Load] Loading Vae")
-    return AutoencoderKLQwenImage.from_pretrained(
+    auto_encoder =  AutoencoderKLQwenImage.from_pretrained(
         "TensorStack/AutoEncoder", 
         subfolder="QwenImage",
         torch_dtype=config.data_type, 
@@ -419,6 +453,8 @@ def load_vae(
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return auto_encoder
 
 
 #------------------------------------------------

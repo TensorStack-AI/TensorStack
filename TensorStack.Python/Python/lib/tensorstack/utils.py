@@ -97,6 +97,30 @@ def create_scheduler(
 
 
 #------------------------------------------------
+# Get the model device_map
+#------------------------------------------------
+def get_device_map(config: DataObjects.PipelineConfig, execution_device: str):
+    if config.memory_mode in("Balanced", "OffloadGPU"):
+        return "cuda"
+    elif config.memory_mode == "OffloadCPU":
+        return "cpu"
+    return None
+
+
+#------------------------------------------------
+# Get the pipeline device_map
+#------------------------------------------------
+def get_pipeline_device_map(config: DataObjects.PipelineConfig, execution_device: str):
+    if config.memory_mode == "Balanced":
+        return "balanced"
+    elif config.memory_mode == "OffloadGPU":
+        return "cuda"
+    elif config.memory_mode == "OffloadCPU":
+        return "cpu"
+    return None
+
+
+#------------------------------------------------
 # Configure pipeline RAM/VRAM offloading
 #------------------------------------------------
 def configure_pipeline_memory(
@@ -105,26 +129,38 @@ def configure_pipeline_memory(
     config: DataObjects.PipelineConfig,
 ) -> bool:
 
-    if config.memory_mode in("OffloadCPU", "LowMemDevice", "LowMemOffloadModel"):
-        vae = getattr(pipeline, "vae", None)
-        if callable(getattr(vae, "enable_tiling", None)):
-            vae.enable_tiling()
-        if callable(getattr(vae, "enable_slicing", None)):
-            vae.enable_slicing()
-
-    if config.memory_mode != "MultiDevice":
+    if config.memory_mode in("OffloadGPU"):
         optimize_pipeline(pipeline, config)
-
-    if config.memory_mode in("Device", "LowMemDevice"):
         pipeline.to(execution_device)
 
     elif config.memory_mode == "OffloadCPU":
         pipeline.enable_sequential_cpu_offload(device=execution_device)
 
-    elif config.memory_mode in("OffloadModel", "LowMemOffloadModel"):
+    elif config.memory_mode in("OffloadModel"):
         pipeline.enable_model_cpu_offload(device=execution_device)
 
-    return config.memory_mode in ("OffloadCPU", "OffloadModel", "LowMemOffloadModel")
+    return config.memory_mode in ("OffloadCPU", "OffloadModel")
+
+
+#------------------------------------------------
+# Configure VAE Tiling/Slicing
+#------------------------------------------------
+def configure_vae_memory(pipeline: Any, enable_tiling: bool, enable_slicing: bool):
+    vae = getattr(pipeline, "vae", None)
+    if not vae:
+        return
+
+    # Tiling: Processes the image in tiles to save VRAM on high-res images
+    enable_t = getattr(vae, "enable_tiling", None)
+    disable_t = getattr(vae, "disable_tiling", None)
+    if callable(enable_t) and callable(disable_t):
+        enable_t() if enable_tiling else disable_t()
+
+    # Slicing: Processes the batch in slices
+    enable_s = getattr(vae, "enable_slicing", None)
+    disable_s = getattr(vae, "disable_slicing", None)
+    if callable(enable_s) and callable(disable_s):
+        enable_s() if enable_slicing else disable_s()
 
 
 #------------------------------------------------
@@ -223,22 +259,7 @@ def optimize_execution_device(config: DataObjects.PipelineConfig):
         torch.backends.cudnn.allow_tf32 = True
 
 
-#------------------------------------------------
-# Get the model device_map
-#------------------------------------------------
-def get_device_map(config: DataObjects.PipelineConfig, execution_device: str):
-    if config.memory_mode == "MultiDevice":
-        return "cuda"
-    return "cuda"
 
-
-#------------------------------------------------
-# Get the pipeline device_map
-#------------------------------------------------
-def get_pipeline_device_map(config: DataObjects.PipelineConfig, execution_device: str):
-    if config.memory_mode == "MultiDevice":
-        return "balanced"
-    return None
 
 
 #------------------------------------------------

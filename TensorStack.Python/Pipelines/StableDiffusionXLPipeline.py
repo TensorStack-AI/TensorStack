@@ -2,6 +2,7 @@
 import tensorstack.utils as Utils
 import tensorstack.data_objects as DataObjects
 import tensorstack.quantization as Quantization
+from tensorstack.enums import QuantTarget
 Utils.redirect_output()
 
 import torch
@@ -25,8 +26,6 @@ from diffusers import (
 _pipeline = None
 _processType = None
 _pipeline_config = None
-_quant_config_diffusers = None
-_quant_config_transformers = None
 _execution_device = None
 _device_map = None
 _pipeline_device_map = None
@@ -51,11 +50,10 @@ _pipelineMap = {
 # Initialize Pipeline
 #------------------------------------------------
 def initialize(config: DataObjects.PipelineConfig):
-    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map, _pipeline_device_map
+    global _progress_tracker, _pipeline_config, _device_map, _pipeline_device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
-    _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     _device_map = Utils.get_device_map(config, _execution_device)
     _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
     return create_pipeline(config)
@@ -194,10 +192,13 @@ def generate(
     # Options
     options = DataObjects.PipelineOptions(**inference_args)
 
-    #scheduler
+    # Scheduler
     _pipeline.scheduler = Utils.create_scheduler(options.scheduler_options)
 
-    #Lora Adapters
+    # AutoEncoder
+    Utils.configure_vae_memory(_pipeline, options.enable_vae_tiling, options.enable_vae_slicing)
+
+    # Lora Adapters
     Utils.set_lora_weights(_pipeline, options)
 
     # Input Images
@@ -206,8 +207,9 @@ def generate(
     print(f"[generate] Input Received - Tensors: {Utils.get_len(images)}, Control Tensors: {Utils.get_len(control_images)}")
 
     # Prompt Cache
-    prompt_cache_key = (options.prompt, options.negative_prompt)
+    prompt_cache_key = (options.prompt, options.negative_prompt, options.guidance_scale > 1)
     if _prompt_cache_key != prompt_cache_key:
+        print(f"[Generate] Encoding prompt")
         with torch.no_grad():
             _prompt_cache_value = _pipeline.encode_prompt(
                 prompt=options.prompt,
@@ -323,7 +325,7 @@ def load_text_encoder(
     checkpoint = config.checkpoint_config.text_encoder_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint TextEncoder")
-        text_encoder_checkpoint = Utils.load_component(
+        text_encoder = Utils.load_component(
             StableDiffusionXLPipeline, 
             config.base_model_path, 
             checkpoint, 
@@ -332,12 +334,12 @@ def load_text_encoder(
             config.secure_token,
             _device_map
         )
-        if text_encoder_checkpoint:
-            return text_encoder_checkpoint
+        if text_encoder:
+            Utils.trim_memory(True)
+            return text_encoder
 
-    
     print(f"[Load] Loading TextEncoder")
-    return CLIPTextModel.from_pretrained(
+    text_encoder = CLIPTextModel.from_pretrained(
         "TensorStack/TextEncoder", 
         subfolder="CLIP-VIT-L", 
         config=_pipeline_config["text_encoder"],
@@ -347,6 +349,8 @@ def load_text_encoder(
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return text_encoder
 
 
 #------------------------------------------------
@@ -366,7 +370,7 @@ def load_text_encoder_2(
     checkpoint = config.checkpoint_config.text_encoder_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint TextEncoder2")
-        text_encoder_checkpoint = Utils.load_component(
+        text_encoder = Utils.load_component(
             StableDiffusionXLPipeline, 
             config.base_model_path, 
             checkpoint, 
@@ -375,21 +379,23 @@ def load_text_encoder_2(
             config.secure_token,
             _device_map
         )
-        if text_encoder_checkpoint:
-            return text_encoder_checkpoint
+        if text_encoder:
+            Utils.trim_memory(True)
+            return text_encoder
 
     print(f"[Load] Loading TextEncoder2")
-    return CLIPTextModelWithProjection.from_pretrained(
+    text_encoder = CLIPTextModelWithProjection.from_pretrained(
         "TensorStack/TextEncoder", 
         subfolder="CLIP-VIT-G",
         config=_pipeline_config["text_encoder_2"],
         torch_dtype=config.data_type, 
-        quantization_config=_quant_config_transformers, 
         use_safetensors=True,
         low_cpu_mem_usage=True, 
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return text_encoder
 
 
 #------------------------------------------------
@@ -418,24 +424,28 @@ def load_unet(
             device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
-            quantization_config=Quantization.get_single_file_config(config)
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER)
         )
 
         if not download_only:
             Quantization.quantize_model(config, unet_checkpoint)
+
+        Utils.trim_memory(True)
         return unet_checkpoint
     
     print(f"[Load] Loading Unet")
-    return UNet2DConditionModel.from_pretrained(
+    unet_checkpoint =  UNet2DConditionModel.from_pretrained(
         config.base_model_path, 
         subfolder="unet", 
         torch_dtype=config.data_type, 
-        quantization_config=_quant_config_diffusers, 
+        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TRANSFORMER),
         use_safetensors=True,
         low_cpu_mem_usage=True, 
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return unet_checkpoint
 
 
 #------------------------------------------------
@@ -465,10 +475,11 @@ def load_vae(
             _device_map
         )
         if vae_checkpoint:
+            Utils.trim_memory(True)
             return vae_checkpoint
     
     print(f"[Load] Loading Vae")
-    return AutoencoderKL.from_pretrained(
+    vae_checkpoint = AutoencoderKL.from_pretrained(
         "TensorStack/AutoEncoder", 
         subfolder="StableDiffusionXL",
         torch_dtype=config.data_type, 
@@ -477,6 +488,8 @@ def load_vae(
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return vae_checkpoint
 
 
 #------------------------------------------------

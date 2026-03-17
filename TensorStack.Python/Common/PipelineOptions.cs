@@ -65,6 +65,12 @@ namespace TensorStack.Python.Common
         [JsonPropertyName("noise_condition")]
         public int NoiseCondition { get; set; }
 
+        [JsonPropertyName("enable_vae_tiling")]
+        public bool EnableVaeTiling { get; set; }
+
+        [JsonPropertyName("enable_vae_slicing")]
+        public bool EnableVaeSlicing { get; set; }
+
 
         [JsonIgnore]
         public ImageTensor InputImage

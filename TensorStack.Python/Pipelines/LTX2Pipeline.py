@@ -3,6 +3,7 @@ import tensorstack.utils as Utils
 import tensorstack.export as Export
 import tensorstack.data_objects as DataObjects
 import tensorstack.quantization as Quantization
+from tensorstack.enums import QuantTarget
 Utils.redirect_output()
 
 import torch
@@ -25,8 +26,6 @@ from diffusers.pipelines.ltx2.connectors import LTX2TextConnectors
 _pipeline = None
 _processType = None
 _pipeline_config = None
-_quant_config_diffusers = None
-_quant_config_transformers = None
 _execution_device = None
 _device_map = None
 _pipeline_device_map = None
@@ -49,11 +48,10 @@ _pipelineMap = {
 # Initialize Pipeline
 #------------------------------------------------
 def initialize(config: DataObjects.PipelineConfig):
-    global _progress_tracker, _pipeline_config,  _quant_config_diffusers, _quant_config_transformers, _device_map, _pipeline_device_map
+    global _progress_tracker, _pipeline_config, _device_map, _pipeline_device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
-    _quant_config_diffusers, _quant_config_transformers = Quantization.get_quantize_model_config(config.data_type, config.quant_data_type, config.memory_mode)
     _device_map = Utils.get_device_map(config, _execution_device)
     _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
     return create_pipeline(config)
@@ -65,7 +63,7 @@ def initialize(config: DataObjects.PipelineConfig):
 def download(config_args: Dict[str, Any]):
     global _progress_tracker, _pipeline_config, _device_map
    
-    _device_map = "meta"
+    _device_map = None
     config = DataObjects.PipelineConfig(**config_args)
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
     _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
@@ -194,6 +192,9 @@ def generate(
 
     #scheduler
     _pipeline.scheduler = Utils.create_scheduler(options.scheduler_options)
+
+    # AutoEncoder
+    Utils.configure_vae_memory(_pipeline, options.enable_vae_tiling, options.enable_vae_slicing)
 
     #Lora Adapters
     Utils.set_lora_weights(_pipeline, options)
@@ -327,24 +328,29 @@ def load_text_encoder(
             device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TEXT_ENCODER), 
         )
         
         if not download_only:
             Quantization.quantize_model(config, text_encoder)
+
+        Utils.trim_memory(True)
         return text_encoder
     
     print(f"[Load] Loading TextEncoder")
-    return Gemma3ForConditionalGeneration.from_pretrained(
+    text_encoder = Gemma3ForConditionalGeneration.from_pretrained(
         "TensorStack/TextEncoder", 
         subfolder="Gemma-3-12B-IT",
         config=_pipeline_config["text_encoder"],
         torch_dtype=config.data_type, 
-        quantization_config=_quant_config_transformers, 
+        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER),
         use_safetensors=True,
         low_cpu_mem_usage=True, 
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return text_encoder
 
 
 #------------------------------------------------
@@ -373,24 +379,28 @@ def load_transformer(
             device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
-            quantization_config=Quantization.get_single_file_config(config)
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER)
         )
         
         if not download_only:
             Quantization.quantize_model(config, transformer)
+
+        Utils.trim_memory(True)
         return transformer
     
     print(f"[Load] Loading Transformer")
-    return LTX2VideoTransformer3DModel.from_pretrained(
+    transformer = LTX2VideoTransformer3DModel.from_pretrained(
         config.base_model_path, 
         subfolder="transformer", 
         torch_dtype=config.data_type, 
-        quantization_config=_quant_config_diffusers, 
+        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TRANSFORMER),
         use_safetensors=True,
         low_cpu_mem_usage=True, 
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return transformer
 
 
 #------------------------------------------------
@@ -410,7 +420,7 @@ def load_vae_video(
     checkpoint = config.checkpoint_config.vae_checkpoint 
     if checkpoint:
         print(f"[Load] Loading checkpoint Vae Video")
-        return AutoencoderKLLTX2Video.from_single_file(
+        auto_encoder = AutoencoderKLLTX2Video.from_single_file(
             checkpoint, 
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type, 
@@ -420,9 +430,11 @@ def load_vae_video(
             local_files_only=False,
             token=config.secure_token,
         )
+        Utils.trim_memory(True)
+        return auto_encoder
     
     print(f"[Load] Loading Vae Video")
-    return AutoencoderKLLTX2Video.from_pretrained(
+    auto_encoder = AutoencoderKLLTX2Video.from_pretrained(
         "TensorStack/AutoEncoder", 
         subfolder="LTX2",
         torch_dtype=config.data_type, 
@@ -431,6 +443,8 @@ def load_vae_video(
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return auto_encoder
 
 
 #------------------------------------------------
@@ -450,7 +464,7 @@ def load_vae_audio(
     checkpoint = config.checkpoint_config.vae_checkpoint 
     if checkpoint:
         print(f"[Load] Loading checkpoint Vae Audio")
-        return AutoencoderKLLTX2Audio.from_single_file(
+        auto_encoder = AutoencoderKLLTX2Audio.from_single_file(
             checkpoint, 
             config=_pipeline_config["audio_vae"],
             torch_dtype=config.data_type, 
@@ -460,9 +474,11 @@ def load_vae_audio(
             local_files_only=False,
             token=config.secure_token,
         )
+        Utils.trim_memory(True)
+        return auto_encoder
     
     print(f"[Load] Loading Vae Audio")
-    return AutoencoderKLLTX2Audio.from_pretrained(
+    auto_encoder = AutoencoderKLLTX2Audio.from_pretrained(
         config.base_model_path, 
         subfolder="audio_vae", 
         torch_dtype=config.data_type, 
@@ -471,6 +487,8 @@ def load_vae_audio(
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return auto_encoder
 
 
 #------------------------------------------------
@@ -490,7 +508,7 @@ def load_vocoder(
     checkpoint = config.checkpoint_config.model_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint Vocoder")
-        vocoder_checkpoint = Utils.load_component(
+        vocoder = Utils.load_component(
             LTX2Pipeline, 
             config.base_model_path, 
             checkpoint, 
@@ -499,12 +517,13 @@ def load_vocoder(
             config.secure_token,
             _device_map
         )
-        if vocoder_checkpoint:
-            return vocoder_checkpoint
+        if vocoder:
+            Utils.trim_memory(True)
+            return vocoder
 
     
     print(f"[Load] Loading Vocoder")
-    return LTX2Vocoder.from_pretrained(
+    vocoder = LTX2Vocoder.from_pretrained(
         config.base_model_path, 
         subfolder="vocoder", 
         torch_dtype=config.data_type, 
@@ -513,6 +532,8 @@ def load_vocoder(
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return vocoder
 
 
 #------------------------------------------------
@@ -532,7 +553,7 @@ def load_connectors(
     checkpoint = config.checkpoint_config.model_checkpoint
     if checkpoint:
         print(f"[Load] Loading checkpoint Connectors")
-        connectors_checkpoint = Utils.load_component(
+        connectors = Utils.load_component(
             LTX2Pipeline, 
             config.base_model_path, 
             checkpoint, 
@@ -541,12 +562,13 @@ def load_connectors(
             config.secure_token,
             _device_map
         )
-        if connectors_checkpoint:
-            return connectors_checkpoint
+        if connectors:
+            Utils.trim_memory(True)
+            return connectors
 
     
     print(f"[Load] Loading Connectors")
-    return LTX2TextConnectors.from_pretrained(
+    connectors = LTX2TextConnectors.from_pretrained(
         config.base_model_path, 
         subfolder="connectors", 
         torch_dtype=config.data_type, 
@@ -555,6 +577,9 @@ def load_connectors(
         device_map=_device_map,
         **pipeline_kwargs
     )
+    Utils.trim_memory(True)
+    return connectors
+
 
 # #------------------------------------------------
 # # Load ControlNetModel

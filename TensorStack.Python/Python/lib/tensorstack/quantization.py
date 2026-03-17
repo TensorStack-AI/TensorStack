@@ -1,108 +1,135 @@
 import torch
+from enum import Enum
 from typing import Any
 import tensorstack.data_objects as DataObjects
+from tensorstack.enums import QuantType, QuantBackend, QuantTarget
+import bitsandbytes
+from optimum.quanto import freeze, qint8, qfloat8, quantize, qint4
 from transformers import (
     QuantoConfig as TransformersQuantoConfig,
-    BitsAndBytesConfig as TransformersBitsAndBytesConfig
+    BitsAndBytesConfig as TransformersBitsAndBytesConfig,
+    HqqConfig as TransformersHqqConfig,
 )
 from diffusers import (
+    PipelineQuantizationConfig,
     QuantoConfig as DiffusersQuantoConfig,
     GGUFQuantizationConfig as DiffusersGGUFConfig,
-    BitsAndBytesConfig as DiffusersBitsAndBytesConfig
+    BitsAndBytesConfig as DiffusersBitsAndBytesConfig,
 )
 
 
-try:
-    from optimum.quanto import freeze, qint8, qfloat8, quantize, qint4
-    _HAS_QUANTO = True
-except Exception:
-    freeze = None
-    qint4 = None
-    qint8 = None
-    qfloat8 = None
-    quantize = None
-    _HAS_QUANTO = False
+#------------------------------------------------
+# Quantize a PyTorch model
+#------------------------------------------------
+def quantize_model(config: DataObjects.PipelineConfig, model: Any):
+    if config.memory_mode == "OffloadCPU":
+        print(f"[Quantize] OffloadCPU not supported") 
+        return None
+    if config.is_gguf:
+        return
     
+    data_type = config.data_type
+    quant_type = config.quant_type
+    if quant_type == QuantType.Q16Bit:
+        print(f"[Quantize] {quant_type} not supported") 
+        return
+    elif quant_type == QuantType.Q8Bit:
+        print(f"[Quantize] {QuantBackend.QUANTO}, {data_type} -> {quant_type}")
+        quantize(model, weights=qfloat8)
+        freeze(model)
+    elif quant_type == QuantType.Q4Bit:
+        print(f"[Quantize] {QuantBackend.QUANTO}, {data_type} -> {quant_type}")
+        quantize(model, weights=qint4)
+        freeze(model)
 
-try:
-    import bitsandbytes
-    _HAS_BITSANDBYTES = True
-except Exception:
-    _HAS_BITSANDBYTES = False
 
 
-print(f"[Quantize] Initialize quantization backend, quanto: {_HAS_QUANTO}, bitsandbytes: {_HAS_BITSANDBYTES}")
+#------------------------------------------------
+# Auto Quantization Configuration for from_pretrained
+#------------------------------------------------
+def auto_pretrained_config(config: DataObjects.PipelineConfig, target: QuantTarget):
+    if config.memory_mode == "OffloadCPU":
+        print(f"[Quantize] OffloadCPU not supported") 
+        return None
 
-
-def get_quantize_model_config(dtype: torch.dtype, quant_dtype: torch.dtype, memory_mode: str):
-    if not is_quantization_supported(dtype, quant_dtype, memory_mode):
-        return None, None
+    data_type = config.data_type
+    quant_type = config.quant_type
+    if quant_type == QuantType.Q16Bit:
+        return pretrained_config(target, QuantBackend.NONE, QuantType.Q16Bit, data_type)
+    elif target == QuantTarget.TEXT_ENCODER:
+        if quant_type == QuantType.Q8Bit:
+            return pretrained_config(target, QuantBackend.QUANTO, QuantType.Q8Bit, data_type)
+        elif quant_type == QuantType.Q4Bit:
+            return pretrained_config(target, QuantBackend.BITSANDBYTES, QuantType.Q4Bit, data_type)
         
-    elif _HAS_QUANTO:
-        if quant_dtype == torch.int:
-            print(f"[Quantize] Quantizing model from '{dtype}' to 'int4'")
-            return DiffusersQuantoConfig(weights_dtype="int4"), TransformersQuantoConfig(weights_dtype="int4")
-        elif quant_dtype == torch.int8:
-            print(f"[Quantize] Quantizing model from '{dtype}' to 'int8'")
-            return DiffusersQuantoConfig(weights_dtype="int8"), TransformersQuantoConfig(weights_dtype="int8")
-        elif quant_dtype == torch.float8_e4m3fn:
-            print(f"[Quantize] Quantizing model from '{dtype}' to 'float8'")
-            return DiffusersQuantoConfig(weights_dtype="float8"), TransformersQuantoConfig(weights_dtype="float8")
-        
-    elif _HAS_BITSANDBYTES:
-        if quant_dtype == torch.int:
-            print(f"[Quantize] Quantizing model from '{dtype}' to 'int4'")
-            return DiffusersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=dtype), TransformersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=dtype)
-        elif quant_dtype == torch.int8:
-            print(f"[Quantize] Quantizing model from '{dtype}' to 'int8'")
-            return DiffusersBitsAndBytesConfig(load_in_8bit=True), TransformersBitsAndBytesConfig(load_in_8bit=True)
+    elif target == QuantTarget.TRANSFORMER:
+        if quant_type == QuantType.Q8Bit:
+            return pretrained_config(target, QuantBackend.QUANTO, QuantType.Q8Bit, data_type)
+        elif quant_type == QuantType.Q4Bit:
+            return pretrained_config(target, QuantBackend.BITSANDBYTES, QuantType.Q4Bit, data_type)
                 
-    return None, None
+    return None
 
 
 
-def get_single_file_config(config: DataObjects.PipelineConfig):
+#------------------------------------------------
+# Quantization Configuration for from_pretrained
+#------------------------------------------------
+def pretrained_config(target: QuantTarget, backend: QuantBackend, quant_type: QuantType, compute_type: torch.dtype):
+    if quant_type == QuantType.Q16Bit or backend == QuantBackend.NONE:
+        print(f"[Quantize] {quant_type} not supported") 
+        return None
+
+    print(f"[Quantize] {target}, {backend}, {compute_type} -> {quant_type}")
+    if backend == QuantBackend.QUANTO:
+        if target == QuantTarget.TEXT_ENCODER:
+            if quant_type == QuantType.Q8Bit:
+                return TransformersQuantoConfig(weights_dtype="float8") # "int8"
+            elif quant_type == QuantType.Q4Bit:
+                return TransformersQuantoConfig(weights_dtype="int4")
+            
+        elif target == QuantTarget.TRANSFORMER:
+            if quant_type == QuantType.Q8Bit:
+                return DiffusersQuantoConfig(weights_dtype="float8")  # "int8"
+            elif quant_type == QuantType.Q4Bit:
+                return DiffusersQuantoConfig(weights_dtype="int4")
+            
+    elif backend == QuantBackend.BITSANDBYTES:
+        if target == QuantTarget.TEXT_ENCODER:
+            if quant_type == QuantType.Q8Bit:
+                return TransformersBitsAndBytesConfig(load_in_8bit=True, llm_int8_enable_fp32_cpu_offload=True)
+            elif quant_type == QuantType.Q4Bit:
+                return TransformersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=compute_type, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4")
+            
+        elif target == QuantTarget.TRANSFORMER:
+            if quant_type == QuantType.Q8Bit:
+                return DiffusersBitsAndBytesConfig(load_in_8bit=True, llm_int8_enable_fp32_cpu_offload=True)
+            elif quant_type == QuantType.Q4Bit:
+                return DiffusersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=compute_type, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4")
+                
+    return None
+
+
+
+#------------------------------------------------
+# Auto Quantization Configuration for from_single_file
+#------------------------------------------------
+def auto_single_file_config(config: DataObjects.PipelineConfig, target: QuantTarget):
+    if config.memory_mode == "OffloadCPU":
+        print(f"[Quantize] OffloadCPU not supported") 
+        return None
+
     if config.is_gguf:
         return DiffusersGGUFConfig(compute_dtype=config.data_type)
-    
-    elif _HAS_BITSANDBYTES:
-        if config.quant_dtype == torch.int8:
-            return DiffusersBitsAndBytesConfig(load_in_8bit=True)
-        elif config.quant_dtype == torch.float8_e4m3fn:
-            return DiffusersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=config.data_type)
+    return None
 
 
 
-def quantize_model(config: DataObjects.PipelineConfig, model: Any):
-    if config.is_gguf or _HAS_BITSANDBYTES:
-        return
+#------------------------------------------------
+# Quantization Configuration for from_single_file
+#------------------------------------------------
+def single_file_config(target: QuantTarget, backend: QuantBackend, quant_type: QuantType, compute_type: torch.dtype, is_gguf: bool):
+    if is_gguf:
+        return DiffusersGGUFConfig(compute_dtype=compute_type)
 
-    if not is_quantization_supported(model.dtype, config.quant_data_type, config.memory_mode):
-        return
-
-    elif _HAS_QUANTO:
-        if config.quant_data_type == torch.int:
-            print(f"[Quantize] Quantizing model from '{model.dtype}' to 'int4'")
-            quantize(model, weights=qint4)
-            freeze(model)
-        elif config.quant_data_type == torch.int8:
-            print(f"[Quantize] Quantizing model from '{model.dtype}' to 'int8'")
-            quantize(model, weights=qint8)
-            freeze(model)
-        elif config.quant_data_type == torch.float8_e4m3fn:
-            print(f"[Quantize] Quantizing model from '{model.dtype}' to 'float8'")
-            quantize(model, weights=qfloat8)
-            freeze(model)
-
-
-def is_quantization_supported(dtype: torch.dtype, quant_dtype: torch.dtype, memory_mode: str) -> bool:
-    if not (_HAS_QUANTO or _HAS_BITSANDBYTES):
-        print(f"[Quantize] No quantization backend found.")
-        return False
-    if memory_mode == "OffloadCPU":
-        print(f"[Quantize] OffloadCPU does not support quantization.")
-        return False
-    if quant_dtype == dtype:
-        print(f"[Quantize] Model is already '{quant_dtype}' skipping quantization.")
-        return False
-    return True
+    return pretrained_config(target, backend, quant_type, compute_type)

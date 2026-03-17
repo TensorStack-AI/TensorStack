@@ -1,5 +1,7 @@
+
 from dataclasses import dataclass, fields
 from typing import Optional, Union, Sequence, get_args, get_origin
+from tensorstack.enums import QuantType
 import torch
 
 def get_data_type(dtype: str):
@@ -57,6 +59,8 @@ class LoraOption:
         self.strength = float(self.strength)
 
 
+
+
 @dataclass(slots=True)
 class PipelineConfig:
     # Required / core
@@ -72,7 +76,7 @@ class PipelineConfig:
     device_bus_id: int = 0
 
     data_type: Union[str, torch.dtype] = "bfloat16"
-    quant_data_type: Union[str, torch.dtype] = "bfloat16"
+    quant_type: QuantType = QuantType.Q16Bit
     
     is_optimize_device_enabled: bool = False
     is_optimize_channels_enabled: bool = False
@@ -88,7 +92,6 @@ class PipelineConfig:
   
     def __post_init__(self):
         self.data_type = get_data_type(self.data_type)
-        self.quant_data_type = get_data_type(self.quant_data_type)
         if (self.lora_adapters is not None and isinstance(self.lora_adapters, Sequence)):
             self.lora_adapters = [LoraConfig(**dict(cfg)) for cfg in self.lora_adapters or []]
         if (self.checkpoint_config is not None and isinstance(self.checkpoint_config, dict)):
@@ -99,6 +102,12 @@ class PipelineConfig:
             self.control_net = ControlNetConfig(**self.control_net)
         elif self.control_net is None:
             self.control_net = ControlNetConfig()
+
+        if isinstance(self.quant_type, str):
+            try:
+                self.quant_type = QuantType[self.quant_type]
+            except KeyError:
+                self.quant_type = QuantType.Q16Bit
 
 
         model_ckpt = getattr(self.checkpoint_config, "model_checkpoint", None)
@@ -225,6 +234,8 @@ class PipelineOptions:
     frame_chunk: int = 0
     frame_chunk_overlap: int = 0
     noise_condition: int = 0
+    enable_vae_tiling: bool = False
+    enable_vae_slicing: bool = False
 
     def __post_init__(self):
         self.guidance_scale = float(self.guidance_scale)

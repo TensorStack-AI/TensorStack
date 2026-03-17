@@ -46,6 +46,7 @@
 
   <!--Python Lib-->
   <ItemGroup>
+    <Content Include="Python\lib\tensorstack\enums.py" Pack="true" PackagePath="contentFiles\any\any\Python\lib\tensorstack\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
     <Content Include="Python\lib\tensorstack\export.py" Pack="true" PackagePath="contentFiles\any\any\Python\lib\tensorstack\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
     <Content Include="Python\lib\tensorstack\utils.py" Pack="true" PackagePath="contentFiles\any\any\Python\lib\tensorstack\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
     <Content Include="Python\lib\tensorstack\data_objects.py" Pack="true" PackagePath="contentFiles\any\any\Python\lib\tensorstack\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
@@ -56,6 +57,7 @@
     <None Include="Python\lib\tensorstack\data_objects.py" Pack="false" />
     <None Include="Python\lib\tensorstack\quantization.py" Pack="false" />
     <None Include="Python\lib\tensorstack\export.py" Pack="false" />
+    <None Include="Python\lib\tensorstack\enums.py" Pack="false" />
   </ItemGroup>
 
   <!--ChromaPipeline-->
