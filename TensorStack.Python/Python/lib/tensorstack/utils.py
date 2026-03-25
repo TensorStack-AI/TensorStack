@@ -2,15 +2,20 @@ import os
 import json
 import gc
 import sys
+import time
 import ctypes
 import ctypes.wintypes
 import torch
 import threading
+import numpy as np
+from datetime import datetime
 from tqdm import tqdm
 import tensorstack.data_objects as DataObjects
+from tensorstack.enums import ProcessType, MemoryMode
 from PIL import Image
 from dataclasses import asdict
 from huggingface_hub import hf_hub_download, snapshot_download
+from collections.abc import Buffer
 from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
 from diffusers.loaders import FromSingleFileMixin
 from diffusers import (
@@ -36,7 +41,7 @@ from diffusers import (
     EDMDPMSolverMultistepScheduler,
     FlowMatchLCMScheduler,
     IPNDMScheduler,
-    CogVideoXDDIMScheduler, 
+    CogVideoXDDIMScheduler,
     CogVideoXDPMScheduler,
     HeliosScheduler,
     HeliosDMDScheduler,
@@ -78,7 +83,6 @@ _SCHEDULER_MAP = {
     "sasolver": SASolverScheduler
 }
 
-
 #------------------------------------------------
 # Create a scheduler with the specifed options and configuration
 #------------------------------------------------
@@ -100,10 +104,10 @@ def create_scheduler(
 # Get the model device_map
 #------------------------------------------------
 def get_device_map(config: DataObjects.PipelineConfig, execution_device: str):
-    if config.memory_mode in("Balanced", "OffloadGPU"):
+    if config.memory_mode in(MemoryMode.Balanced, MemoryMode.OffloadGPU):
         return "cuda"
-    elif config.memory_mode == "OffloadCPU":
-        return "cpu"
+    elif config.memory_mode == MemoryMode.OffloadCPU:
+        return None
     return None
 
 
@@ -111,11 +115,11 @@ def get_device_map(config: DataObjects.PipelineConfig, execution_device: str):
 # Get the pipeline device_map
 #------------------------------------------------
 def get_pipeline_device_map(config: DataObjects.PipelineConfig, execution_device: str):
-    if config.memory_mode == "Balanced":
+    if config.memory_mode == MemoryMode.Balanced:
         return "balanced"
-    elif config.memory_mode == "OffloadGPU":
+    elif config.memory_mode == MemoryMode.OffloadGPU:
         return "cuda"
-    elif config.memory_mode == "OffloadCPU":
+    elif config.memory_mode == MemoryMode.OffloadCPU:
         return "cpu"
     return None
 
@@ -129,17 +133,17 @@ def configure_pipeline_memory(
     config: DataObjects.PipelineConfig,
 ) -> bool:
 
-    if config.memory_mode in("OffloadGPU"):
+    if config.memory_mode == MemoryMode.OffloadGPU:
         optimize_pipeline(pipeline, config)
         pipeline.to(execution_device)
 
-    elif config.memory_mode == "OffloadCPU":
+    elif config.memory_mode == MemoryMode.OffloadCPU:
         pipeline.enable_sequential_cpu_offload(device=execution_device)
 
-    elif config.memory_mode in("OffloadModel"):
+    elif config.memory_mode == MemoryMode.OffloadModel:
         pipeline.enable_model_cpu_offload(device=execution_device)
 
-    return config.memory_mode in ("OffloadCPU", "OffloadModel")
+    return config.memory_mode in (MemoryMode.OffloadCPU, MemoryMode.OffloadModel)
 
 
 #------------------------------------------------
@@ -150,6 +154,7 @@ def configure_vae_memory(pipeline: Any, enable_tiling: bool, enable_slicing: boo
     if not vae:
         return
 
+    print(f"[Execute] Set VAE Memory, enable_tiling: {enable_tiling}, enable_slicing: {enable_slicing}")
     # Tiling: Processes the image in tiles to save VRAM on high-res images
     enable_t = getattr(vae, "enable_tiling", None)
     disable_t = getattr(vae, "disable_tiling", None)
@@ -175,9 +180,9 @@ def optimize_pipeline(pipeline: Any, config: DataObjects.PipelineConfig):
         print(f"[Load] Optimize Channels Last: channels_last")
         pipeline.vae.to(memory_format=torch.channels_last)
         pipeline.unet.to(memory_format=torch.channels_last)
-        
+
     elif hasattr(pipeline, "transformer"):
-        if config.process_type in ("TextToVideo", "ImageToVideo", "VideoToVideo"):
+        if config.process_type in (ProcessType.TextToVideo, ProcessType.ImageToVideo, ProcessType.VideoToVideo):
             #pipeline.vae.to(memory_format=torch.channels_last_3d)
             print(f"[Load] Optimize Channels Last: channels_last_3d")
             pipeline.transformer.to(memory_format=torch.channels_last_3d)
@@ -285,20 +290,20 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
     )
 
     known_components = [
-        "text_encoder", 
-        "text_encoder_2", 
-        "text_encoder_3", 
-        "transformer", 
-        "transformer_2", 
-        "unet", 
-        "vae", 
-        "vocoder", 
-        "audio_vae", 
-        "connectors", 
-        "latent_upsampler", 
-        "processor", 
-        "image_processor", 
-        "image_encoder", 
+        "text_encoder",
+        "text_encoder_2",
+        "text_encoder_3",
+        "transformer",
+        "transformer_2",
+        "unet",
+        "vae",
+        "vocoder",
+        "audio_vae",
+        "connectors",
+        "latent_upsampler",
+        "processor",
+        "image_processor",
+        "image_encoder",
         "scheduler"
     ]
     for comp in known_components:
@@ -306,9 +311,9 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
             # All components: attempt to download config.json from the subfolder
             file_name = "config.json" if comp != "scheduler" else "scheduler_config.json"
             path = hf_hub_download(
-                repo_id, 
-                f"{comp}/{file_name}", 
-                cache_dir=cache_dir, 
+                repo_id,
+                f"{comp}/{file_name}",
+                cache_dir=cache_dir,
                 token=secure_token,
                 user_agent="TensorStack-Diffuse"
             )
@@ -340,10 +345,10 @@ def load_lora_weights(pipeline: Any, config: DataObjects.PipelineConfig):
 #------------------------------------------------
 def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
     if config.lora_options is not None:
-        lora_map = { 
+        lora_map = {
             opt.name: opt.strength
             for opt in config.lora_options
-        }   
+        }
         names = list(lora_map.keys())
         weights = list(lora_map.values())
         pipeline.set_adapters(names, adapter_weights=weights)
@@ -353,19 +358,43 @@ def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
 # Try exctract and load an individual pipeline component from a single file
 # If weights for the specified componenet do not exist None is returned
 #------------------------------------------------
-def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype, secure_token: str, device_map: Any):
+def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype, secure_token: str, device_map: Any, quantization_config: Any):
     try:
         components = ("scheduler", "tokenizer", "tokenizer_2","tokenizer_3", "text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "audio_vae", "vocoder", "connectors")
         skip_args = {c: None for c in components if c != component_name}
         pipe = pipeline.from_single_file(
             model_path,
             config=base_model_path,
-            torch_dtype=data_type, 
+            torch_dtype=data_type,
             use_safetensors=True,
-            low_cpu_mem_usage=True, 
+            low_cpu_mem_usage=True,
             device_map=device_map,
             local_files_only=False,
             token=secure_token,
+            quantization_config=quantization_config,
+            **skip_args
+        )
+
+        return getattr(pipe, component_name, None)
+
+    except Exception:
+        return None
+
+
+def load_pipeline_component(config: DataObjects.PipelineConfig, pipeline: FromSingleFileMixin, component_name: str, model_path: str, device_map: Any, quantization_config: Any = None):
+    try:
+        components = ("scheduler", "tokenizer", "tokenizer_2","tokenizer_3", "text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "audio_vae", "vocoder", "connectors")
+        skip_args = {c: None for c in components if c != component_name}
+        pipe = pipeline.from_single_file(
+            model_path,
+            config=config.base_model_path,
+            torch_dtype=config.data_type,
+            use_safetensors=True,
+            low_cpu_mem_usage=True,
+            device_map=device_map,
+            local_files_only=False,
+            token=config.secure_token,
+            quantization_config=quantization_config,
             **skip_args
         )
 
@@ -394,7 +423,7 @@ def load_json(file_path):
         print(f"Error: Failed to decode JSON. {e}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-    
+
     return {}
 
 
@@ -470,6 +499,13 @@ def isSingleFile(modelPath: str):
 
 
 #------------------------------------------------
+# Is model path a gguf file
+#------------------------------------------------
+def isGGUF(modelPath: str):
+    return modelPath.lower().endswith(".gguf")
+
+
+#------------------------------------------------
 # Get length
 #------------------------------------------------
 def get_len(obj):
@@ -499,14 +535,15 @@ def get_output() -> list[str]:
 # Helper class to intercept Stdout
 #------------------------------------------------
 class MemoryStdout:
-    def __init__(self, callback=None):
+    def __init__(self, key="", callback=None):
         self.callback = callback
         self._log_history = []
         self._lock = threading.Lock()
 
     def write(self, text):
         with self._lock:
-            self._log_history.append(text)
+            timestamp = datetime.now()
+            self._log_history.append(f"{timestamp.isoformat()}|{text}")
         if self.callback:
             self.callback(text)
 
@@ -518,6 +555,89 @@ class MemoryStdout:
             logs_copy = self._log_history[:]
             self._log_history.clear()
         return logs_copy
+
+
+#------------------------------------------------
+# Stopwatch class to handle time mesurements
+#------------------------------------------------
+class Stopwatch:
+    def __init__(self):
+        self._start_time = None
+        self._step_elapsed = 0
+        self._total_accumulated = 0
+        self._is_running = False
+
+    def start(self):
+        if not self._is_running:
+            self._start_time = time.perf_counter()
+            self._is_running = True
+
+    def stop(self):
+        if self._is_running:
+            duration = time.perf_counter() - self._start_time
+            self._step_elapsed += duration
+            self._total_accumulated += duration
+            self._is_running = False
+
+        return self.total_elapsed_ms
+
+    def reset(self):
+        """Resets the current step timer but keeps the total history."""
+        elapsed = self.elapsed_ms
+        was_running = self._is_running
+        if was_running:
+            self.stop()
+
+        self._step_elapsed = 0
+        if was_running:
+            self.start()
+
+        return elapsed
+
+    @property
+    def elapsed_ms(self):
+        """Time for the CURRENT step only."""
+        current_segment = 0
+        if self._is_running:
+            current_segment = time.perf_counter() - self._start_time
+        return (self._step_elapsed + current_segment) * 1000
+
+    @property
+    def total_elapsed_ms(self):
+        """Total time since the very first start()."""
+        current_segment = 0
+        if self._is_running:
+            current_segment = time.perf_counter() - self._start_time
+        return (self._total_accumulated + current_segment) * 1000
+
+_notification_service = None
+def create_services():
+    global _notification_service
+    _notification_service = NotificationService()
+
+def notification_get():
+    return _notification_service.get()
+
+def notification_push(key: str, subkey: str, value: int = 0, maximum: int = 0, batchValue: int = 0, batchMaximum: int = 0, message: str = None, elapsed: float = 0, timestamp: datetime = datetime.now(), tensor: Buffer = []):
+    return _notification_service.push(key= key, subkey= subkey, value= value, maximum= maximum, batchValue= batchValue, batchMaximum= batchMaximum, message=message, elapsed= elapsed, timestamp= timestamp, tensor= tensor)
+
+#------------------------------------------------
+# Helper class handle notifications
+#------------------------------------------------
+class NotificationService:
+    def __init__(self):
+        self._items = []
+        self._lock = threading.Lock()
+
+    def push(self, key: str, subkey: str, value: int = 0, maximum: int = 0, batchValue: int = 0, batchMaximum: int = 0, message: str = None, elapsed: float = 0, timestamp: datetime = datetime.now(), tensor: Buffer = []):
+        with self._lock:
+            self._items.append((f"{key}|{subkey}|{timestamp.isoformat()}|{elapsed}|{value}|{maximum}|{batchValue}|{batchMaximum}|{message}", np.ascontiguousarray(tensor)))
+
+    def get(self):
+        with self._lock:
+            items_copy = self._items[:]
+            self._items.clear()
+        return items_copy
 
 
 #------------------------------------------------
@@ -555,22 +675,20 @@ class ModelDownloadProgress:
     def Update(self, key: str, filename: str, downloaded: float, total: float, speed: float):
         """Update a file's progress (MB)."""
         self.download_stats[key] = {
-            "downloaded": downloaded, 
-            "total": total, 
-            "speed": speed, 
-            "model": self.model_name 
+            "downloaded": downloaded,
+            "total": total,
+            "speed": speed,
+            "model": self.model_name
         }
         self._print_progress(key, filename)
 
 
     def Clear(self):
         """Clear all download tracking."""
-
-        #print(f"[HUB_DOWNLOAD] | model | model | {self.total_per_model} | {self.total_per_model} | {self.total_per_model * self.total_models} | {self.total_per_model * self.total_models} | {0.00}")
         self.model_index = 0
         self.model_name = ""
         self.download_stats.clear()
-     
+
 
     """Reset all download tracking."""
     def Reset(self, total_models: int):
@@ -596,7 +714,8 @@ class ModelDownloadProgress:
         overall_progress = self.model_index * self.total_per_model + scaled_model_progress
         max_progress = self.total_models * self.total_per_model
 
-        print(f"[HUB_DOWNLOAD] | {self.model_name} | {filename} | {scaled_model_progress} | {self.total_per_model} | {overall_progress} | {max_progress} | {avg_speed:.2f}")
+        #print(f"[HUB_DOWNLOAD] | {self.model_name} | {filename} | {scaled_model_progress} | {self.total_per_model} | {overall_progress} | {max_progress} | {avg_speed:.2f}")
+        notification_push("Download", self.model_name, scaled_model_progress, self.total_per_model,  overall_progress, max_progress, filename, avg_speed)
 
     # --------------------
     # TQDM Patch

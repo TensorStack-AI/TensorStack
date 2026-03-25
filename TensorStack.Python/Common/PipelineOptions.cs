@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json.Serialization;
 using TensorStack.Common.Tensor;
 using TensorStack.Python.Scheduler;
@@ -70,42 +69,6 @@ namespace TensorStack.Python.Common
 
         [JsonPropertyName("enable_vae_slicing")]
         public bool EnableVaeSlicing { get; set; }
-
-
-        [JsonIgnore]
-        public ImageTensor InputImage
-        {
-            get { return InputImages.FirstOrDefault(); }
-            set
-            {
-                if (InputImages.Count == 0)
-                {
-                    InputImages.Add(value);
-                }
-                else
-                {
-                    InputImages[0] = value;
-                }
-            }
-        }
-
-        [JsonIgnore]
-        public ImageTensor InputControlImage
-        {
-            get { return InputControlImages.FirstOrDefault(); }
-            set
-            {
-                if (InputControlImages.Count == 0)
-                {
-                    InputControlImages.Add(value);
-                }
-                else
-                {
-                    InputControlImages[0] = value;
-                }
-            }
-        }
-
 
         [JsonIgnore]
         public List<ImageTensor> InputImages { get; set; } = [];

@@ -2,13 +2,12 @@
 {
     public enum ProcessType
     {
-        TextToImage = 100,
-        ImageToImage = 101,
-        ImageEdit = 102,
-        ImageInpaint = 103,
-
-        ControlNetImage = 200,
-        ControlNetImageToImage = 201,
+        TextToImage = 0,
+        ImageToImage = 1,
+        ImageEdit = 2,
+        ImageInpaint = 3,
+        ImageControlNet = 4,
+        ImageToImageControlNet = 5,
 
         TextToVideo = 300,
         ImageToVideo = 301,

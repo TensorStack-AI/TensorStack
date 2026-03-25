@@ -1,23 +1,24 @@
-﻿import sys
-import tensorstack.utils as Utils
+﻿import tensorstack.utils as Utils
 import tensorstack.data_objects as DataObjects
 import tensorstack.quantization as Quantization
-from tensorstack.enums import QuantTarget
+from tensorstack.enums import ProcessType, QuantTarget
 Utils.redirect_output()
+Utils.create_services()
 
 import torch
 import numpy as np
 from threading import Event
 from collections.abc import Buffer
-from typing import Dict, Sequence, List, Tuple, Optional, Union, Any
+from typing import Dict, Sequence, List, Tuple, Optional, Any
 from transformers import Mistral3ForConditionalGeneration
-from diffusers import ( 
-    AutoencoderKLFlux2, 
+from diffusers import (
+    AutoencoderKLFlux2,
     Flux2Transformer2DModel,
     Flux2Pipeline
 )
 
 # Globals
+_config = None
 _pipeline = None
 _processType = None
 _pipeline_config = None
@@ -26,16 +27,16 @@ _device_map = None
 _pipeline_device_map = None
 _control_net_name = None
 _control_net_cache = None
-_step_latent = None
 _generator = None
 _isMemoryOffload = False
 _prompt_cache_key = None
 _prompt_cache_value = None
 _progress_tracker: Utils.ModelDownloadProgress = None
 _cancel_event = Event()
+_stopwatch = None
 _pipelineMap = {
-    "TextToImage": Flux2Pipeline,
-    "ImageToImage": Flux2Pipeline,
+    ProcessType.TextToImage: Flux2Pipeline,
+    ProcessType.ImageToImage: Flux2Pipeline,
 }
 
 
@@ -56,13 +57,13 @@ def initialize(config: DataObjects.PipelineConfig):
 # Download Pipeline
 #------------------------------------------------
 def download(config_args: Dict[str, Any]):
-    global _progress_tracker, _pipeline_config, _device_map
-   
+    global _config, _progress_tracker, _pipeline_config, _device_map
+
     _device_map = "meta"
-    config = DataObjects.PipelineConfig(**config_args)
-    _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
-    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
-    create_pipeline(config, True)
+    _config = DataObjects.PipelineConfig(**config_args)
+    _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(_config))
+    _pipeline_config = Utils.get_pipeline_config(_config.base_model_path, _config.cache_directory, _config.secure_token)
+    create_pipeline(_config, True)
     return True
 
 
@@ -70,47 +71,62 @@ def download(config_args: Dict[str, Any]):
 # Load Pipeline
 #------------------------------------------------
 def load(config_args: Dict[str, Any]) -> bool:
-    global _pipeline, _generator, _processType, _execution_device, _isMemoryOffload
+    global _config, _pipeline, _generator, _processType, _execution_device, _isMemoryOffload
 
     # Config
-    config = DataObjects.PipelineConfig(**config_args)
-    _execution_device = Utils.get_execution_device(config)
+    _config = DataObjects.PipelineConfig(**config_args)
+    _execution_device = Utils.get_execution_device(_config)
     _generator = torch.Generator(device=_execution_device)
-    _processType = config.process_type
+    _processType = _config.process_type
 
     # Initialize Pipeline
-    _pipeline = initialize(config)
+    _pipeline = initialize(_config)
 
     # Load Lora
-    Utils.load_lora_weights(_pipeline, config)
+    Utils.load_lora_weights(_pipeline, _config)
 
     # Memory
-    _isMemoryOffload = Utils.configure_pipeline_memory(_pipeline, _execution_device, config)
+    _isMemoryOffload = Utils.configure_pipeline_memory(_pipeline, _execution_device, _config)
     Utils.trim_memory(_isMemoryOffload)
     return True
-    
+
 
 #------------------------------------------------
 # Reload Pipeline - ProcessType, LoraAdapters and ControlNet are the only options that can be modified
 #------------------------------------------------
 def reload(config_args: Dict[str, Any]) -> bool:
-    global _pipeline, _processType
+    global _config, _pipeline, _processType
 
     # Config
-    config = DataObjects.PipelineConfig(**config_args)
-    _processType = config.process_type
-    _progress_tracker.Reset(total_models=get_model_count(config))
+    _config = DataObjects.PipelineConfig(**config_args)
+    _processType = _config.process_type
+    _progress_tracker.Reset(total_models=get_model_count(_config))
 
     # Rebuild Pipeline
     _pipeline.unload_lora_weights()
-    _pipeline = create_pipeline(config)
+    _pipeline = create_pipeline(_config)
 
     # Load Lora
-    Utils.load_lora_weights(_pipeline, config)
+    Utils.load_lora_weights(_pipeline, _config)
 
     # Memory
-    Utils.configure_pipeline_memory(_pipeline, _execution_device, config)
+    Utils.configure_pipeline_memory(_pipeline, _execution_device, _config)
     Utils.trim_memory(_isMemoryOffload)
+    return True
+
+
+#------------------------------------------------
+# Switch Pipeline - ProcessType
+#------------------------------------------------
+def switch(process_type: ProcessType) -> bool:
+    global _pipeline, _processType
+
+    # Switch Pipeline
+    current = _processType
+    _processType = process_type
+    _pipeline = create_pipeline(_config)
+
+    print(f"[Generate] Switched pipeline: {current} => {process_type}")
     return True
 
 
@@ -134,6 +150,13 @@ def unload() -> bool:
 
 
 #------------------------------------------------
+# Get the notifications
+#------------------------------------------------
+def getNotifications() -> list[(str, Buffer)]:
+    return Utils.notification_get()
+
+
+#------------------------------------------------
 # Get the log entires
 #------------------------------------------------
 def getLogs() -> list[str]:
@@ -141,25 +164,18 @@ def getLogs() -> list[str]:
 
 
 #------------------------------------------------
-# Ge the last step latent
-#------------------------------------------------
-def getStepLatent() -> Buffer:
-    return _step_latent
-
-
-#------------------------------------------------
 # Diffusers pipeline callback to capture step artifacts
 #------------------------------------------------
 def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
-    global _step_latent
     if _cancel_event.is_set():
         pipe._interrupt = True
         raise Exception("Operation Canceled")
 
-    latents = info.get("latents")
-    if latents is not None:
-        _step_latent = np.ascontiguousarray(latents.float().cpu())
-
+    steps = pipe._num_timesteps
+    elapsed = _stopwatch.reset()
+    step_latents = info.get("latents")
+    step_latents = step_latents.float().cpu() if step_latents is not None else []
+    Utils.notification_push(key="Generate", subkey="Step", value=step + 1, maximum=steps, elapsed=elapsed, tensor=step_latents)
     return info
 
 
@@ -178,10 +194,19 @@ def generate(
         input_tensors: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
         control_tensors: Optional[List[Tuple[Sequence[float],Sequence[int]]]] = None,
     ) -> Sequence[Buffer]:
-    global _prompt_cache_key, _prompt_cache_value
+    global _prompt_cache_key, _prompt_cache_value, _stopwatch
     _cancel_event.clear()
     _pipeline._interrupt = False
-    
+    _stopwatch = Utils.Stopwatch()
+    _stopwatch.start()
+
+    # Input Images
+    images = Utils.prepare_images(input_tensors)
+    image_count = Utils.get_len(images)
+    control_images = Utils.prepare_images(control_tensors)
+    control_image_count = Utils.get_len(control_images)
+    print(f"[Generate] Input Received - Tensors: {image_count}, Control Tensors: {control_image_count}")
+
     # Options
     options = DataObjects.PipelineOptions(**inference_args)
 
@@ -194,10 +219,8 @@ def generate(
     # Lora Adapters
     Utils.set_lora_weights(_pipeline, options)
 
-    # Input Images
-    images = Utils.prepare_images(input_tensors)
-    control_images = Utils.prepare_images(control_tensors)
-    print(f"[generate] Input Received - Tensors: {Utils.get_len(images)}, Control Tensors: {Utils.get_len(control_images)}")
+    # Notify
+    Utils.notification_push(key="Generate", subkey="Initialize", elapsed=_stopwatch.reset())
 
     # Prompt Cache
     prompt_cache_key = (options.prompt)
@@ -209,7 +232,10 @@ def generate(
                 device=_pipeline._execution_device,
                 max_sequence_length=512
             )
-            _prompt_cache_key = prompt_cache_key        
+            _prompt_cache_key = prompt_cache_key
+
+    # Notify
+    Utils.notification_push(key="Generate", subkey="Encode", elapsed=_stopwatch.reset())
 
     # Pipeline Options
     (prompt_embeds, text_ids) = _prompt_cache_value
@@ -232,6 +258,10 @@ def generate(
     # (Batch, Channel, Height, Width)
     output = output.transpose(0, 3, 1, 2).astype(np.float32)
 
+    # Notify
+    Utils.notification_push(key="Generate", subkey="Decode", elapsed = _stopwatch.reset())
+    Utils.notification_push(key="Generate", subkey="Complete", elapsed = _stopwatch.stop())
+
     # Cleanup
     Utils.trim_memory(_isMemoryOffload)
     return [ np.ascontiguousarray(output) ]
@@ -241,35 +271,35 @@ def generate(
 # Create a new pipeline
 #------------------------------------------------
 def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = False):
-    pipeline_kwargs = { 
-        "variant": config.variant, 
-        "token": config.secure_token, 
-        "cache_dir": config.cache_directory 
+    pipeline_kwargs = {
+        "variant": config.variant,
+        "token": config.secure_token,
+        "cache_dir": config.cache_directory
     }
 
     # Load Models
-    text_encoder = load_text_encoder(config, pipeline_kwargs, download_only)
-    transformer = load_transformer(config, pipeline_kwargs, download_only)
-    vae = load_vae(config, pipeline_kwargs, download_only)
-    # control_net = load_control_net(config, pipeline_kwargs, download_only)
-    # if control_net is not None:
-    #     pipeline_kwargs.update({"controlnet": control_net})
-   
+    text_encoder = load_text_encoder(config, pipeline_kwargs)
+    transformer = load_transformer(config, pipeline_kwargs)
+    vae = load_vae(config, pipeline_kwargs)
+    control_net = load_control_net(config, pipeline_kwargs)
+    if control_net is not None:
+        pipeline_kwargs.update({"controlnet": control_net})
+
     _progress_tracker.Clear()
     if download_only:
         return None
 
     # Build Pipeline
-    pipeline = _pipelineMap[config.process_type]
+    pipeline = _pipelineMap[_processType]
     return pipeline.from_pretrained(
         config.base_model_path,
         text_encoder=text_encoder,
-        transformer=transformer, 
-        vae=vae, 
+        transformer=transformer,
+        vae=vae,
         torch_dtype=config.data_type,
         device_map=_pipeline_device_map,
         local_files_only=True,
-        low_cpu_mem_usage=True, 
+        low_cpu_mem_usage=True,
         **pipeline_kwargs
     )
 
@@ -277,47 +307,42 @@ def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = Fa
 #------------------------------------------------
 # Load Mistral3ForConditionalGeneration
 #------------------------------------------------
-def load_text_encoder(
-        config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str],
-        download_only: bool
-    ):
+def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
 
     if _pipeline and _pipeline.text_encoder:
-        print(f"[Load] Loading cached TextEncoder")
+        print(f"[Load] Loading Cached TextEncoder")
         return _pipeline.text_encoder
 
     _progress_tracker.Initialize(0, "text_encoder")
-    checkpoint = config.checkpoint_config.text_encoder_checkpoint
+    checkpoint = config.checkpoint_config.text_encoder
     if checkpoint:
-        print(f"[Load] Loading checkpoint TextEncoder")
+        print(f"[Load] Loading Checkpoint TextEncoder")
+        is_gguf = Utils.isGGUF(checkpoint)
         text_encoder = Mistral3ForConditionalGeneration.from_single_file(
-            checkpoint, 
+            checkpoint,
             config=_pipeline_config["text_encoder"],
-            torch_dtype=config.data_type, 
-            use_safetensors=True, 
-            low_cpu_mem_usage=True, 
+            torch_dtype=config.data_type,
+            use_safetensors=True,
+            low_cpu_mem_usage=True,
             device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
-            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TEXT_ENCODER), 
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TEXT_ENCODER, is_gguf),
         )
-        
-        if not download_only:
-            Quantization.quantize_model(config, text_encoder)
 
+        Quantization.quantize_model(config, text_encoder, is_gguf)
         Utils.trim_memory(True)
         return text_encoder
-    
-    print(f"[Load] Loading TextEncoder")
+
+    print(f"[Load] Loading Pretrained TextEncoder")
     text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
-        "TensorStack/TextEncoder", 
+        "TensorStack/TextEncoder",
         subfolder="Mistral-3-Small",
         config=_pipeline_config["text_encoder"],
-        torch_dtype=config.data_type, 
+        torch_dtype=config.data_type,
         quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER),
         use_safetensors=True,
-        low_cpu_mem_usage=True, 
+        low_cpu_mem_usage=True,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -328,46 +353,45 @@ def load_text_encoder(
 #------------------------------------------------
 # Load Flux2Transformer2DModel
 #------------------------------------------------
-def load_transformer(
-        config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str],
-        download_only: bool
-    ):
+def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
 
     if _pipeline and _pipeline.transformer:
-        print(f"[Load] Loading cached Transformer")
+        print(f"[Load] Loading Cached Transformer")
         return _pipeline.transformer
 
     _progress_tracker.Initialize(1, "transformer")
-    checkpoint = config.checkpoint_config.model_checkpoint
+    checkpoint = (
+        config.checkpoint_config.transformer
+        if config.checkpoint_config.transformer
+        else config.checkpoint_config.single_file
+    )
     if checkpoint:
-        print(f"[Load] Loading checkpoint Transformer")
+        print(f"[Load] Loading Checkpoint Transformer")
+        is_gguf = Utils.isGGUF(checkpoint)
         transformer = Flux2Transformer2DModel.from_single_file(
-            checkpoint, 
+            checkpoint,
             config=_pipeline_config["transformer"],
-            torch_dtype=config.data_type, 
-            use_safetensors=True, 
-            low_cpu_mem_usage=True, 
+            torch_dtype=config.data_type,
+            use_safetensors=True,
+            low_cpu_mem_usage=True,
             device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
-            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER)
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER, is_gguf)
         )
-        
-        if not download_only:
-            Quantization.quantize_model(config, transformer)
 
+        Quantization.quantize_model(config, transformer, is_gguf)
         Utils.trim_memory(True)
         return transformer
-    
-    print(f"[Load] Loading Transformer")
+
+    print(f"[Load] Loading Pretrained Transformer")
     transformer = Flux2Transformer2DModel.from_pretrained(
-        config.base_model_path, 
-        subfolder="transformer", 
-        torch_dtype=config.data_type, 
+        config.base_model_path,
+        subfolder="transformer",
+        torch_dtype=config.data_type,
         quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TRANSFORMER),
         use_safetensors=True,
-        low_cpu_mem_usage=True, 
+        low_cpu_mem_usage=True,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -378,40 +402,40 @@ def load_transformer(
 #------------------------------------------------
 # Load AutoencoderKLFlux2
 #------------------------------------------------
-def load_vae(
-        config: DataObjects.PipelineConfig, 
-        pipeline_kwargs: Dict[str, str],
-        download_only: bool
-    ):
+def load_vae(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
 
     if _pipeline and _pipeline.vae:
-        print(f"[Load] Loading cached Vae")
+        print(f"[Load] Loading Cached Vae")
         return _pipeline.vae
 
     _progress_tracker.Initialize(2, "vae")
-    checkpoint = config.checkpoint_config.vae_checkpoint
+    checkpoint = (
+        config.checkpoint_config.vae
+        if config.checkpoint_config.vae
+        else config.checkpoint_config.single_file
+    )
     if checkpoint:
-        print(f"[Load] Loading checkpoint Vae")
+        print(f"[Load] Loading Checkpoint Vae")
         auto_encoder = AutoencoderKLFlux2.from_single_file(
-            checkpoint, 
+            checkpoint,
             config=_pipeline_config["vae"],
-            torch_dtype=config.data_type, 
+            torch_dtype=config.data_type,
             use_safetensors=True,
-            low_cpu_mem_usage=True, 
+            low_cpu_mem_usage=True,
             device_map=_device_map,
             local_files_only=False,
             token=config.secure_token,
         )
         Utils.trim_memory(True)
         return auto_encoder
-    
-    print(f"[Load] Loading Vae")
+
+    print(f"[Load] Loading Pretrained Vae")
     auto_encoder = AutoencoderKLFlux2.from_pretrained(
-        "TensorStack/AutoEncoder", 
+        "TensorStack/AutoEncoder",
         subfolder="Flux2",
-        torch_dtype=config.data_type, 
+        torch_dtype=config.data_type,
         use_safetensors=True,
-        low_cpu_mem_usage=True, 
+        low_cpu_mem_usage=True,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -419,33 +443,29 @@ def load_vae(
     return auto_encoder
 
 
-# #------------------------------------------------
-# # Load ControlNetModel
-# #------------------------------------------------
-# def load_control_net(
-#         config: DataObjects.PipelineConfig, 
-#         pipeline_kwargs: Dict[str, str],
-#         download_only: bool
-#     ):
-#     global _control_net_name, _control_net_cache
+#------------------------------------------------
+# Load ControlNetModel
+#------------------------------------------------
+def load_control_net(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    global _control_net_name, _control_net_cache
 
-#     if _control_net_cache and _control_net_name == config.control_net.name:
-#         print(f"[Load] Loading cached ControlNet")
-#         return _control_net_cache
+    if _control_net_cache and _control_net_name == config.control_net.name:
+        print(f"[Load] Loading Cached ControlNet")
+        return _control_net_cache
 
-#     if config.control_net.name is None:
-#         _control_net_name = None
-#         _control_net_cache = None
-#         return None
-    
-#     print(f"[Load] Loading ControlNet")
-#     _control_net_name = config.control_net.name
-#     _progress_tracker.Initialize(4, "control_net")
-#     _control_net_cache = ControlNetModel.from_pretrained(
-#         config.control_net.path, 
-#         torch_dtype=config.data_type,
-#         use_safetensors=True,
-#         low_cpu_mem_usage=True, 
-#         device_map=_device_map,
-#     )
-#     return _control_net_cache
+    if config.control_net.name is None:
+        _control_net_name = None
+        _control_net_cache = None
+        return None
+
+    # print(f"[Load] Loading Pretrained ControlNet")
+    # _control_net_name = config.control_net.name
+    # _progress_tracker.Initialize(4, "control_net")
+    # _control_net_cache = ControlNetModel.from_pretrained(
+    #     config.control_net.path,
+    #     torch_dtype=config.data_type,
+    #     use_safetensors=True,
+    #     low_cpu_mem_usage=True,
+    #     device_map=_device_map,
+    # )
+    return None

@@ -13,6 +13,9 @@ namespace TensorStack.Python
         /// <param name="pyBuffer">The py buffer.</param>
         public static Tensor<float> ToTensor(this IPyBuffer pyBuffer)
         {
+            if (pyBuffer.Length == 0)
+                return default;
+
             var buffer = pyBuffer.GetBuffer();
             var dimensions = pyBuffer.GetDimensions();
             return new Tensor<float>(buffer, dimensions);
@@ -50,7 +53,7 @@ namespace TensorStack.Python
             progressCallback?.Report(new PipelineProgress
             {
                 Message = message,
-                Process = "Initialize"
+                Key = "Initialize"
             });
         }
     }

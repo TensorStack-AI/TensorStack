@@ -3,6 +3,7 @@ using CSnakes.Runtime.Python;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common;
@@ -20,7 +21,6 @@ namespace TensorStack.Python
         private readonly ILogger _logger;
         private readonly string _pipelineName;
         private readonly PipelineConfig _configuration;
-        private readonly int _progressRefresh;
         private readonly IProgress<PipelineProgress> _progressCallback;
         private PyObject _module;
         private PyObject _functionLoad;
@@ -29,8 +29,8 @@ namespace TensorStack.Python
         private PyObject _functionDownload;
         private PyObject _functionCancel;
         private PyObject _functionGenerate;
-        private PyObject _functionGetStepLatent;
         private PyObject _functionGetLogs;
+        private PyObject _functionGetNotifications;
         private bool _isRunning;
 
         /// <summary>
@@ -43,16 +43,16 @@ namespace TensorStack.Python
             _logger = logger;
             _isRunning = true;
             _configuration = configuration;
-            _progressRefresh = 250;
             _progressCallback = progressCallback;
             _pipelineName = _configuration.Pipeline;
             using (GIL.Acquire())
             {
-                _logger?.LogInformation("[PythonPipeline] [ReloadModule] Importing pipeline module '{pipelineName}'.", _pipelineName);
+                _logger?.LogInformation("[PythonPipeline] [Load] Importing pipeline module '{pipelineName}'.", _pipelineName);
                 _module = Import.ImportModule(_pipelineName);
                 BindFunctions();
             }
-            _ = LoggingLoop(_progressRefresh);
+            _ = LoggingLoop(50);
+            _ = NotificationLoop(25);
         }
 
 
@@ -115,7 +115,7 @@ namespace TensorStack.Python
                 {
                     try
                     {
-                        _logger?.LogInformation("[PythonPipeline] [Reload] Reloadinf pipeline.");
+                        _logger?.LogInformation("[PythonPipeline] [Reload] Reloading pipeline.");
 
                         var configuration = _configuration with
                         {
@@ -201,9 +201,9 @@ namespace TensorStack.Python
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public Task<List<Tensor<float>>> GenerateAsync(PipelineOptions options, CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<Tensor<float>>> GenerateAsync(PipelineOptions options, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() =>
+            return Task.Run<IReadOnlyList<Tensor<float>>>(() =>
             {
                 using (GIL.Acquire())
                 {
@@ -220,12 +220,42 @@ namespace TensorStack.Python
                         using (var controlNetData = PyObject.From(controlInputTensors))
                         using (var pythonResults = _functionGenerate.Call(inferenceOptions, imageData, controlNetData))
                         {
-                            var results = new List<Tensor<float>>();
-                            foreach (var pythonResult in pythonResults.AsBareEnumerable<IPyBuffer, PyObjectImporters.Buffer>())
-                            {
-                                results.Add(pythonResult.ToTensor().Normalize(Normalization.OneToOne));
-                            }
-                            return results;
+                            return pythonResults.AsBareEnumerable<IPyBuffer, PyObjectImporters.Buffer>()
+                                .Select(x => x.ToTensor().Normalize(Normalization.OneToOne))
+                                .ToList();
+                        }
+                    }
+                    catch (PythonInvocationException ex)
+                    {
+                        throw HandlePythonException(ex);
+                    }
+                }
+            });
+        }
+
+
+        /// <summary>
+        /// Gets the Notifications.
+        /// </summary>
+        public Task<IReadOnlyList<PipelineProgress>> GetNotificationsAsync()
+        {
+            return Task.Run<IReadOnlyList<PipelineProgress>>(() =>
+            {
+                using (GIL.Acquire())
+                {
+                    try
+                    {
+                        using (var pythonResult = _functionGetNotifications.Call())
+                        {
+                            var pythonResults = pythonResult.BareImportAs<
+                                IReadOnlyList<(string, IPyBuffer)>,
+                                PyObjectImporters.List<(string, IPyBuffer),
+                                PyObjectImporters.Tuple<string, IPyBuffer, PyObjectImporters.String, PyObjectImporters.Buffer>>>();
+
+                            return pythonResults
+                                .Select(x => PipelineProgress.Create(x.Item1, x.Item2.ToTensor()))
+                                .Where(x => x?.Key != null)
+                                .ToList();
                         }
                     }
                     catch (PythonInvocationException ex)
@@ -261,34 +291,6 @@ namespace TensorStack.Python
             });
         }
 
-
-        /// <summary>
-        /// Gets the step latents.
-        /// </summary>
-        public Task<Tensor<float>> GetStepLatentAsync()
-        {
-            return Task.Run(() =>
-            {
-                using (GIL.Acquire())
-                {
-                    try
-                    {
-                        _logger?.LogInformation("[PythonPipeline] [GetStepLatent] Fetching step latents.");
-
-                        using (var pythonResult = _functionGetStepLatent.Call())
-                        {
-                            return pythonResult
-                                .BareImportAs<IPyBuffer, PyObjectImporters.Buffer>()
-                                .ToTensor();
-                        }
-                    }
-                    catch (PythonInvocationException ex)
-                    {
-                        throw HandlePythonException(ex);
-                    }
-                }
-            });
-        }
 
 
         /// <summary>
@@ -343,8 +345,8 @@ namespace TensorStack.Python
             _functionDownload = _module.GetAttr("download");
             _functionCancel = _module.GetAttr("generateCancel");
             _functionGenerate = _module.GetAttr("generate");
-            _functionGetStepLatent = _module.GetAttr("getStepLatent");
             _functionGetLogs = _module.GetAttr("getLogs");
+            _functionGetNotifications = _module.GetAttr("getNotifications");
         }
 
 
@@ -359,8 +361,8 @@ namespace TensorStack.Python
             _functionDownload.Dispose();
             _functionCancel.Dispose();
             _functionGenerate.Dispose();
-            _functionGetStepLatent.Dispose();
             _functionGetLogs.Dispose();
+            _functionGetNotifications.Dispose();
         }
 
 
@@ -372,17 +374,35 @@ namespace TensorStack.Python
         {
             while (_isRunning)
             {
-                var logs = await GetLogsAsync();
-                foreach (var progress in LogParser.ParseLogs(logs))
+                var logEntries = await GetLogsAsync();
+                foreach (var logEntry in LogParser.ParseLogs(logEntries).OrderBy(x => x.Timestamp))
                 {
-                    if (progress == null)
+                    if (string.IsNullOrWhiteSpace(logEntry?.Message))
                         continue;
 
-                    if (!string.IsNullOrWhiteSpace(progress.Message))
-                        _logger?.LogInformation("[PythonPipeline] [PythonRuntime] {Message}", progress.Message);
+                    _logger?.LogInformation("[PythonPipeline] [PythonRuntime] [{Timestamp}] {Message}", logEntry.Timestamp.ToString("hh:mm:ss:fff"), logEntry.Message);
+                }
+                await Task.Delay(refreshRate);
+            }
+        }
 
-                    if (!string.IsNullOrWhiteSpace(progress.Process))
+
+        /// <summary>
+        /// Notification loop.
+        /// </summary>
+        /// <param name="refreshRate">The refresh rate.</param>
+        private async Task NotificationLoop(int refreshRate)
+        {
+            while (_isRunning)
+            {
+                var progressItems = await GetNotificationsAsync();
+                if (!progressItems.IsNullOrEmpty())
+                {
+                    foreach (var progress in progressItems)
+                    {
                         _progressCallback?.Report(progress);
+                        _logger?.LogDebug("[PythonPipeline] [PythonRuntime] {Progress}", progress);
+                    }
                 }
                 await Task.Delay(refreshRate);
             }
@@ -441,5 +461,6 @@ namespace TensorStack.Python
             }
             return inputData;
         }
+
     }
 }

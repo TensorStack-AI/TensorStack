@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass, fields
 from typing import Optional, Union, Sequence, get_args, get_origin
-from tensorstack.enums import QuantType
+from tensorstack.enums import ProcessType, MemoryMode, QuantType
 import torch
 
 def get_data_type(dtype: str):
@@ -32,9 +32,16 @@ def get_data_type(dtype: str):
 
 @dataclass(slots=True)
 class CheckpointConfig:
-    model_checkpoint: Optional[str] = None
-    vae_checkpoint: Optional[str] = None
-    text_encoder_checkpoint: Optional[str] = None
+    single_file: Optional[str] = None
+    text_encoder: Optional[str] = None
+    text_encoder_2: Optional[str] = None
+    text_encoder_3: Optional[str] = None
+    transformer: Optional[str] = None
+    transformer_2: Optional[str] = None
+    vae: Optional[str] = None
+    audio_vae: Optional[str] = None
+    vocoder: Optional[str] = None
+    connectors: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -66,9 +73,8 @@ class PipelineConfig:
     # Required / core
     base_model_path: str
     pipeline: str
-    process_type: str
-    memory_mode: str
-    is_gguf: bool = False 
+    process_type: ProcessType.TextToImage
+    memory_mode: MemoryMode.OffloadCPU
 
     # Device
     device: str = "cuda"
@@ -77,7 +83,7 @@ class PipelineConfig:
 
     data_type: Union[str, torch.dtype] = "bfloat16"
     quant_type: QuantType = QuantType.Q16Bit
-    
+
     is_optimize_device_enabled: bool = False
     is_optimize_channels_enabled: bool = False
 
@@ -89,8 +95,11 @@ class PipelineConfig:
     lora_adapters: Optional[Sequence[LoraConfig]] = None
     control_net: Optional[ControlNetConfig] = None
     checkpoint_config: Optional[CheckpointConfig] = None
-  
+
     def __post_init__(self):
+        self.quant_type = QuantType[self.quant_type]
+        self.memory_mode = MemoryMode[self.memory_mode]
+        self.process_type = ProcessType[self.process_type]
         self.data_type = get_data_type(self.data_type)
         if (self.lora_adapters is not None and isinstance(self.lora_adapters, Sequence)):
             self.lora_adapters = [LoraConfig(**dict(cfg)) for cfg in self.lora_adapters or []]
@@ -103,48 +112,35 @@ class PipelineConfig:
         elif self.control_net is None:
             self.control_net = ControlNetConfig()
 
-        if isinstance(self.quant_type, str):
-            try:
-                self.quant_type = QuantType[self.quant_type]
-            except KeyError:
-                self.quant_type = QuantType.Q16Bit
-
-
-        model_ckpt = getattr(self.checkpoint_config, "model_checkpoint", None)
-        self.is_gguf = (
-            (model_ckpt is not None and str(model_ckpt).lower().endswith(".gguf")) or
-            (getattr(self, "base_model_path", None) is not None and str(self.base_model_path).lower().endswith(".gguf"))
-        )
-
 
 @dataclass(slots=True)
 class SchedulerOptions:
     Scheduler: str
-    num_train_timesteps: Optional[int] = None 
-    original_inference_steps: Optional[int] = None 
-    base_image_seq_len: Optional[int] = None 
-    max_image_seq_len: Optional[int ] = None 
+    num_train_timesteps: Optional[int] = None
+    original_inference_steps: Optional[int] = None
+    base_image_seq_len: Optional[int] = None
+    max_image_seq_len: Optional[int ] = None
 
     beta_schedule: Optional[str] = None             # BetaScheduleType
-    beta_start: Optional[float] = None 
-    beta_end: Optional[float] = None 
-  
+    beta_start: Optional[float] = None
+    beta_end: Optional[float] = None
+
     prediction_type: Optional[str] = None           # PredictionType
     timestep_spacing: Optional[str] = None          # TimestepSpacingType
-    steps_offset: Optional[int] = None 
+    steps_offset: Optional[int] = None
 
-    clip_sample: Optional[bool] = None 
-    clip_sample_range: Optional[float] = None 
-    sample_max_value: Optional[float] = None 
+    clip_sample: Optional[bool] = None
+    clip_sample_range: Optional[float] = None
+    sample_max_value: Optional[float] = None
 
-    thresholding: Optional[bool] = None 
-    dynamic_thresholding_ratio: Optional[float] = None 
+    thresholding: Optional[bool] = None
+    dynamic_thresholding_ratio: Optional[float] = None
     variance_type: Optional[str] = None             # VarianceType
-  
-    use_karras_sigmas: Optional[bool] = None 
-    use_beta_sigmas: Optional[bool] = None 
-    use_exponential_sigmas: Optional[bool] = None 
-    use_flow_sigmas: Optional[bool ] = None 
+
+    use_karras_sigmas: Optional[bool] = None
+    use_beta_sigmas: Optional[bool] = None
+    use_exponential_sigmas: Optional[bool] = None
+    use_flow_sigmas: Optional[bool ] = None
 
     sigma_min: Optional[float] = None
     sigma_max: Optional[float] = None
@@ -152,52 +148,52 @@ class SchedulerOptions:
 
     interpolation_type: Optional[str] = None        # InterpolationType
     timestep_type: Optional[str] = None             # TimestepType
-    rescale_betas_zero_snr: Optional[bool] = None 
-    set_alpha_to_one: Optional[bool] = None 
-    timestep_scaling: Optional[float] = None 
+    rescale_betas_zero_snr: Optional[bool] = None
+    set_alpha_to_one: Optional[bool] = None
+    timestep_scaling: Optional[float] = None
 
-    shift: Optional[float] = None 
-    base_shift: Optional[float] = None 
-    max_shift: Optional[float] = None 
+    shift: Optional[float] = None
+    base_shift: Optional[float] = None
+    max_shift: Optional[float] = None
     shift_terminal: Optional[float] = None
-    use_dynamic_shifting: Optional[bool] = None 
-    flow_shift: Optional[float] = None 
-    snr_shift_scale: Optional[float] = None 
+    use_dynamic_shifting: Optional[bool] = None
+    flow_shift: Optional[float] = None
+    snr_shift_scale: Optional[float] = None
 
     time_shift_type: Optional[str] = None           # TimeShiftType
-    rho: Optional[float] = None 
+    rho: Optional[float] = None
 
-    solver_order: Optional[int] = None 
+    solver_order: Optional[int] = None
     solver_type: Optional[str] = None               # SolverType
     algorithm_type: Optional[str] = None            # AlgorithmType
-    lower_order_final: Optional[bool] = None 
+    lower_order_final: Optional[bool] = None
 
-    stochastic_sampling: Optional[bool] = None 
-    eta: Optional[float] = None 
-    s_noise: Optional[float] = None 
+    stochastic_sampling: Optional[bool] = None
+    eta: Optional[float] = None
+    s_noise: Optional[float] = None
 
-    invert_sigmas: Optional[bool] = None 
-    skip_prk_steps: Optional[bool] = None 
-    predict_x0: Optional[bool] = None 
-    euler_at_final: Optional[bool] = None 
+    invert_sigmas: Optional[bool] = None
+    skip_prk_steps: Optional[bool] = None
+    predict_x0: Optional[bool] = None
+    euler_at_final: Optional[bool] = None
 
-    use_lu_lambdas: Optional[bool] = None 
+    use_lu_lambdas: Optional[bool] = None
     noise_sampler_seed: Optional[int] = None
-    sigma_data: Optional[float] = None 
+    sigma_data: Optional[float] = None
     sigma_schedule: Optional[str] = None            # SigmaScheduleType
     upscale_mode: Optional[str] = None              # UpscaleModeType
 
-    stages: Optional[int] = None 
-    gamma: Optional[float] = None 
-    predictor_order: Optional[int] = None 
-    corrector_order: Optional[int] = None 
+    stages: Optional[int] = None
+    gamma: Optional[float] = None
+    predictor_order: Optional[int] = None
+    corrector_order: Optional[int] = None
 
-    scale_factors: Optional[Sequence[float]] = None 
-    stage_range: Optional[Sequence[float]] = None 
-    disable_corrector: Optional[Sequence[int]] = None 
+    scale_factors: Optional[Sequence[float]] = None
+    stage_range: Optional[Sequence[float]] = None
+    disable_corrector: Optional[Sequence[int]] = None
 
-    s: Optional[float] = None 
-    scaler: Optional[float] = None 
+    s: Optional[float] = None
+    scaler: Optional[float] = None
 
     def __post_init__(self):
         for field in fields(self):
@@ -217,7 +213,7 @@ class SchedulerOptions:
 class PipelineOptions:
     seed: int
     prompt: str
-    negative_prompt: Optional[str] = None 
+    negative_prompt: Optional[str] = None
     guidance_scale: float = 1.0
     guidance_scale2: float = 1.0
     steps: int = 50
@@ -228,7 +224,7 @@ class PipelineOptions:
     frame_rate: float = 0.0
     strength: float = 1.0
     control_net_scale: float = 1.0
-    lora_options: Optional[Sequence[LoraOption]] = None 
+    lora_options: Optional[Sequence[LoraOption]] = None
     scheduler_options: SchedulerOptions = None
     temp_filename: str = None
     frame_chunk: int = 0
