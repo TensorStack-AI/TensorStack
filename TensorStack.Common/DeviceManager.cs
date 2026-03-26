@@ -44,7 +44,14 @@ namespace TensorStack.Common
 
             _deviceProvider = executionProvider;
             _environmentOptions = environmentOptions;
-            _environment = OrtEnv.CreateInstanceWithOptions(ref _environmentOptions);
+            try
+            {
+                _environment = OrtEnv.CreateInstanceWithOptions(ref _environmentOptions);
+            }
+            catch (Exception ex)//TEMP
+            {
+                _environment = OrtEnv.Instance();
+            }
 
             var providers = _environment.GetAvailableProviders();
             if (!providers.Contains(_deviceProvider, StringComparer.OrdinalIgnoreCase))

@@ -105,6 +105,7 @@ namespace TensorStack.StableDiffusion.Pipelines
         {
             IScheduler scheduler = options.Scheduler switch
             {
+                SchedulerType.None => default,
                 SchedulerType.LMS => new LMSScheduler(options),
                 SchedulerType.Euler => new EulerScheduler(options),
                 SchedulerType.EulerAncestral => new EulerAncestralScheduler(options),
@@ -118,7 +119,7 @@ namespace TensorStack.StableDiffusion.Pipelines
                 SchedulerType.FlowMatchEulerDynamic => new FlowMatchEulerDynamicScheduler(options),
                 _ => default
             };
-            scheduler.Initialize(options.Strength);
+            scheduler?.Initialize(options.Strength);
             return scheduler;
         }
 
