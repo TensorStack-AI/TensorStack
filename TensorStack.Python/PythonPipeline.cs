@@ -51,8 +51,7 @@ namespace TensorStack.Python
                 _module = Import.ImportModule(_pipelineName);
                 BindFunctions();
             }
-            _ = LoggingLoop(50);
-            _ = NotificationLoop(25);
+            _ = NotificationLoop(50);
         }
 
 
@@ -367,27 +366,6 @@ namespace TensorStack.Python
 
 
         /// <summary>
-        /// Logging loop.
-        /// </summary>
-        /// <param name="refreshRate">The refresh rate.</param>
-        private async Task LoggingLoop(int refreshRate)
-        {
-            while (_isRunning)
-            {
-                var logEntries = await GetLogsAsync();
-                foreach (var logEntry in LogParser.ParseLogs(logEntries).OrderBy(x => x.Timestamp))
-                {
-                    if (string.IsNullOrWhiteSpace(logEntry?.Message))
-                        continue;
-
-                    _logger?.LogInformation("[PythonPipeline] [PythonRuntime] [{Timestamp}] {Message}", logEntry.Timestamp.ToString("hh:mm:ss:fff"), logEntry.Message);
-                }
-                await Task.Delay(refreshRate);
-            }
-        }
-
-
-        /// <summary>
         /// Notification loop.
         /// </summary>
         /// <param name="refreshRate">The refresh rate.</param>
@@ -403,6 +381,15 @@ namespace TensorStack.Python
                         _progressCallback?.Report(progress);
                         _logger?.LogDebug("[PythonPipeline] [PythonRuntime] {Progress}", progress);
                     }
+                }
+
+                var logEntries = await GetLogsAsync();
+                foreach (var logEntry in LogParser.ParseLogs(logEntries).OrderBy(x => x.Timestamp))
+                {
+                    if (string.IsNullOrWhiteSpace(logEntry?.Message))
+                        continue;
+
+                    _logger?.LogInformation("[PythonPipeline] [PythonRuntime] [{Timestamp}] {Message}", logEntry.Timestamp.ToString("hh:mm:ss:fff"), logEntry.Message);
                 }
                 await Task.Delay(refreshRate);
             }

@@ -48,7 +48,7 @@ def initialize(config: DataObjects.PipelineConfig):
     global _progress_tracker, _pipeline_config, _device_map, _pipeline_device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
-    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
+    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token, config.is_offline_mode)
     _device_map = Utils.get_device_map(config, _execution_device)
     _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
     return create_pipeline(config)
@@ -63,7 +63,7 @@ def download(config_args: Dict[str, Any]):
     _device_map = "meta"
     _config = DataObjects.PipelineConfig(**config_args)
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(_config))
-    _pipeline_config = Utils.get_pipeline_config(_config.base_model_path, _config.cache_directory, _config.secure_token)
+    _pipeline_config = Utils.get_pipeline_config(_config.base_model_path, _config.cache_directory, _config.secure_token, _config.is_offline_mode)
     create_pipeline(_config, True)
     return True
 
@@ -362,7 +362,7 @@ def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[
     _progress_tracker.Initialize(0, "text_encoder")
     checkpoint = config.checkpoint_config.text_encoder
     if checkpoint:
-        print(f"[Load] Loading Checkpoint TextEncoder")
+        print(f"[Load] Loading Checkpoint TextEncoder, IsOffline: {config.is_offline_mode}")
         is_gguf = Utils.isGGUF(checkpoint)
         text_encoder = UMT5EncoderModel.from_single_file(
             checkpoint,
@@ -370,8 +370,8 @@ def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[
             torch_dtype=config.data_type,
             use_safetensors=True,
             low_cpu_mem_usage=True,
+            local_files_only=config.is_offline_mode,
             device_map=_device_map,
-            local_files_only=False,
             token=config.secure_token,
             quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TEXT_ENCODER, is_gguf),
         )
@@ -380,7 +380,7 @@ def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[
         Utils.trim_memory(True)
         return text_encoder
 
-    print(f"[Load] Loading Pretrained TextEncoder")
+    print(f"[Load] Loading Pretrained TextEncoder, IsOffline: {config.is_offline_mode}")
     text_encoder = UMT5EncoderModel.from_pretrained(
         "TensorStack/TextEncoder",
         subfolder="UMT5-XXL",
@@ -389,6 +389,7 @@ def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[
         quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER),
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -412,7 +413,7 @@ def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
         else config.checkpoint_config.single_file
     )
     if checkpoint:
-        print(f"[Load] Loading Checkpoint Transformer")
+        print(f"[Load] Loading Checkpoint Transformer, IsOffline: {config.is_offline_mode}")
         is_gguf = Utils.isGGUF(checkpoint)
         transformer = HeliosTransformer3DModel.from_single_file(
             checkpoint,
@@ -420,8 +421,8 @@ def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
             torch_dtype=config.data_type,
             use_safetensors=True,
             low_cpu_mem_usage=True,
+            local_files_only=config.is_offline_mode,
             device_map=_device_map,
-            local_files_only=False,
             token=config.secure_token,
             quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER, is_gguf),
         )
@@ -430,7 +431,7 @@ def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
         Utils.trim_memory(True)
         return transformer
 
-    print(f"[Load] Loading Pretrained Transformer")
+    print(f"[Load] Loading Pretrained Transformer, IsOffline: {config.is_offline_mode}")
     transformer = HeliosTransformer3DModel.from_pretrained(
         config.base_model_path,
         subfolder="transformer",
@@ -438,6 +439,7 @@ def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
         quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TRANSFORMER),
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -461,27 +463,28 @@ def load_vae(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]
         else config.checkpoint_config.single_file
     )
     if checkpoint:
-        print(f"[Load] Loading Checkpoint Vae")
+        print(f"[Load] Loading Checkpoint Vae, IsOffline: {config.is_offline_mode}")
         auto_encoder = AutoencoderKLWan.from_single_file(
             checkpoint,
             config=_pipeline_config["vae"],
             torch_dtype=config.data_type,
             use_safetensors=True,
             low_cpu_mem_usage=True,
+            local_files_only=config.is_offline_mode,
             device_map=_device_map,
-            local_files_only=False,
             token=config.secure_token,
         )
         Utils.trim_memory(True)
         return auto_encoder
 
-    print(f"[Load] Loading Pretrained Vae")
+    print(f"[Load] Loading Pretrained Vae, IsOffline: {config.is_offline_mode}")
     auto_encoder = AutoencoderKLWan.from_pretrained(
         "TensorStack/AutoEncoder",
         subfolder="Wan21",
         torch_dtype=torch.float32,
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -504,7 +507,7 @@ def load_control_net(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
         _control_net_cache = None
         return None
 
-    # print(f"[Load] Loading Pretrained ControlNet")
+    # print(f"[Load] Loading Pretrained ControlNet, IsOffline: {config.control_net.is_offline_mode}")
     # _control_net_name = config.control_net.name
     # _progress_tracker.Initialize(4, "control_net")
     # _control_net_cache = ControlNetModel.from_pretrained(
@@ -512,6 +515,7 @@ def load_control_net(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
     #     torch_dtype=config.data_type,
     #     use_safetensors=True,
     #     low_cpu_mem_usage=True,
+    #     local_files_only=config.control_net.is_offline_mode,
     #     device_map=_device_map,
     # )
     return None

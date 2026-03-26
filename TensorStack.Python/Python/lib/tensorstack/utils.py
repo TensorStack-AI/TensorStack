@@ -1,4 +1,5 @@
 import os
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "True"
 import json
 import gc
 import sys
@@ -270,12 +271,14 @@ def optimize_execution_device(config: DataObjects.PipelineConfig):
 #------------------------------------------------
 # Download/Load all config files needed to setup the pipeline, If files exists they are loaded form the cache
 #------------------------------------------------
-def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict[str, Optional[str]]:
+def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str, is_offline_mode: bool) -> Dict[str, Optional[str]]:
     """
     Download all known pipeline component configs for a repo and return their local paths.
     Components not present will have value None.
     """
     config_paths: Dict[str, Optional[str]] = {}
+
+    print(f"[Load] Loading Pipeline Configuration, Repo: {repo_id}, IsOffline: {is_offline_mode}")
 
     # Any Extra files
     allow_patterns = ["**/*.json", "*.json", "*.txt", "**/*.txt", "**/*.model", "**/*.jinja"]
@@ -286,7 +289,8 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
         token=secure_token,
         allow_patterns=allow_patterns,
         ignore_patterns=ignore_patterns,
-        user_agent="TensorStack-Diffuse"
+        user_agent="TensorStack-Diffuse",
+        local_files_only=is_offline_mode,
     )
 
     known_components = [
@@ -315,10 +319,12 @@ def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str) -> Dict
                 f"{comp}/{file_name}",
                 cache_dir=cache_dir,
                 token=secure_token,
-                user_agent="TensorStack-Diffuse"
+                user_agent="TensorStack-Diffuse",
+                local_files_only=is_offline_mode,
             )
             if os.path.exists(path):
                 config_paths[comp] = path
+                print(f"[Load] Loading Configuration, Component: {comp}, File: {file_name}")
             else:
                 config_paths[comp] = None
         except Exception:
@@ -337,7 +343,8 @@ def load_lora_weights(pipeline: Any, config: DataObjects.PipelineConfig):
     pipeline.unload_lora_weights()
     if config.lora_adapters is not None:
         for lora in config.lora_adapters:
-            pipeline.load_lora_weights(lora.path, weight_name=lora.weights, adapter_name=lora.name)
+            print(f"[Load] Loading LoRA Adapter, Name: {lora.name}, IsOffline: {lora.is_offline_mode}")
+            pipeline.load_lora_weights(lora.path, weight_name=lora.weights, adapter_name=lora.name, local_files_only=lora.is_offline_mode)
 
 
 #------------------------------------------------
@@ -358,29 +365,6 @@ def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
 # Try exctract and load an individual pipeline component from a single file
 # If weights for the specified componenet do not exist None is returned
 #------------------------------------------------
-def load_component(pipeline: FromSingleFileMixin, base_model_path: str, model_path: str, component_name: str, data_type: torch.dtype, secure_token: str, device_map: Any, quantization_config: Any):
-    try:
-        components = ("scheduler", "tokenizer", "tokenizer_2","tokenizer_3", "text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "audio_vae", "vocoder", "connectors")
-        skip_args = {c: None for c in components if c != component_name}
-        pipe = pipeline.from_single_file(
-            model_path,
-            config=base_model_path,
-            torch_dtype=data_type,
-            use_safetensors=True,
-            low_cpu_mem_usage=True,
-            device_map=device_map,
-            local_files_only=False,
-            token=secure_token,
-            quantization_config=quantization_config,
-            **skip_args
-        )
-
-        return getattr(pipe, component_name, None)
-
-    except Exception:
-        return None
-
-
 def load_pipeline_component(config: DataObjects.PipelineConfig, pipeline: FromSingleFileMixin, component_name: str, model_path: str, device_map: Any, quantization_config: Any = None):
     try:
         components = ("scheduler", "tokenizer", "tokenizer_2","tokenizer_3", "text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "audio_vae", "vocoder", "connectors")
@@ -392,7 +376,7 @@ def load_pipeline_component(config: DataObjects.PipelineConfig, pipeline: FromSi
             use_safetensors=True,
             low_cpu_mem_usage=True,
             device_map=device_map,
-            local_files_only=False,
+            local_files_only=config.is_offline_mode,
             token=config.secure_token,
             quantization_config=quantization_config,
             **skip_args
@@ -698,7 +682,7 @@ class ModelDownloadProgress:
     # --------------------
     # Internal Methods
     # --------------------
-    def _print_progress(self, key:str, filename: str):
+    def _print_progress(self, key: str, filename: str):
         current_files = [x for x in self.download_stats.values() if x["model"] == self.model_name]
         if not current_files:
             avg_speed = 0.0
@@ -714,7 +698,6 @@ class ModelDownloadProgress:
         overall_progress = self.model_index * self.total_per_model + scaled_model_progress
         max_progress = self.total_models * self.total_per_model
 
-        #print(f"[HUB_DOWNLOAD] | {self.model_name} | {filename} | {scaled_model_progress} | {self.total_per_model} | {overall_progress} | {max_progress} | {avg_speed:.2f}")
         notification_push("Download", self.model_name, scaled_model_progress, self.total_per_model,  overall_progress, max_progress, filename, avg_speed)
 
     # --------------------
@@ -729,6 +712,8 @@ class ModelDownloadProgress:
         progress_tracker = self
 
         def patched_update(self_tqdm, n=1):
+            tqdm_id = str(id(self_tqdm))
+
             # Only process if total and desc exist
             if self_tqdm.n is not None and self_tqdm.total is not None and self_tqdm.desc:
                 downloaded = self_tqdm.n / 1024 / 1024
@@ -740,14 +725,13 @@ class ModelDownloadProgress:
                 )
 
                 # Extract model and filename
-                #model, filename = (self_tqdm.desc.split("/", 1) + [None])[:2]
                 model, *filename = self_tqdm.desc.split("/", 1)
                 filename = filename[0] if filename else None
 
                 if model and filename and model == progress_tracker.model_name:
-                    progress_tracker.Update(self_tqdm.desc, filename, downloaded, total_size, speed)
+                    progress_tracker.Update(tqdm_id, filename, downloaded, total_size, speed)
                 elif model and progress_tracker.model_name:
-                    progress_tracker.Update(self_tqdm.desc, model, downloaded, total_size, speed)
+                    progress_tracker.Update(tqdm_id, model, downloaded, total_size, speed)
 
             return original_update(self_tqdm, n)
 

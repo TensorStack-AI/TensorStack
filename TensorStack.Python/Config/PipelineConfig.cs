@@ -56,5 +56,8 @@ namespace TensorStack.Python.Config
 
         [JsonPropertyName("checkpoint_config")]
         public CheckpointConfig CheckpointConfig { get; set; }
+
+        [JsonPropertyName("is_offline_mode")]
+        public bool IsOfflineMode { get; set; }
     }
 }

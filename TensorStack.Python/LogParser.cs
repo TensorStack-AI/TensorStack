@@ -40,8 +40,8 @@ namespace TensorStack.Python
                 if (messageSections.Length < 2)
                     return default;
 
-                var message = messageSections[1].Trim([' ', '\n', '\r']);
-                if (message.Length < 5)
+                var message = messageSections[1].Trim([' ', '\n', '\r', '\t']);
+                if (string.IsNullOrWhiteSpace(message) || message.Length < 5 || !message.StartsWith('['))
                     return default;
 
                 return new LogEntry(DateTime.Parse(messageSections[0], CultureInfo.InvariantCulture), message);

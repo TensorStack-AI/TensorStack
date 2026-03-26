@@ -52,7 +52,7 @@ def initialize(config: DataObjects.PipelineConfig):
     global _progress_tracker, _pipeline_config, _device_map, _pipeline_device_map
 
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
-    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token)
+    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token, config.is_offline_mode)
     _device_map = Utils.get_device_map(config, _execution_device)
     _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
     return create_pipeline(config)
@@ -67,7 +67,7 @@ def download(config_args: Dict[str, Any]):
     _device_map = "meta"
     _config = DataObjects.PipelineConfig(**config_args)
     _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(_config))
-    _pipeline_config = Utils.get_pipeline_config(_config.base_model_path, _config.cache_directory, _config.secure_token)
+    _pipeline_config = Utils.get_pipeline_config(_config.base_model_path, _config.cache_directory, _config.secure_token, _config.is_offline_mode)
     create_pipeline(_config, True)
     return True
 
@@ -347,7 +347,7 @@ def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[
     _progress_tracker.Initialize(0, "text_encoder")
     checkpoint = config.checkpoint_config.text_encoder
     if checkpoint:
-        print(f"[Load] Loading Checkpoint TextEncoder")
+        print(f"[Load] Loading Checkpoint TextEncoder, IsOffline: {config.is_offline_mode}")
         is_gguf = Utils.isGGUF(checkpoint)
         text_encoder = Gemma3ForConditionalGeneration.from_single_file(
             checkpoint,
@@ -355,8 +355,8 @@ def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[
             torch_dtype=config.data_type,
             use_safetensors=True,
             low_cpu_mem_usage=True,
+            local_files_only=config.is_offline_mode,
             device_map=_device_map,
-            local_files_only=False,
             token=config.secure_token,
             quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TEXT_ENCODER, is_gguf),
         )
@@ -365,7 +365,7 @@ def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[
         Utils.trim_memory(True)
         return text_encoder
 
-    print(f"[Load] Loading Pretrained TextEncoder")
+    print(f"[Load] Loading Pretrained TextEncoder, IsOffline: {config.is_offline_mode}")
     text_encoder = Gemma3ForConditionalGeneration.from_pretrained(
         "TensorStack/TextEncoder",
         subfolder="Gemma-3-12B-IT",
@@ -374,6 +374,7 @@ def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[
         quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER),
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -397,7 +398,7 @@ def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
         else config.checkpoint_config.single_file
     )
     if checkpoint:
-        print(f"[Load] Loading Checkpoint Transformer")
+        print(f"[Load] Loading Checkpoint Transformer, IsOffline: {config.is_offline_mode}")
         is_gguf = Utils.isGGUF(checkpoint)
         transformer = LTX2VideoTransformer3DModel.from_single_file(
             checkpoint,
@@ -405,18 +406,17 @@ def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
             torch_dtype=config.data_type,
             use_safetensors=True,
             low_cpu_mem_usage=True,
+            local_files_only=config.is_offline_mode,
             device_map=None,
-            local_files_only=False,
             token=config.secure_token,
-            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER, is_gguf),
-            output_loading_info=False
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER, is_gguf)
         )
 
         Quantization.quantize_model(config, transformer, is_gguf)
         Utils.trim_memory(True)
         return transformer
 
-    print(f"[Load] Loading Pretrained Transformer")
+    print(f"[Load] Loading Pretrained Transformer, IsOffline: {config.is_offline_mode}")
     transformer = LTX2VideoTransformer3DModel.from_pretrained(
         config.base_model_path,
         subfolder="transformer",
@@ -424,6 +424,7 @@ def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
         quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TRANSFORMER),
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=None,
         **pipeline_kwargs
     )
@@ -447,19 +448,20 @@ def load_vae_video(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str
         else config.checkpoint_config.single_file
     )
     if checkpoint:
-        print(f"[Load] Loading Checkpoint Vae")
+        print(f"[Load] Loading Checkpoint Vae, IsOffline: {config.is_offline_mode}")
         auto_encoder = Utils.load_pipeline_component(config, LTX2Pipeline, "vae", checkpoint, _device_map)
         if auto_encoder:
             Utils.trim_memory(True)
             return auto_encoder
 
-    print(f"[Load] Loading Pretrained Vae")
+    print(f"[Load] Loading Pretrained Vae, IsOffline: {config.is_offline_mode}")
     auto_encoder = AutoencoderKLLTX2Video.from_pretrained(
         "TensorStack/AutoEncoder",
         subfolder="LTX2",
         torch_dtype=config.data_type,
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -483,19 +485,20 @@ def load_vae_audio(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str
         else config.checkpoint_config.single_file
     )
     if checkpoint:
-        print(f"[Load] Loading Checkpoint Audio Vae")
+        print(f"[Load] Loading Checkpoint Audio Vae, IsOffline: {config.is_offline_mode}")
         auto_encoder = Utils.load_pipeline_component(config, LTX2Pipeline, "audio_vae", checkpoint, _device_map)
         if auto_encoder:
             Utils.trim_memory(True)
             return auto_encoder
 
-    print(f"[Load] Loading Pretrained Audio Vae")
+    print(f"[Load] Loading Pretrained Audio Vae, IsOffline: {config.is_offline_mode}")
     auto_encoder = AutoencoderKLLTX2Audio.from_pretrained(
         config.base_model_path,
         subfolder="audio_vae",
         torch_dtype=config.data_type,
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -519,20 +522,21 @@ def load_vocoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, 
         else config.checkpoint_config.single_file
     )
     if checkpoint:
-        print(f"[Load] Loading Checkpoint Vocoder")
+        print(f"[Load] Loading Checkpoint Vocoder, IsOffline: {config.is_offline_mode}")
         vocoder = Utils.load_pipeline_component(config, LTX2Pipeline, "vocoder", checkpoint, _device_map)
         if vocoder:
             Utils.trim_memory(True)
             return vocoder
 
 
-    print(f"[Load] Loading Pretrained Vocoder")
+    print(f"[Load] Loading Pretrained Vocoder, IsOffline: {config.is_offline_mode}")
     vocoder = LTX2Vocoder.from_pretrained(
         config.base_model_path,
         subfolder="vocoder",
         torch_dtype=config.data_type,
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -556,20 +560,21 @@ def load_connectors(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[st
         else config.checkpoint_config.single_file
     )
     if checkpoint:
-        print(f"[Load] Loading Checkpoint Connectors")
+        print(f"[Load] Loading Checkpoint Connectors, IsOffline: {config.is_offline_mode}")
         connectors = Utils.load_pipeline_component(config, LTX2Pipeline, "connectors", checkpoint, _device_map)
         if connectors:
             Utils.trim_memory(True)
             return connectors
 
 
-    print(f"[Load] Loading Pretrained Connectors")
+    print(f"[Load] Loading Pretrained Connectors, IsOffline: {config.is_offline_mode}")
     connectors = LTX2TextConnectors.from_pretrained(
         config.base_model_path,
         subfolder="connectors",
         torch_dtype=config.data_type,
         use_safetensors=True,
         low_cpu_mem_usage=True,
+        local_files_only=config.is_offline_mode,
         device_map=_device_map,
         **pipeline_kwargs
     )
@@ -592,6 +597,7 @@ def load_control_net(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
         _control_net_cache = None
         return None
 
+    # print(f"[Load] Loading Pretrained ControlNet, IsOffline: {config.control_net.is_offline_mode}")
     # _control_net_name = config.control_net.name
     # _progress_tracker.Initialize(3, "control_net")
     # _control_net_cache = ControlNetModel.from_pretrained(
@@ -599,6 +605,7 @@ def load_control_net(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[s
     #     torch_dtype=config.data_type,
     #     use_safetensors=True,
     #     low_cpu_mem_usage=True,
+    #     local_files_only=config.control_net.is_offline_mode,
     #     device_map=_device_map,
     # )
     return None

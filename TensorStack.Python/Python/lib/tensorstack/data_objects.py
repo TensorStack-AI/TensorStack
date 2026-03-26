@@ -49,12 +49,14 @@ class LoraConfig:
     path: str
     name: str
     weights: str
+    is_offline_mode: bool = False
 
 
 @dataclass(slots=True)
 class ControlNetConfig:
     path: Optional[str] = None
     name: Optional[str] = None
+    is_offline_mode: bool = False
 
 
 @dataclass(slots=True)
@@ -95,6 +97,7 @@ class PipelineConfig:
     lora_adapters: Optional[Sequence[LoraConfig]] = None
     control_net: Optional[ControlNetConfig] = None
     checkpoint_config: Optional[CheckpointConfig] = None
+    is_offline_mode: bool = False
 
     def __post_init__(self):
         self.quant_type = QuantType[self.quant_type]
