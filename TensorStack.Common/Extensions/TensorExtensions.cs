@@ -1,6 +1,7 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -1049,6 +1050,56 @@ namespace TensorStack.Common
         public static ImageTensor ResizeImage(this ImageTensor sourceImage, int targetWidth, int targetHeight, ResizeMode resizeMode = ResizeMode.Stretch, ResizeMethod resizeMethod = ResizeMethod.Bilinear)
         {
             return sourceImage.ResizeTensor(targetWidth, targetHeight, resizeMode, resizeMethod).AsImageTensor();
+        }
+
+
+        /// <summary>
+        /// Overlays the image onto the source.
+        /// </summary>
+        /// <param name="sourceImage">The source image.</param>
+        /// <param name="overlayImage">The overlay image.</param>
+        public static void OverlayImage(this ImageTensor sourceImage, ImageTensor overlayImage)
+        {
+            var width = sourceImage.Width;
+            var height = sourceImage.Height;
+            var sourceSpan = sourceImage.Memory.Span;
+            var overlaySpan = overlayImage.Span;
+            int stride = width * height;
+            var sR = sourceSpan.Slice(0, stride);
+            var sG = sourceSpan.Slice(stride, stride);
+            var sB = sourceSpan.Slice(2 * stride, stride);
+            var oR = overlaySpan.Slice(0, stride);
+            var oG = overlaySpan.Slice(stride, stride);
+            var oB = overlaySpan.Slice(2 * stride, stride);
+            var oA = overlaySpan.Slice(3 * stride, stride);
+            float[] poolArray = ArrayPool<float>.Shared.Rent(stride * 3);
+            try
+            {
+                var normAlpha = poolArray.AsSpan(0, stride);
+                var invAlpha = poolArray.AsSpan(stride, stride);
+                var tempBuffer = poolArray.AsSpan(2 * stride, stride);
+
+                // Normalize Alpha
+                TensorPrimitives.Add(oA, 1.0f, normAlpha);
+                TensorPrimitives.Multiply(normAlpha, 0.5f, normAlpha);
+                TensorPrimitives.Subtract(1.0f, normAlpha, invAlpha);
+
+                // Blend Channels
+                BlendPlane(sR, oR, normAlpha, invAlpha, tempBuffer);
+                BlendPlane(sG, oG, normAlpha, invAlpha, tempBuffer);
+                BlendPlane(sB, oB, normAlpha, invAlpha, tempBuffer);
+            }
+            finally
+            {
+                ArrayPool<float>.Shared.Return(poolArray);
+            }
+        }
+
+
+        private static void BlendPlane(Span<float> source, ReadOnlySpan<float> overlay, ReadOnlySpan<float> alpha, ReadOnlySpan<float> invAlpha, Span<float> scratch)
+        {
+            TensorPrimitives.Multiply(source, invAlpha, scratch);
+            TensorPrimitives.MultiplyAdd(overlay, alpha, scratch, source);
         }
 
 
