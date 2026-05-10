@@ -130,6 +130,24 @@ namespace TensorStack.Audio.Windows
 
 
         /// <summary>
+        /// Checks if a video file has audio.
+        /// </summary>
+        /// <param name="filename">The filename.</param>
+        public static async Task<bool> HasAudioAsync(string filename)
+        {
+            try
+            {
+                await ReadInfoAsync(filename);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
+        /// <summary>
         /// Reads the audio data as AudioTensor
         /// </summary>
         /// <param name="audioInputFile">The audio input file.</param>
@@ -398,6 +416,102 @@ namespace TensorStack.Audio.Windows
         }
 
 
+        /// <summary>
+        /// Create audio timeline
+        /// </summary>
+        /// <param name="audioOutput">The audio output.</param>
+        /// <param name="audioTimeline">The audio timeline.</param>
+        public static async Task<string> CreateAudioTimelineAsync(AudioTimeline audioTimeline, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var audioOutput = FileHelper.RandomFileName("aac");
+                foreach (var audioSegment in audioTimeline.Segments)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await ExtractAudioAsync(audioTimeline, audioSegment);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                await JoinSegmentsAsync(audioTimeline, audioOutput);
+                return audioOutput;
+            }
+            finally
+            {
+                foreach (var segment in audioTimeline.Segments)
+                {
+                    FileHelper.DeleteFile(segment.FileName);
+                    segment.FileName = null;
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Extract audio from AudioSegment source
+        /// </summary>
+        /// <param name="audioTimeline">The audio timeline.</param>
+        /// <param name="audioSegment">The audio segment.</param>
+        private static async Task ExtractAudioAsync(AudioTimeline audioTimeline, AudioSegment audioSegment)
+        {
+            var start = audioSegment.Start;
+            var overlap = audioTimeline.Overlap;
+            var duration = audioSegment.Duration;
+            var overlapSeconds = overlap.TotalSeconds;
+            var filterList = new List<string> { "aresample=async=1" };
+
+            // 1. Handle the Start (The "Head")
+            if (!audioSegment.IsFirst)
+            {
+                start = start.Subtract(overlap);
+                duration = duration.Add(overlap);
+                filterList.Add($"afade=t=in:st=0:d={overlapSeconds:F3}:curve=tri");
+            }
+
+            // 2. Handle the End (The "Tail")
+            if (!audioSegment.IsLast)
+            {
+                duration = duration.Add(overlap);
+                filterList.Add($"afade=t=out:st={duration.TotalSeconds - overlapSeconds:F3}:d={overlapSeconds:F3}:curve=tri");
+            }
+
+            var filterString = string.Join(",", filterList);
+            audioSegment.FileName = FileHelper.RandomFileName("aac"); ;
+            var arguments = $"-ss {start} -t {duration} -i \"{audioSegment.Source}\" -vn -af \"{filterString}\" -c:a {audioTimeline.Codec} -ar {audioTimeline.SampleRate} -ac {audioTimeline.Channels} -b:a {audioTimeline.Bitrate} -y \"{audioSegment.FileName}\"";
+            await ExecuteFFMPEGAsync(arguments);
+        }
+
+
+        /// <summary>
+        /// Join audio segments into sinle audio file.
+        /// </summary>
+        /// <param name="audioTimeline">The audio timeline.</param>
+        /// <param name="output">The output.</param>
+        private static async Task JoinSegmentsAsync(AudioTimeline audioTimeline, string audioOutput)
+        {
+            var inputs = "";
+            var mixLabels = "[canvas]";
+            var filter = $"anullsrc=channel_layout={audioTimeline.ChannelStr}:sample_rate={audioTimeline.SampleRate}:duration={audioTimeline.Duration.TotalSeconds:F3}[canvas];";
+            for (int i = 0; i < audioTimeline.Segments.Count; i++)
+            {
+                inputs += $"-i \"{audioTimeline.Segments[i].FileName}\" ";
+
+                // TimelinePosition, If it's not the first clip on the timeline, we shift it back by the overlap 
+                var startPointMs = audioTimeline.Segments[i].Position.TotalMilliseconds;
+                if (startPointMs > 0)
+                    startPointMs -= audioTimeline.Overlap.TotalMilliseconds;
+
+                // 3. Delay the clip to its spot on the timeline
+                filter += $"[{i}:a]adelay={startPointMs:F0}|{startPointMs:F0}[a{i + 1}];";
+                mixLabels += $"[a{i + 1}]";
+            }
+
+            filter += $"{mixLabels}amix=inputs={audioTimeline.Segments.Count + 1}:duration=first:dropout_transition=0:normalize=0[outa]";
+            var arguments = $"{inputs} -filter_complex \"{filter}\" -map \"[outa]\" -c:a {audioTimeline.Codec} -ar {audioTimeline.SampleRate} -ac {audioTimeline.Channels} -b:a {audioTimeline.Bitrate} -y \"{audioOutput}\"";
+            await ExecuteFFMPEGAsync(arguments);
+        }
+
+
         #region FFMPEG / FFProbe
 
         private static Process CreateProcess(string executable, string arguments)
@@ -408,6 +522,26 @@ namespace TensorStack.Audio.Windows
             ffmpegProcess.StartInfo.UseShellExecute = false;
             ffmpegProcess.StartInfo.CreateNoWindow = true;
             return ffmpegProcess;
+        }
+
+
+        private static async Task ExecuteFFMPEGAsync(string arguments)
+        {
+            using (var process = CreateProcess(FFMpegPath, arguments))
+            {
+                process.Start();
+                await process.WaitForExitAsync();
+            }
+        }
+
+
+        private static async Task ExecuteFFProbeAsync(string arguments)
+        {
+            using (var process = CreateProcess(FFProbePath, arguments))
+            {
+                process.Start();
+                await process.WaitForExitAsync();
+            }
         }
 
 
