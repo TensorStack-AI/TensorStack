@@ -60,6 +60,12 @@
     <None Include="Python\lib\tensorstack\enums.py" Pack="false" />
   </ItemGroup>
 
+  <!--AceStepPipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\AceStepPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\AceStepPipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--ChromaPipeline-->
   <ItemGroup>
     <Content Include="Pipelines\ChromaPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
@@ -94,6 +100,12 @@
   <ItemGroup>
     <Content Include="Pipelines\HeliosPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
     <None Include="Pipelines\HeliosPipeline.py" Pack="false" />
+  </ItemGroup>
+
+  <!--LongCatAudioPipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\LongCatAudioPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\LongCatAudioPipeline.py" Pack="false" />
   </ItemGroup>
 
   <!--Kandinsky5Pipeline-->

@@ -10,7 +10,9 @@ class ProcessType(Enum):
 
     TextToVideo = 300
     ImageToVideo = 301
-    VideoToVideo = 302
+    VideoToVideo = 302,
+
+    TextToAudio = 400
 
 
 class MemoryMode(Enum):

@@ -512,6 +512,22 @@ namespace TensorStack.Audio.Windows
         }
 
 
+        internal static async Task SaveVideoStreamAync(string audioFile, AudioInputStream audioStream, float? sampleRateOverride, int? channelsOverride, CancellationToken cancellationToken)
+        {
+            string inputArgs = "";
+            if (audioStream.AudioCodec == "pcm_s16le")
+            {
+                // If the source is pcm, we MUST define format, rate, and channels before -i
+                inputArgs = $"-f s16le -ar {audioStream.SampleRate} -ac {audioStream.Channels} ";
+            }
+
+            var channels = channelsOverride ?? audioStream.Channels;
+            var sampleRate = sampleRateOverride ?? audioStream.SampleRate;
+            var arguments = $"{inputArgs}-i \"{audioStream.SourceFile}\" -ar {sampleRate} -ac {channels} -y \"{audioFile}\"";
+            await ExecuteFFMPEGAsync(arguments);
+        }
+
+
         #region FFMPEG / FFProbe
 
         private static Process CreateProcess(string executable, string arguments)

@@ -422,16 +422,26 @@ namespace TensorStack.Python
 
         private List<(float[], int[])> GetInputData(PipelineOptions options)
         {
-            if (options.InputImages.IsNullOrEmpty())
-                return null;
-
-            var inputData = new List<(float[], int[])>();
-            foreach (var imageInput in options.InputImages)
+            if (!options.InputImages.IsNullOrEmpty())
             {
-                var imageTensor = imageInput.GetChannels(3);
-                inputData.Add((imageTensor.Span.ToArray(), imageTensor.Dimensions.ToArray()));
+                var inputData = new List<(float[], int[])>();
+                foreach (var imageInput in options.InputImages)
+                {
+                    var imageTensor = imageInput.GetChannels(3);
+                    inputData.Add((imageTensor.Span.ToArray(), imageTensor.Dimensions.ToArray()));
+                }
+                return inputData;
             }
-            return inputData;
+            else if (!options.InputAudios.IsNullOrEmpty())
+            {
+                var inputData = new List<(float[], int[])>();
+                foreach (var audioInput in options.InputAudios)
+                {
+                    inputData.Add((audioInput.Span.ToArray(), audioInput.Dimensions.ToArray()));
+                }
+                return inputData;
+            }
+            return null;
         }
 
 

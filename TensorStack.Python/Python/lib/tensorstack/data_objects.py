@@ -217,6 +217,7 @@ class SchedulerOptions:
 class PipelineOptions:
     seed: int
     prompt: str
+    prompt2: Optional[str] = None
     negative_prompt: Optional[str] = None
     guidance_scale: float = 1.0
     guidance_scale2: float = 1.0
@@ -236,6 +237,16 @@ class PipelineOptions:
     noise_condition: int = 0
     enable_vae_tiling: bool = False
     enable_vae_slicing: bool = False
+    duration: float = 5.0
+    language: Optional[str] = None
+    instruction: Optional[str] = None
+    max_length: int = 0
+    max_length2: int = 0
+    bpm: int = 0
+    keyscale: Optional[str] = None
+    task: Optional[str] = None
+    track_name: Optional[str] = None
+    time_signature: Optional[str] = None
 
     def __post_init__(self):
         self.guidance_scale = float(self.guidance_scale)
@@ -243,6 +254,7 @@ class PipelineOptions:
         self.frame_rate = float(self.frame_rate)
         self.strength = float(self.strength)
         self.control_net_scale = float(self.control_net_scale)
+        self.duration = float(self.duration)
         self.frame_chunk = self.frames if self.frame_chunk == 0 else self.frame_chunk
         if (self.scheduler_options is not None and isinstance(self.scheduler_options, dict)):
             self.scheduler_options = SchedulerOptions(**self.scheduler_options)

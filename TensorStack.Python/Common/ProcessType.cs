@@ -12,5 +12,7 @@
         TextToVideo = 300,
         ImageToVideo = 301,
         VideoToVideo = 302,
+
+        TextToAudio = 400
     }
 }

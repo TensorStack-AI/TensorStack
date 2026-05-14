@@ -13,6 +13,9 @@ namespace TensorStack.Python.Common
         [JsonPropertyName("prompt")]
         public string Prompt { get; set; }
 
+        [JsonPropertyName("prompt2")]
+        public string Prompt2 { get; set; }
+
         [JsonPropertyName("negative_prompt")]
         public string NegativePrompt { get; set; }
 
@@ -70,11 +73,46 @@ namespace TensorStack.Python.Common
         [JsonPropertyName("enable_vae_slicing")]
         public bool EnableVaeSlicing { get; set; }
 
+        [JsonPropertyName("duration")]
+        public float Duration { get; set; } = 5f;
+
+        [JsonPropertyName("language")]
+        public string VocalLanguage { get; set; }
+
+        [JsonPropertyName("instruction")]
+        public string Instruction { get; set; }
+
+        [JsonPropertyName("max_length")]
+        public int MaxLength { get; set; }
+
+        [JsonPropertyName("max_length2")]
+        public int MaxLength2 { get; set; }
+
+        [JsonPropertyName("bpm")]
+        public int Bpm { get; set; }
+
+        [JsonPropertyName("keyscale")]
+        public string Keyscale { get; set; }
+
+        [JsonPropertyName("time_signature")]
+        public string TimeSignature { get; set; }
+
+        [JsonPropertyName("task")]
+        public string Task { get; set; }
+
+        [JsonPropertyName("track_name")]
+        public string TrackName { get; set; }
+
+
+
+
         [JsonIgnore]
         public List<ImageTensor> InputImages { get; set; } = [];
 
         [JsonIgnore]
         public List<ImageTensor> InputControlImages { get; set; } = [];
 
+        [JsonIgnore]
+        public List<AudioTensor> InputAudios { get; set; } = [];
     }
 }

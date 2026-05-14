@@ -501,6 +501,42 @@ def prepare_images(
 
 
 #------------------------------------------------
+# Create an Audio Tensor from input buffer and shape
+#------------------------------------------------
+def audioFromInput(
+    inputData: Optional[Sequence[float]],
+    inputShape: Optional[Sequence[int]],
+) -> Optional[torch.Tensor]:
+
+    if not inputData or not inputShape:
+        return None
+
+    t = torch.tensor(inputData, dtype=torch.float32)
+    t = t.view(*inputShape)
+    return t
+
+
+#------------------------------------------------
+# Prepare the input audio tensors
+#------------------------------------------------
+def prepare_audio(
+    lst: Optional[List[Tuple[Sequence[float], Sequence[int]]]]
+) -> Optional[Union[torch.Tensor, List[torch.Tensor]]]:
+    if not lst:
+        return None
+
+    def make_tensor(pair: Tuple[Sequence[float], Sequence[int]]):
+        data, shape = pair
+        return audioFromInput(data, shape)
+
+    # Return a single tensor if list length is 1, otherwise a list
+    if len(lst) == 1:
+        return make_tensor(lst[0])
+
+    return [make_tensor(pair) for pair in lst]
+
+
+#------------------------------------------------
 # Run garbage collection and empty cuda cache
 #------------------------------------------------
 def trim_memory(isMemoryOffload: bool):
@@ -545,8 +581,19 @@ def isGGUF(modelPath: str):
 def get_len(obj):
     if obj is None:
         return 0
+
+    # If it's a tensor, we treat it as ONE object regardless of dimensions
+    if isinstance(obj, torch.Tensor):
+        return 1
+
+    # If it's a list or tuple of tensors, return the count of the list
+    if isinstance(obj, (list, tuple)):
+        return len(obj)
+
+    # Fallback for other objects
     if hasattr(obj, '__len__'):
         return len(obj)
+
     return 1
 
 
