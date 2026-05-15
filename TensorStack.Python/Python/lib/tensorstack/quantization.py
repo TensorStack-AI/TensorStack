@@ -112,12 +112,13 @@ def pretrained_config(target: QuantTarget, backend: QuantBackend, quant_type: Qu
 # Auto Quantization Configuration for from_single_file
 #------------------------------------------------
 def auto_single_file_config(config: DataObjects.PipelineConfig, target: QuantTarget, is_gguf: bool):
+    if is_gguf:
+        return DiffusersGGUFConfig(compute_dtype=config.data_type)
+
     if config.memory_mode ==  MemoryMode.OffloadCPU:
         print(f"[Quantize] OffloadCPU not supported")
         return None
 
-    if is_gguf:
-        return DiffusersGGUFConfig(compute_dtype=config.data_type)
     return None
 
 
