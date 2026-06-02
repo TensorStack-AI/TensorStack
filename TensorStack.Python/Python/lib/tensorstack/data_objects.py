@@ -32,16 +32,21 @@ def get_data_type(dtype: str):
 
 @dataclass(slots=True)
 class CheckpointConfig:
-    single_file: Optional[str] = None
     text_encoder: Optional[str] = None
     text_encoder_2: Optional[str] = None
     text_encoder_3: Optional[str] = None
+    unet: Optional[str] = None
     transformer: Optional[str] = None
     transformer_2: Optional[str] = None
     vae: Optional[str] = None
     audio_vae: Optional[str] = None
     vocoder: Optional[str] = None
     connectors: Optional[str] = None
+    latent_upsampler: Optional[str] = None
+    latent_upsampler_temporal: Optional[str] = None
+    condition_encoder: Optional[str] = None
+    audio_tokenizer: Optional[str] = None
+    audio_token_detokenizer: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -49,14 +54,12 @@ class LoraConfig:
     path: str
     name: str
     weights: str
-    is_offline_mode: bool = False
 
 
 @dataclass(slots=True)
 class ControlNetConfig:
     path: Optional[str] = None
     name: Optional[str] = None
-    is_offline_mode: bool = False
 
 
 @dataclass(slots=True)
@@ -73,7 +76,9 @@ class LoraOption:
 @dataclass(slots=True)
 class PipelineConfig:
     # Required / core
-    base_model_path: str
+    model_path: str
+    model_type: str
+    template: str
     pipeline: str
     process_type: ProcessType.TextToImage
     memory_mode: MemoryMode.OffloadCPU
@@ -92,13 +97,10 @@ class PipelineConfig:
 
     # HF / loading
     variant: Optional[str] = None
-    cache_directory: Optional[str] = None
-    secure_token: Optional[str] = None
 
     lora_adapters: Optional[Sequence[LoraConfig]] = None
     control_net: Optional[ControlNetConfig] = None
     checkpoint_config: Optional[CheckpointConfig] = None
-    is_offline_mode: bool = False
 
     def __post_init__(self):
         self.quant_type = QuantType[self.quant_type]

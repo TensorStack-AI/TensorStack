@@ -1,0 +1,24 @@
+{
+  "_class_name": "CogVideoXImageToVideoPipeline",
+  "_diffusers_version": "0.32.0.dev0",
+  "scheduler": [
+    "diffusers",
+    "CogVideoXDDIMScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "T5EncoderModel"
+  ],
+  "tokenizer": [
+    "transformers",
+    "T5Tokenizer"
+  ],
+  "transformer": [
+    "diffusers",
+    "CogVideoXTransformer3DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLCogVideoX"
+  ]
+}

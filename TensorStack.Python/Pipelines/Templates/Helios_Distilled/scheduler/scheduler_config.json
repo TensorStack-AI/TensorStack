@@ -1,0 +1,19 @@
+{
+  "_class_name": "HeliosDMDScheduler",
+  "_diffusers_version": "0.37.0.dev0",
+  "gamma": 0.3333333333333333,
+  "num_train_timesteps": 1000,
+  "prediction_type": "flow_prediction",
+  "scheduler_type": "dmd",
+  "shift": 1.0,
+  "stage_range": [
+    0,
+    0.3333333333333333,
+    0.6666666666666666,
+    1
+  ],
+  "stages": 3,
+  "time_shift_type": "linear",
+  "use_dynamic_shifting": true,
+  "use_flow_sigmas": true
+}

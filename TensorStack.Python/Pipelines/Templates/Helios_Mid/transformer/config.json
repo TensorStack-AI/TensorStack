@@ -1,0 +1,32 @@
+{
+  "_class_name": "HeliosTransformer3DModel",
+  "_diffusers_version": "0.37.0.dev0",
+  "added_kv_proj_dim": null,
+  "attention_head_dim": 128,
+  "cross_attn_norm": true,
+  "eps": 1e-06,
+  "ffn_dim": 13824,
+  "freq_dim": 256,
+  "has_multi_term_memory_patch": true,
+  "history_scale_mode": "per_head",
+  "in_channels": 16,
+  "is_amplify_history": false,
+  "num_attention_heads": 40,
+  "num_layers": 40,
+  "out_channels": 16,
+  "patch_size": [
+    1,
+    2,
+    2
+  ],
+  "qk_norm": "rms_norm_across_heads",
+  "rope_dim": [
+    44,
+    42,
+    42
+  ],
+  "rope_theta": 10000.0,
+  "guidance_cross_attn": true,
+  "text_dim": 4096,
+  "zero_history_timestep": true
+}

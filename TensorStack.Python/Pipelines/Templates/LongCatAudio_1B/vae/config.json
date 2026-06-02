@@ -1,0 +1,32 @@
+{
+  "_class_name": "LongCatAudioDiTVae",
+  "_diffusers_version": "0.38.0.dev0",
+  "act_fn": null,
+  "c_mults": [
+    1,
+    2,
+    4,
+    8,
+    16
+  ],
+  "channels": 128,
+  "downsample_shortcut": "averaging",
+  "downsampling_ratio": 2048,
+  "encoder_latent_dim": 128,
+  "final_tanh": false,
+  "in_channels": 1,
+  "in_shortcut": "duplicating",
+  "latent_dim": 64,
+  "out_shortcut": "averaging",
+  "sample_rate": 24000,
+  "scale": 0.71,
+  "strides": [
+    2,
+    4,
+    4,
+    8,
+    8
+  ],
+  "upsample_shortcut": "duplicating",
+  "use_snake": true
+}

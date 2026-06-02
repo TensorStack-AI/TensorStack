@@ -1,0 +1,36 @@
+{
+  "_class_name": "AceStepPipeline",
+  "_diffusers_version": "0.38.0.dev0",
+  "audio_token_detokenizer": [
+    "ace_step",
+    "AceStepAudioTokenDetokenizer"
+  ],
+  "audio_tokenizer": [
+    "ace_step",
+    "AceStepAudioTokenizer"
+  ],
+  "condition_encoder": [
+    "ace_step",
+    "AceStepConditionEncoder"
+  ],
+  "scheduler": [
+    "diffusers",
+    "FlowMatchEulerDiscreteScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "Qwen3Model"
+  ],
+  "tokenizer": [
+    "transformers",
+    "Qwen2Tokenizer"
+  ],
+  "transformer": [
+    "diffusers",
+    "AceStepTransformer1DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderOobleck"
+  ]
+}

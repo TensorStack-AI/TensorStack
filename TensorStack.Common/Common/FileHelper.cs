@@ -140,12 +140,24 @@ namespace TensorStack.Common.Common
         }
 
 
+        public static Dictionary<string, string> GetFileMapping(IEnumerable<string> sourceUrls, string localDirectory)
+        {
+            var files = new Dictionary<string, string>();
+            foreach (var sourceUrl in sourceUrls)
+            {
+                files.Add(sourceUrl, Path.Combine(localDirectory, Path.GetFileName(sourceUrl)));
+            }
+            return files;
+        }
+
+
         /// <summary>
         /// Gets the URL file mapping, mapping repository file structure to local directory
         /// </summary>
         /// <param name="sourceUrls">The source urls.</param>
         /// <param name="localDirectory">The local directory.</param>
-        public static Dictionary<string, string> GetUrlFileMapping(IEnumerable<string> sourceUrls, string localDirectory)
+        /// <param name="replacement">The part path replacement.</param>
+        public static Dictionary<string, string> GetUrlFileMapping(IEnumerable<string> sourceUrls, string localDirectory, string replacement = null, int skipSegments = 0)
         {
             var files = new Dictionary<string, string>();
             var repositoryUrls = sourceUrls.Select(x => new Uri(x));
@@ -156,9 +168,11 @@ namespace TensorStack.Common.Common
                 var subFolder = Path.Combine(repositoryUrl.Segments
                     .Where(x => x != repositoryUrl.Segments.Last())
                     .Select(x => x.Trim('\\', '/'))
-                    .Skip(baseUrlSegmentLength)
+                    .Skip(baseUrlSegmentLength + skipSegments)
                     .ToArray()) ?? string.Empty;
-                var destination = Path.Combine(localDirectory, subFolder);
+                var destination = string.IsNullOrEmpty(replacement)
+                   ? Path.Combine(localDirectory, subFolder)
+                   : Path.Combine(localDirectory, subFolder.Replace(replacement, null));
                 var destinationFile = Path.Combine(destination, filename);
 
                 files.Add(repositoryUrl.OriginalString, destinationFile);

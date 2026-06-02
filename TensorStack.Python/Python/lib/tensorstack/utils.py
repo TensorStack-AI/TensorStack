@@ -1,6 +1,10 @@
 import os
+os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+os.environ["HF_HUB_DISABLE_UPDATE_CHECK"] = "1"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 import json
 import gc
 import sys
@@ -10,17 +14,16 @@ import ctypes.wintypes
 import torch
 import threading
 import numpy as np
+from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 import tensorstack.data_objects as DataObjects
 from tensorstack.enums import ProcessType, MemoryMode
 from PIL import Image
 from dataclasses import asdict
-from huggingface_hub import hf_hub_download, snapshot_download, scan_cache_dir
 from collections.abc import Buffer
 from typing import Sequence, Optional, List, Tuple, Union, Any, Dict
 from diffusers.loaders import FromSingleFileMixin
-from diffusers.loaders.lora_base import _fetch_state_dict
 from diffusers import (
     DDIMScheduler,
     DDPMScheduler,
@@ -85,6 +88,155 @@ _SCHEDULER_MAP = {
     "scm": SCMScheduler,
     "sasolver": SASolverScheduler
 }
+
+
+#------------------------------------------------
+# Create model configuration
+#------------------------------------------------
+def get_model_config(file_path: str, config: DataObjects.PipelineConfig):
+    template_path= Path(file_path).resolve().parent / "Templates" / config.template
+
+    # Configs
+    tokenizer_config = template_path / "tokenizer" / "tokenizer_config.json"
+    tokenizer_2_config = template_path / "tokenizer_2" / "tokenizer_config.json"
+    tokenizer_3_config = template_path / "tokenizer_3" / "tokenizer_config.json"
+    text_encoder_config = template_path / "text_encoder" / "config.json"
+    text_encoder_2_config = template_path / "text_encoder_2" / "config.json"
+    text_encoder_3_config = template_path / "text_encoder_3" / "config.json"
+    unet_config = template_path / "unet" / "config.json"
+    transformer_config = template_path / "transformer" / "config.json"
+    transformer_2_config = template_path / "transformer_2" / "config.json"
+    vae_config = template_path / "vae" / "config.json"
+    audio_vae_config = template_path / "audio_vae" / "config.json"
+    vocoder_config = template_path / "vocoder" / "config.json"
+    connectors_config = template_path / "connectors" / "config.json"
+    latent_upsampler_config = template_path / "latent_upsampler" / "config.json"
+    latent_upsampler_temporal_config = template_path / "latent_upsampler_temporal" / "config.json"
+    condition_encoder_config = template_path / "condition_encoder" / "config.json"
+    audio_tokenizer_config = template_path / "audio_tokenizer" / "config.json"
+    audio_token_detokenizer_config = template_path / "audio_token_detokenizer" / "config.json"
+
+    # Paths
+    tokenizer_path = Path(config.checkpoint_config.text_encoder) if config.checkpoint_config.text_encoder else None
+    tokenizer_2_path = Path(config.checkpoint_config.text_encoder_2) if config.checkpoint_config.text_encoder_2 else None
+    tokenizer_3_path = Path(config.checkpoint_config.text_encoder_3) if config.checkpoint_config.text_encoder_3 else None
+    text_encoder_path = Path(config.checkpoint_config.text_encoder) if config.checkpoint_config.text_encoder else None
+    text_encoder_2_path = Path(config.checkpoint_config.text_encoder_2) if config.checkpoint_config.text_encoder_2 else None
+    text_encoder_3_path = Path(config.checkpoint_config.text_encoder_3) if config.checkpoint_config.text_encoder_3 else None
+    unet_path = Path(config.checkpoint_config.unet) if config.checkpoint_config.unet else None
+    transformer_path = Path(config.checkpoint_config.transformer) if config.checkpoint_config.transformer else None
+    transformer_2_path = Path(config.checkpoint_config.transformer_2) if config.checkpoint_config.transformer_2 else None
+    vae_path = Path(config.checkpoint_config.vae) if config.checkpoint_config.vae else None
+    audio_vae_path = Path(config.checkpoint_config.audio_vae) if config.checkpoint_config.audio_vae else None
+    vocoder_path = Path(config.checkpoint_config.vocoder) if config.checkpoint_config.vocoder else None
+    connectors_path = Path(config.checkpoint_config.connectors) if config.checkpoint_config.connectors else None
+    latent_upsampler_path = Path(config.checkpoint_config.latent_upsampler) if config.checkpoint_config.latent_upsampler else None
+    latent_upsampler_temporal_path = Path(config.checkpoint_config.latent_upsampler_temporal) if config.checkpoint_config.latent_upsampler_temporal else None
+    condition_encoder_path = Path(config.checkpoint_config.condition_encoder) if config.checkpoint_config.condition_encoder else None
+    audio_tokenizer_path = Path(config.checkpoint_config.audio_tokenizer) if config.checkpoint_config.audio_tokenizer else None
+    audio_token_detokenizer_path = Path(config.checkpoint_config.audio_token_detokenizer) if config.checkpoint_config.audio_token_detokenizer else None
+    single_file = transformer_path if transformer_path and transformer_path.is_file() else unet_path if unet_path and unet_path.is_file() else None
+
+    _model_config = {
+        "template": template_path,
+        "single_file": single_file,
+
+        "tokenizer": tokenizer_path,
+        "tokenizer_config": tokenizer_config,
+        "tokenizer_2": tokenizer_2_path,
+        "tokenizer_2_config": tokenizer_2_config,
+        "tokenizer_3": text_encoder_3_path,
+        "tokenizer_3_config": tokenizer_3_path,
+        "text_encoder": text_encoder_path,
+        "text_encoder_config": text_encoder_config,
+        "text_encoder_2": text_encoder_2_path,
+        "text_encoder_2_config": text_encoder_2_config,
+        "text_encoder_3": text_encoder_3_path,
+        "text_encoder_3_config": text_encoder_3_config,
+        "unet": unet_path,
+        "unet_config": unet_config,
+        "transformer": transformer_path,
+        "transformer_config": transformer_config,
+        "transformer_2": transformer_2_path,
+        "transformer_2_config": transformer_2_config,
+        "vae": vae_path,
+        "vae_config": vae_config,
+        "audio_vae": audio_vae_path,
+        "audio_vae_config": audio_vae_config,
+        "vocoder": vocoder_path,
+        "vocoder_config": vocoder_config,
+        "connectors": connectors_path,
+        "connectors_config": connectors_config,
+        "latent_upsampler": latent_upsampler_path,
+        "latent_upsampler_config": latent_upsampler_config,
+        "latent_upsampler_temporal": latent_upsampler_temporal_path,
+        "latent_upsampler_temporal_config" : latent_upsampler_temporal_config,
+        "condition_encoder": condition_encoder_path,
+        "condition_encoder_config": condition_encoder_config,
+        "audio_tokenizer": audio_tokenizer_path,
+        "audio_tokenizer_config": audio_tokenizer_config,
+        "audio_token_detokenizer": audio_token_detokenizer_path,
+        "audio_token_detokenizer_config": audio_token_detokenizer_config,
+    }
+
+    info_1 = f"\n\tTemplate: {config.template} \n\tModelType: {config.model_type} \n\tModelPath: {config.model_path} \n\tTemplatePath: {template_path}"
+    info_2 = f"\n\tTextEncoder: {text_encoder_path}\n\tTextEncoder2: {text_encoder_2_path}\n\tTextEncoder3: {text_encoder_3_path}\n\tUnet: {unet_path}\n\tTransformer: {transformer_path}\n\tTransformer2: {transformer_2_path}"
+    info_3 = f"\n\tVae: {vae_path}\n\tAudioVae: {audio_vae_path}\n\tVocoder: {vocoder_path}\n\tConnectors: {connectors_path}\n\tLatentUpsampler: {latent_upsampler_path}\n\tLatentUpsamplerTemporal: {latent_upsampler_temporal_path}"
+    info_4 = f"\n\tConditionEncoder: {condition_encoder_path}\n\tAudioTokenizer: {audio_tokenizer_path}\n\tAudioDetokenizer: {audio_token_detokenizer_path}"
+    print(f"[Load] Initialize Model... \n[ {info_1}{info_2}{info_3}{info_4} \n]")
+    return _model_config
+
+
+#------------------------------------------------
+# Try extract and load an individual pipeline component from a single file
+# If weights for the specified componenet do not exist None is returned
+#------------------------------------------------
+def from_component(pipeline: FromSingleFileMixin, component_name: str, model_path: str, template_path: str,  device_map: Any, data_type: torch.dtype, quantization_config: Any = None):
+    try:
+        if not hasattr(pipeline, "from_single_file"):
+            print(f"[Load] Loading Component not supported.")
+            return None
+
+        components = (
+            "scheduler",
+            "tokenizer",
+            "tokenizer_2",
+            "tokenizer_3",
+            "text_encoder",
+            "text_encoder_2",
+            "text_encoder_3",
+            "unet",
+            "transformer",
+            "transformer_2",
+            "vae",
+            "audio_vae",
+            "vocoder",
+            "connectors",
+            "latent_upsampler",
+            "latent_upsampler_temporal",
+            "condition_encoder",
+            "audio_tokenizer",
+            "audio_token_detokenizer"
+        )
+        skip_args = {c: None for c in components if c != component_name}
+        pipe = pipeline.from_single_file(
+            str(model_path),
+            config=str(template_path),
+            torch_dtype=data_type,
+            use_safetensors=True,
+            low_cpu_mem_usage=True,
+            device_map=device_map,
+            local_files_only=True,
+            quantization_config=quantization_config,
+            **skip_args
+        )
+
+        return getattr(pipe, component_name, None)
+
+    except Exception as e:
+        print(f"[Load] Component not found")
+        return None
+
 
 #------------------------------------------------
 # Create a scheduler with the specifed options and configuration
@@ -271,75 +423,6 @@ def optimize_execution_device(config: DataObjects.PipelineConfig):
         torch.backends.cudnn.allow_tf32 = True
 
 
-
-
-
-#------------------------------------------------
-# Download/Load all config files needed to setup the pipeline, If files exists they are loaded form the cache
-#------------------------------------------------
-def get_pipeline_config(repo_id: str, cache_dir: str, secure_token: str, is_offline_mode: bool) -> Dict[str, Optional[str]]:
-    """
-    Download all known pipeline component configs for a repo and return their local paths.
-    Components not present will have value None.
-    """
-    config_paths: Dict[str, Optional[str]] = {}
-
-    print(f"[Load] Loading Pipeline Configuration, Repo: {repo_id}, IsOffline: {is_offline_mode}")
-
-    # Any Extra files
-    allow_patterns = ["**/*.json", "*.json", "*.txt", "**/*.txt", "**/*.model", "**/*.jinja"]
-    ignore_patterns = ["**/*.safetensors.index.json"]
-    snapshot_download(
-        repo_id,
-        cache_dir=cache_dir,
-        token=secure_token,
-        allow_patterns=allow_patterns,
-        ignore_patterns=ignore_patterns,
-        user_agent="TensorStack-Diffuse",
-        local_files_only=is_offline_mode,
-    )
-
-    known_components = [
-        "text_encoder",
-        "text_encoder_2",
-        "text_encoder_3",
-        "transformer",
-        "transformer_2",
-        "unet",
-        "vae",
-        "vocoder",
-        "audio_vae",
-        "connectors",
-        "latent_upsampler",
-        "processor",
-        "image_processor",
-        "image_encoder",
-        "scheduler"
-    ]
-    for comp in known_components:
-        try:
-            # All components: attempt to download config.json from the subfolder
-            file_name = "config.json" if comp != "scheduler" else "scheduler_config.json"
-            path = hf_hub_download(
-                repo_id,
-                f"{comp}/{file_name}",
-                cache_dir=cache_dir,
-                token=secure_token,
-                user_agent="TensorStack-Diffuse",
-                local_files_only=is_offline_mode,
-            )
-            if os.path.exists(path):
-                config_paths[comp] = path
-                print(f"[Load] Loading Configuration, Component: {comp}, File: {file_name}")
-            else:
-                config_paths[comp] = None
-        except Exception:
-            config_paths[comp] = None
-
-    prune_revisions(cache_dir)
-    return config_paths
-
-
 #------------------------------------------------
 # Load the LoRA weights into the specified pipeline
 #------------------------------------------------
@@ -350,35 +433,12 @@ def load_lora_weights(pipeline: Any, config: DataObjects.PipelineConfig):
     pipeline.unload_lora_weights()
     if config.lora_adapters is not None:
         for lora in config.lora_adapters:
-            print(f"[Load] Loading LoRA Adapter, Name: {lora.name}, IsOffline: {lora.is_offline_mode}")
+            print(f"[Load] Loading LoRA Adapter, Name: {lora.name}")
             pipeline.load_lora_weights(
                 lora.path,
                 weight_name=lora.weights,
                 adapter_name=lora.name,
-                local_files_only=lora.is_offline_mode,
-                cache_dir=config.cache_directory,
-                token=config.secure_token,
-            )
-
-
-#------------------------------------------------
-# Download the LoRA weights
-#------------------------------------------------
-def download_lora_weights(config: DataObjects.PipelineConfig):
-    if config.lora_adapters is not None:
-        for lora in config.lora_adapters:
-            print(f"[Load] Downloading LoRA Adapter, Name: {lora.name}")
-            hf_hub_download(
-                lora.path,
-                filename=lora.weights,
-                cache_dir=config.cache_directory,
-                force_download=False,
-                proxies=None,
-                local_files_only=False,
-                token=config.secure_token,
-                user_agent="TensorStack-Diffuse",
-                subfolder=None,
-                revision=None,
+                local_files_only=True
             )
 
 
@@ -394,48 +454,6 @@ def set_lora_weights(pipeline: Any, config: DataObjects.PipelineOptions):
         names = list(lora_map.keys())
         weights = list(lora_map.values())
         pipeline.set_adapters(names, adapter_weights=weights)
-
-
-#------------------------------------------------
-# Try exctract and load an individual pipeline component from a single file
-# If weights for the specified componenet do not exist None is returned
-#------------------------------------------------
-def load_pipeline_component(config: DataObjects.PipelineConfig, pipeline: FromSingleFileMixin, component_name: str, model_path: str, device_map: Any, quantization_config: Any = None):
-    try:
-        components = ("scheduler", "tokenizer", "tokenizer_2","tokenizer_3", "text_encoder", "text_encoder_2", "text_encoder_3", "transformer", "transformer_2", "unet", "vae", "audio_vae", "vocoder", "connectors")
-        skip_args = {c: None for c in components if c != component_name}
-        pipe = pipeline.from_single_file(
-            model_path,
-            config=config.base_model_path,
-            torch_dtype=config.data_type,
-            use_safetensors=True,
-            low_cpu_mem_usage=True,
-            device_map=device_map,
-            local_files_only=config.is_offline_mode,
-            token=config.secure_token,
-            quantization_config=quantization_config,
-            **skip_args
-        )
-
-        return getattr(pipe, component_name, None)
-
-    except Exception as e:
-        print(f"[Load] [LoadPipelineComponent] Error occurred loading component: {e}")
-        return None
-
-
-def prune_revisions(cache_dir: str):
-    # Delete detached revisions (those not pointed to by any ref/branch)
-    collections = scan_cache_dir(cache_dir=cache_dir)
-    to_delete = [
-        revision.commit_hash
-        for repo in collections.repos
-        for revision in repo.revisions
-        if len(revision.refs) == 0
-    ]
-
-    strategy = collections.delete_revisions(*to_delete)
-    strategy.execute()
 
 
 #------------------------------------------------
@@ -560,19 +578,11 @@ def trim_memory(isMemoryOffload: bool):
             0 # No special flags required for simple disable
         )
 
-
-#------------------------------------------------
-# Is model path a single file
-#------------------------------------------------
-def isSingleFile(modelPath: str):
-    return modelPath.lower().endswith((".safetensors", ".gguf"))
-
-
 #------------------------------------------------
 # Is model path a gguf file
 #------------------------------------------------
-def isGGUF(modelPath: str):
-    return modelPath.lower().endswith(".gguf")
+def isGGUF(modelPath: Path):
+    return modelPath.suffix == ".gguf"
 
 
 #------------------------------------------------
@@ -722,119 +732,3 @@ class NotificationService:
             items_copy = self._items[:]
             self._items.clear()
         return items_copy
-
-
-#------------------------------------------------
-# Helper class to parse diffusers progress to try get meaningful information
-#------------------------------------------------
-class ModelDownloadProgress:
-    def __init__(self, total_models: int, total_per_model: int = 1000):
-        self.total_per_model = total_per_model
-        self.model_index: int = 0
-        self.model_name: str = ""
-        self.download_stats: Dict[str, Dict[str, float]] = {}  # filename -> {"downloaded": float, "total": float}
-        self.total_models = total_models
-        self._patched = False
-        self.PatchTqdm()
-
-    # --------------------
-    # Public API
-    # --------------------
-    def Initialize(self, model_index: int, model_name: str):
-        """Start tracking a new model. Previous model considered 100% complete."""
-        if self.model_name:
-            # Mark previous model as complete
-            for fn in self.download_stats:
-                if fn.startswith(self.model_name):
-                    self.download_stats[fn]["downloaded"] = self.download_stats[fn]["total"]
-
-        self.model_index = model_index
-        self.model_name = model_name
-
-        # Clear any previous files for this model
-        for fn in list(self.download_stats.keys()):
-            if fn.startswith(model_name):
-                del self.download_stats[fn]
-
-    def Update(self, key: str, filename: str, downloaded: float, total: float, speed: float):
-        """Update a file's progress (MB)."""
-        self.download_stats[key] = {
-            "downloaded": downloaded,
-            "total": total,
-            "speed": speed,
-            "model": self.model_name
-        }
-        self._print_progress(key, filename)
-
-
-    def Clear(self):
-        """Clear all download tracking."""
-        self.model_index = 0
-        self.model_name = ""
-        self.download_stats.clear()
-
-
-    """Reset all download tracking."""
-    def Reset(self, total_models: int):
-        self.total_models = total_models
-        self.Clear()
-
-    # --------------------
-    # Internal Methods
-    # --------------------
-    def _print_progress(self, key: str, filename: str):
-        current_files = [x for x in self.download_stats.values() if x["model"] == self.model_name]
-        if not current_files:
-            avg_speed = 0.0
-            model_progress = 0
-        else:
-            avg_speed = sum(x.get("speed", 0.0) for x in current_files)
-            model_progress = sum(x["downloaded"] / max(x["total"], 0.001) for x in current_files) / len(current_files)
-
-        scaled_model_progress = int(model_progress * self.total_per_model)
-        if scaled_model_progress <= 0 or filename == "Loading checkpoint shards" or filename == "Loading weights":
-            return
-
-        overall_progress = self.model_index * self.total_per_model + scaled_model_progress
-        max_progress = self.total_models * self.total_per_model
-
-        notification_push("Download", self.model_name, scaled_model_progress, self.total_per_model,  overall_progress, max_progress, filename, avg_speed)
-
-    # --------------------
-    # TQDM Patch
-    # --------------------
-    def PatchTqdm(self):
-        """Monkey-patch tqdm.update to feed progress automatically."""
-        if self._patched:
-            return  # only patch once
-
-        original_update = tqdm.update
-        progress_tracker = self
-
-        def patched_update(self_tqdm, n=1):
-            tqdm_id = str(id(self_tqdm))
-
-            # Only process if total and desc exist
-            if self_tqdm.n is not None and self_tqdm.total is not None and self_tqdm.desc:
-                downloaded = self_tqdm.n / 1024 / 1024
-                total_size = self_tqdm.total / 1024 / 1024
-                speed = (
-                    self_tqdm.format_dict.get("rate", 0.0) / 1024 / 1024
-                    if self_tqdm.format_dict.get("rate")
-                    else 0.001
-                )
-
-                # Extract model and filename
-                model, *filename = self_tqdm.desc.split("/", 1)
-                filename = filename[0] if filename else None
-
-                if model and filename and model == progress_tracker.model_name:
-                    progress_tracker.Update(tqdm_id, filename, downloaded, total_size, speed)
-                elif model and progress_tracker.model_name:
-                    progress_tracker.Update(tqdm_id, model, downloaded, total_size, speed)
-
-            return original_update(self_tqdm, n)
-
-        tqdm.update = patched_update
-        self._patched = True
-

@@ -13,6 +13,7 @@
         ImageToVideo = 301,
         VideoToVideo = 302,
 
-        TextToAudio = 400
+        TextToAudio = 400,
+        AudioToText = 500
     }
 }

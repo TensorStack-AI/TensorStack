@@ -1,6 +1,7 @@
 ﻿using CSnakes.Runtime;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
@@ -21,7 +22,7 @@ namespace TensorStack.Python
         private readonly string _pythonPath;
         private readonly string _pipelinePath;
         private readonly string _baseDirectory;
-        private readonly string _pythonVersion = "3.12.10";
+        private readonly PythonVersion _pythonVersion;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PythonManager"/> class.
@@ -33,8 +34,9 @@ namespace TensorStack.Python
         {
             _logger = logger;
             _config = config;
+            _pythonVersion = GetPythonVresion(config.PythonVersion);
             _baseDirectory = Path.GetFullPath(baseDirectory);
-            _pythonPath = Path.GetFullPath(Path.Join(_config.Directory, "Python"));
+            _pythonPath = Path.GetFullPath(Path.Join(_config.Directory, _pythonVersion.Folder));
             _pipelinePath = Path.GetFullPath(Path.Join(_config.Directory, "Pipelines"));
             CopyInternalPythonFiles();
             CopyInternalPipelineFiles();
@@ -76,7 +78,7 @@ namespace TensorStack.Python
                 if (isReinstall || isRebuild)
                     await DeleteAsync();
 
-                return await CreateInternalAsync(progressCallback);
+                return await CreateInternalAsync(mode, progressCallback);
             });
         }
 
@@ -109,15 +111,15 @@ namespace TensorStack.Python
         /// <summary>
         /// Creates an environment.
         /// </summary>
-        private async Task<IPythonEnvironment> CreateInternalAsync(IProgress<PipelineProgress> progressCallback = null)
+        private async Task<IPythonEnvironment> CreateInternalAsync(EnvironmentMode environmentMode, IProgress<PipelineProgress> progressCallback = null)
         {
             var requirementsFile = Path.Combine(_pipelinePath, "requirements.txt");
             try
             {
-                progressCallback.SendMessage($"Creating Python Virtual Environment (.{_config.Environment})");
+                progressCallback.SendMessage($"{environmentMode} Python Virtual Environment (.{_config.Environment})");
                 await File.WriteAllLinesAsync(requirementsFile, _config.Requirements);
-                var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, requirementsFile, _pythonVersion, _logger);
-                progressCallback.SendMessage($"Python Virtual Environment Created");
+                var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, requirementsFile, _pythonVersion.Version, _logger);
+                progressCallback.SendMessage($"Python Virtual Environment Configured.");
                 return environment;
             }
             finally
@@ -141,7 +143,7 @@ namespace TensorStack.Python
             return await Task.Run(() =>
             {
                 progressCallback.SendMessage($"Loading Python Virtual Environment (.{_config.Environment})");
-                var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, _pythonVersion, _logger);
+                var environment = PythonEnvironmentHelper.CreateEnvironment(_config.Environment, _pythonPath, _pipelinePath, _pythonVersion.Version, _logger);
                 progressCallback.SendMessage($"Python Virtual Environment Loaded");
                 return environment;
             });
@@ -154,10 +156,10 @@ namespace TensorStack.Python
         /// <param name="reinstall">if set to <c>true</c> [reinstall].</param>
         private async Task DownloadAsync(bool reinstall, IProgress<PipelineProgress> progressCallback = null)
         {
-            var subfolder = "WPy64-312100/python";
+            var subfolder = $"{_pythonVersion.ZipFolder}/python";
             var exePath = Path.Combine(_pythonPath, "python.exe");
-            var downloadPath = Path.Combine(_pythonPath, "Winpython64-3.12.10.0dot.zip");
-            var pythonUrl = "https://github.com/winpython/winpython/releases/download/15.3.20250425final/Winpython64-3.12.10.0dot.zip";
+            var downloadPath = Path.Combine(_pythonPath, _pythonVersion.FileName);
+            var pythonUrl = _pythonVersion.Link;
             if (reinstall)
             {
                 progressCallback.SendMessage($"Reinstalling Python {_pythonVersion}...");
@@ -211,6 +213,10 @@ namespace TensorStack.Python
                                 Directory.CreateDirectory(destinationPath);
                                 continue;
                             }
+                            else
+                            {
+                                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
+                            }
                             entry.ExtractToFile(destinationPath, overwrite: true);
                         }
                     }
@@ -258,5 +264,32 @@ namespace TensorStack.Python
                 }
             }
         }
+
+
+        /// <summary>
+        /// Gets the python vresion.
+        /// </summary>
+        /// <param name="versionId">The version identifier.</param>
+        /// <exception cref="System.ArgumentException">Invalid PythonVersion '${versionId}', Expected: 3.12, 3.13 or 3.14</exception>
+        private static PythonVersion GetPythonVresion(string versionId)
+        {
+            if (_supportedVersions.TryGetValue(versionId, out PythonVersion pythonVersion))
+                return pythonVersion;
+
+            throw new ArgumentException($"Invalid PythonVersion '${versionId}', Expected: 3.12, 3.13 or 3.14");
+        }
+
+
+        /// <summary>
+        /// The supported Python versions
+        /// </summary>
+        private readonly static Dictionary<string, PythonVersion> _supportedVersions = new Dictionary<string, PythonVersion>
+        {
+            {"3.12", new PythonVersion("3.12.10", "https://github.com/winpython/winpython/releases/download/15.3.20250425final/Winpython64-3.12.10.0dot.zip", "Winpython64-3.12.10.0dot.zip", "WPy64-312100", "Python") },
+            {"3.13", new PythonVersion("3.13.13", "https://github.com/winpython/winpython/releases/download/17.4.20260511final/WinPython64-3.13.13.0dot.zip", "WinPython64-3.13.13.0dot.zip", "WPy64-313130", "Python313") },
+            {"3.14", new PythonVersion("3.14.5", "https://github.com/winpython/winpython/releases/download/17.4.20260511final/WinPython64-3.14.5.0dot.zip", "WinPython64-3.14.5.0dot.zip", "WPy64-31450", "Python314") }
+        };
     }
+
+    public record PythonVersion(string Version, string Link, string FileName, string ZipFolder, string Folder);
 }

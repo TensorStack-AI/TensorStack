@@ -8,6 +8,7 @@ namespace TensorStack.Python.Config
         public bool IsDebug { get; set; }
         public string Directory { get; set; }
         public string Environment { get; set; }
+        public string PythonVersion { get; set; }
         public string[] Requirements { get; set; }
         public Dictionary<string, string> Variables { get; set; }
 
@@ -46,6 +47,7 @@ namespace TensorStack.Python.Config
 
         public readonly static EnvironmentConfig DefaultCPU = new()
         {
+            PythonVersion = "3.12",
             Environment = "default-cpu",
             Directory = "PythonRuntime",
             Requirements = [
@@ -59,6 +61,7 @@ namespace TensorStack.Python.Config
 
         public readonly static EnvironmentConfig DefaultCUDA = new()
         {
+            PythonVersion = "3.12",
             Environment = "default-cuda",
             Directory = "PythonRuntime",
             Variables = new Dictionary<string, string> {
@@ -78,6 +81,7 @@ namespace TensorStack.Python.Config
 
         public readonly static EnvironmentConfig DefaultROCM = new()
         {
+            PythonVersion = "3.12",
             Environment = "default-rocm",
             Directory = "PythonRuntime",
             Variables = new Dictionary<string, string> {

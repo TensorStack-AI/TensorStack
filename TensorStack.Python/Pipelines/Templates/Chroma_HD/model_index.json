@@ -1,0 +1,32 @@
+{
+  "_class_name": "ChromaPipeline",
+  "_diffusers_version": "0.35.1",
+  "feature_extractor": [
+    null,
+    null
+  ],
+  "image_encoder": [
+    null,
+    null
+  ],
+  "scheduler": [
+    "diffusers",
+    "FlowMatchEulerDiscreteScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "T5EncoderModel"
+  ],
+  "tokenizer": [
+    "transformers",
+    "T5Tokenizer"
+  ],
+  "transformer": [
+    "diffusers",
+    "ChromaTransformer2DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKL"
+  ]
+}

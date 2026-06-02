@@ -26,7 +26,6 @@ namespace TensorStack.Python
         private PyObject _functionLoad;
         private PyObject _functionReload;
         private PyObject _functionUnload;
-        private PyObject _functionDownload;
         private PyObject _functionCancel;
         private PyObject _functionGenerate;
         private PyObject _functionGetLogs;
@@ -153,35 +152,6 @@ namespace TensorStack.Python
                         _logger?.LogInformation("[PythonPipeline] [Unload] Unloading pipeline.");
 
                         using (var pythonResult = _functionUnload.Call())
-                        {
-                            return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
-                        }
-                    }
-                    catch (PythonInvocationException ex)
-                    {
-                        throw HandlePythonException(ex);
-                    }
-                }
-            });
-        }
-
-
-        /// <summary>
-        /// Download pipeline components
-        /// </summary>
-        public Task<bool> DownloadAsync()
-        {
-            return Task.Run(() =>
-            {
-                using (GIL.Acquire())
-                {
-                    try
-                    {
-                        _logger?.LogInformation("[PythonPipeline] [Download] Downloading pipeline.");
-
-                        var pipelineConfigDict = _configuration.ToPythonDictionary();
-                        using (var pipelineConfig = PyObject.From(pipelineConfigDict))
-                        using (var pythonResult = _functionDownload.Call(pipelineConfig))
                         {
                             return pythonResult.BareImportAs<bool, PyObjectImporters.Boolean>();
                         }
@@ -341,7 +311,6 @@ namespace TensorStack.Python
             _functionLoad = _module.GetAttr("load");
             _functionReload = _module.GetAttr("reload");
             _functionUnload = _module.GetAttr("unload");
-            _functionDownload = _module.GetAttr("download");
             _functionCancel = _module.GetAttr("generateCancel");
             _functionGenerate = _module.GetAttr("generate");
             _functionGetLogs = _module.GetAttr("getLogs");
@@ -357,7 +326,6 @@ namespace TensorStack.Python
             _functionLoad.Dispose();
             _functionReload.Dispose();
             _functionUnload.Dispose();
-            _functionDownload.Dispose();
             _functionCancel.Dispose();
             _functionGenerate.Dispose();
             _functionGetLogs.Dispose();

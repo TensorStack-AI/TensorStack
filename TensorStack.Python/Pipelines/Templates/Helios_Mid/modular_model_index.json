@@ -1,0 +1,79 @@
+{
+  "_blocks_class_name": "HeliosPyramidAutoBlocks",
+  "_class_name": "HeliosPyramidModularPipeline",
+  "_diffusers_version": "0.38.0.dev0",
+  "guider": [
+    "diffusers",
+    "ClassifierFreeZeroStarGuidance"
+  ],
+  "scheduler": [
+    "diffusers",
+    "HeliosScheduler",
+    {
+      "pretrained_model_name_or_path": "BestWishYsh/Helios-Mid",
+      "revision": null,
+      "subfolder": "scheduler",
+      "type_hint": [
+        "diffusers",
+        "HeliosScheduler"
+      ],
+      "variant": null
+    }
+  ],
+  "text_encoder": [
+    "transformers",
+    "UMT5EncoderModel",
+    {
+      "pretrained_model_name_or_path": "BestWishYsh/Helios-Mid",
+      "revision": null,
+      "subfolder": "text_encoder",
+      "type_hint": [
+        "transformers",
+        "UMT5EncoderModel"
+      ],
+      "variant": null
+    }
+  ],
+  "tokenizer": [
+    "transformers",
+    "T5Tokenizer",
+    {
+      "pretrained_model_name_or_path": "BestWishYsh/Helios-Mid",
+      "revision": null,
+      "subfolder": "tokenizer",
+      "type_hint": [
+        "transformers",
+        "T5Tokenizer"
+      ],
+      "variant": null
+    }
+  ],
+  "transformer": [
+    "diffusers",
+    "HeliosTransformer3DModel",
+    {
+      "pretrained_model_name_or_path": "BestWishYsh/Helios-Mid",
+      "revision": null,
+      "subfolder": "transformer",
+      "type_hint": [
+        "diffusers",
+        "HeliosTransformer3DModel"
+      ],
+      "variant": null
+    }
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLWan",
+    {
+      "pretrained_model_name_or_path": "BestWishYsh/Helios-Mid",
+      "revision": null,
+      "subfolder": "vae",
+      "type_hint": [
+        "diffusers",
+        "AutoencoderKLWan"
+      ],
+      "variant": null
+    }
+  ]
+}

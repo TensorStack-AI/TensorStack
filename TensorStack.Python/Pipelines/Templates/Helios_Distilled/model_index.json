@@ -1,0 +1,26 @@
+{
+  "_class_name": "HeliosPyramidPipeline",
+  "_diffusers_version": "0.37.0.dev0",
+  "is_cfg_zero_star": false,
+  "is_distilled": true,
+  "scheduler": [
+    "diffusers",
+    "HeliosDMDScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "UMT5EncoderModel"
+  ],
+  "tokenizer": [
+    "transformers",
+    "T5TokenizerFast"
+  ],
+  "transformer": [
+    "diffusers",
+    "HeliosTransformer3DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLWan"
+  ]
+}

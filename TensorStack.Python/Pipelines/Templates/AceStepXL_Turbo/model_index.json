@@ -1,0 +1,28 @@
+{
+  "_class_name": "AceStepPipeline",
+  "_diffusers_version": "0.38.0.dev0",
+  "condition_encoder": [
+    "ace_step",
+    "AceStepConditionEncoder"
+  ],
+  "scheduler": [
+    "diffusers",
+    "FlowMatchEulerDiscreteScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "Qwen3Model"
+  ],
+  "tokenizer": [
+    "transformers",
+    "Qwen2TokenizerFast"
+  ],
+  "transformer": [
+    "diffusers",
+    "AceStepTransformer1DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderOobleck"
+  ]
+}

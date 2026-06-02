@@ -388,7 +388,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusionXL
             var controlImage = await CreateControlInputAsync(options, cancellationToken);
 
             // Load Model
-            await LoadUnetAsync(options, progressCallback, cancellationToken);
+            await LoadControlNetUnetAsync(options, progressCallback, cancellationToken);
             await controlNet.LoadAsync(cancellationToken: cancellationToken);
 
             // Timesteps
@@ -543,6 +543,18 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusionXL
             await Unet.LoadAsync(optimizations, cancellationToken);
         }
 
+
+        /// <summary>
+        /// Load ControlNet unet with optimizations
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        private async Task LoadControlNetUnetAsync(IPipelineOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        {
+            var optimizations = GetOptimizations(options, progressCallback);
+            await Unet.LoadControlNetAsync(optimizations, cancellationToken);
+        }
 
         /// <summary>
         /// Checks the state of the pipeline.

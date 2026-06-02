@@ -453,7 +453,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
             var controlImage = await CreateControlInputAsync(options, cancellationToken);
 
             // Load Model
-            await LoadTransformerAsync(options, progressCallback, cancellationToken);
+            await LoadControlNetTransformerAsync(options, progressCallback, cancellationToken);
             await controlNet.LoadAsync(cancellationToken: cancellationToken);
 
             // Timesteps
@@ -591,6 +591,19 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion3
         {
             var optimizations = GetOptimizations(options, progressCallback);
             await Transformer.LoadAsync(optimizations, cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Load ControlNet Transformer with optimizations
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="progressCallback">The progress callback.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        private async Task LoadControlNetTransformerAsync(IPipelineOptions options, IProgress<GenerateProgress> progressCallback = null, CancellationToken cancellationToken = default)
+        {
+            var optimizations = GetOptimizations(options, progressCallback);
+            await Transformer.LoadControlNetAsync(optimizations, cancellationToken);
         }
 
 

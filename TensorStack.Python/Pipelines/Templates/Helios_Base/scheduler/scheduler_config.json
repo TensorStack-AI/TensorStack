@@ -1,0 +1,24 @@
+{
+  "_class_name": "HeliosScheduler",
+  "_diffusers_version": "0.37.0.dev0",
+  "disable_corrector": [],
+  "gamma": 0.3333333333333333,
+  "lower_order_final": true,
+  "num_train_timesteps": 1000,
+  "predict_x0": true,
+  "prediction_type": "flow_prediction",
+  "scheduler_type": "unipc",
+  "shift": 1.0,
+  "solver_order": 2,
+  "solver_p": null,
+  "solver_type": "bh2",
+  "stage_range": [
+    0,
+    1
+  ],
+  "stages": 1,
+  "time_shift_type": "exponential",
+  "thresholding": false,
+  "use_dynamic_shifting": true,
+  "use_flow_sigmas": true
+}

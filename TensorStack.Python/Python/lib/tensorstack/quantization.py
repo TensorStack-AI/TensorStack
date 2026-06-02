@@ -77,7 +77,7 @@ def pretrained_config(target: QuantTarget, backend: QuantBackend, quant_type: Qu
         print(f"[Quantize] {quant_type} not supported")
         return None
 
-    print(f"[Quantize] {target}, {backend}, {compute_type} -> {quant_type}")
+    print(f"[Quantize] {backend}, {compute_type} -> {quant_type}")
     if backend == QuantBackend.QUANTO:
         if target == QuantTarget.TEXT_ENCODER:
             if quant_type == QuantType.Q8Bit:
@@ -94,15 +94,15 @@ def pretrained_config(target: QuantTarget, backend: QuantBackend, quant_type: Qu
     elif backend == QuantBackend.BITSANDBYTES:
         if target == QuantTarget.TEXT_ENCODER:
             if quant_type == QuantType.Q8Bit:
-                return TransformersBitsAndBytesConfig(load_in_8bit=True, llm_int8_enable_fp32_cpu_offload=True)
+                return TransformersBitsAndBytesConfig(load_in_8bit=True)
             elif quant_type == QuantType.Q4Bit:
-                return TransformersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=compute_type, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4")
+                return TransformersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=compute_type)
 
         elif target == QuantTarget.TRANSFORMER:
             if quant_type == QuantType.Q8Bit:
-                return DiffusersBitsAndBytesConfig(load_in_8bit=True, llm_int8_enable_fp32_cpu_offload=True)
+                return DiffusersBitsAndBytesConfig(load_in_8bit=True)
             elif quant_type == QuantType.Q4Bit:
-                return DiffusersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=compute_type, bnb_4bit_use_double_quant=True, bnb_4bit_quant_type="nf4")
+                return DiffusersBitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=compute_type)
 
     return None
 

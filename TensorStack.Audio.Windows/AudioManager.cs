@@ -587,7 +587,7 @@ namespace TensorStack.Audio.Windows
 
         private static Process CreateMetadata(string inputFile)
         {
-            var process = CreateProcess(FFProbePath, $"-v quiet -print_format json -show_format -show_streams {inputFile}");
+            var process = CreateProcess(FFProbePath, $"-v quiet -print_format json -show_format -show_streams \"{inputFile}\"");
             process.StartInfo.RedirectStandardInput = true;
             process.StartInfo.RedirectStandardOutput = true;
             return process;

@@ -8,22 +8,25 @@ Utils.create_services()
 import torch
 import numpy as np
 import soundfile as sf
+from pathlib import Path
 from threading import Event
 from collections.abc import Buffer
 from typing import Dict, Sequence, List, Tuple, Optional, Any
-from transformers import AutoModel
+from transformers import Qwen2Tokenizer, AutoModel
 from diffusers import (
     AutoencoderOobleck,
     AceStepTransformer1DModel,
     AceStepConditionEncoder,
+    AceStepAudioTokenizer,
+    AceStepAudioTokenDetokenizer,
     AceStepPipeline
 )
 
 # Globals
 _config = None
+_model_config = None
 _pipeline = None
 _processType = None
-_pipeline_config = None
 _execution_device = None
 _device_map = None
 _pipeline_device_map = None
@@ -33,52 +36,11 @@ _generator = None
 _isMemoryOffload = False
 _prompt_cache_key = None
 _prompt_cache_value = None
-_progress_tracker: Utils.ModelDownloadProgress = None
 _cancel_event = Event()
 _stopwatch = None
 _pipelineMap = {
     ProcessType.TextToAudio: AceStepPipeline,
 }
-
-
-#------------------------------------------------
-# Initialize Pipeline
-#------------------------------------------------
-def initialize(config: DataObjects.PipelineConfig):
-    global _progress_tracker, _pipeline_config, _device_map, _pipeline_device_map
-
-    _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(config))
-    _pipeline_config = Utils.get_pipeline_config(config.base_model_path, config.cache_directory, config.secure_token, config.is_offline_mode)
-    _device_map = Utils.get_device_map(config, _execution_device)
-    _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
-    return create_pipeline(config)
-
-
-#------------------------------------------------
-# Download Pipeline
-#------------------------------------------------
-def download(config_args: Dict[str, Any]):
-    global _config, _progress_tracker, _pipeline_config, _device_map
-
-    _device_map = "meta"
-    _config = DataObjects.PipelineConfig(**config_args)
-
-    if _config.lora_adapters is not None:
-        print(f"[Download] Download Lora Adapter")
-        _progress_tracker = Utils.ModelDownloadProgress(total_models=1)
-        Utils.download_lora_weights(_config)
-        return True
-    elif _config.control_net.name is not None:
-        print(f"[Download] Download ControlNet")
-        _progress_tracker = Utils.ModelDownloadProgress(total_models=1)
-        load_control_net(_config, None)
-        return True
-
-    print(f"[Download] Download Pipeline")
-    _progress_tracker = Utils.ModelDownloadProgress(total_models=get_model_count(_config))
-    _pipeline_config = Utils.get_pipeline_config(_config.base_model_path, _config.cache_directory, _config.secure_token, _config.is_offline_mode)
-    create_pipeline(_config, True)
-    return True
 
 
 #------------------------------------------------
@@ -114,7 +76,6 @@ def reload(config_args: Dict[str, Any]) -> bool:
     # Config
     _config = DataObjects.PipelineConfig(**config_args)
     _processType = _config.process_type
-    _progress_tracker.Reset(total_models=get_model_count(_config))
 
     # Rebuild Pipeline
     _pipeline.unload_lora_weights()
@@ -194,10 +155,358 @@ def _progress_callback(pipe, step: int, total_steps: int, info: Dict):
 
 
 #------------------------------------------------
-# Get pipeline model count
+# Initialize Pipeline
 #------------------------------------------------
-def get_model_count(config: DataObjects.PipelineConfig):
-    return 5 if config.control_net.name is not None else 4
+def initialize(config: DataObjects.PipelineConfig):
+    global _model_config, _device_map, _pipeline_device_map
+
+    _device_map = Utils.get_device_map(config, _execution_device)
+    _pipeline_device_map = Utils.get_pipeline_device_map(config, _execution_device)
+    _model_config = Utils.get_model_config(__file__, config)
+    return create_pipeline(config)
+
+
+
+#------------------------------------------------
+# Load Tokenizer Qwen2Tokenizer
+#------------------------------------------------
+def load_tokenizer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    if _pipeline and _pipeline.tokenizer:
+        print(f"[Load] Loading Cached Tokenizer")
+        return _pipeline.tokenizer
+
+    tokenizer_path: Path = _model_config["tokenizer"]
+    tokenizer_config: Path = _model_config["tokenizer_config"]
+
+    # 1. Load from pretrained folder
+    print(f"[Load] Loading Pretrained Tokenizer")
+    tokenizer = Qwen2Tokenizer.from_pretrained(
+        tokenizer_path,
+        config=tokenizer_config,
+        dtype=config.data_type,
+        **pipeline_kwargs
+    )
+    return tokenizer
+
+
+#------------------------------------------------
+# Load TextEncoder AutoModel
+#------------------------------------------------
+def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    if _pipeline and _pipeline.text_encoder:
+        print(f"[Load] Loading Cached TextEncoder")
+        return _pipeline.text_encoder
+
+    text_encoder_path: Path = _model_config["text_encoder"]
+    text_encoder_config: Path = _model_config["text_encoder_config"]
+
+    # 1. Load from pretrained folder
+    print(f"[Load] Loading Pretrained TextEncoder")
+    text_encoder = AutoModel.from_pretrained(
+        text_encoder_path,
+        config=text_encoder_config,
+        dtype=config.data_type,
+        device_map=_device_map,
+        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER),
+        **pipeline_kwargs
+    )
+    Utils.trim_memory(True)
+    return text_encoder
+
+
+#------------------------------------------------
+# Load AceStepTransformer1DModel
+#------------------------------------------------
+def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    if _pipeline and _pipeline.transformer:
+        print(f"[Load] Loading Cached Transformer")
+        return _pipeline.transformer
+
+    transformer_path: Path = _model_config["transformer"]
+    transformer_config: Path = _model_config["transformer_config"]
+
+    # 1. Load from single file
+    if transformer_path.is_file():
+        is_gguf = Utils.isGGUF(transformer_path)
+        print(f"[Load] Loading File Transformer")
+        transformer =  AceStepTransformer1DModel.from_single_file(
+            str(transformer_path),
+            config=str(transformer_config),
+            torch_dtype=config.data_type,
+            device_map=_device_map,
+            quantization_config=Quantization.auto_single_file_config(config, QuantTarget.TRANSFORMER, is_gguf),
+            **pipeline_kwargs
+        )
+        Quantization.quantize_model(config, transformer, is_gguf)
+        Utils.trim_memory(True)
+        return transformer
+
+    # 2. Load from pretrained folder
+    print(f"[Load] Loading Pretrained Transformer")
+    transformer =  AceStepTransformer1DModel.from_pretrained(
+        str(transformer_path),
+        torch_dtype=config.data_type,
+        device_map=_device_map,
+        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TRANSFORMER),
+        **pipeline_kwargs
+    )
+    Utils.trim_memory(True)
+    return transformer
+
+
+#------------------------------------------------
+# Load AutoencoderOobleck
+#------------------------------------------------
+def load_vae(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    if _pipeline and _pipeline.vae:
+        print(f"[Load] Loading Cached Vae")
+        return _pipeline.vae
+
+    vae_path: Path = _model_config["vae"]
+    vae_config: Path = _model_config["vae_config"]
+    single_path: Path = _model_config["single_file"]
+    template_path: Path  = _model_config["template"]
+
+    # 1. Load from single file
+    if vae_path.is_file():
+        print(f"[Load] Loading SingleFile Vae")
+        auto_encoder =  AutoencoderOobleck.from_single_file(
+            str(vae_path),
+            config=str(vae_config),
+            torch_dtype=config.data_type,
+            device_map=_device_map,
+            **pipeline_kwargs
+        )
+        Utils.trim_memory(True)
+        return auto_encoder
+
+    # 2. Load component from single file
+    if single_path and single_path.is_file():
+        print(f"[Load] Loading Component Vae")
+        auto_encoder = Utils.from_component(AceStepPipeline, "vae", single_path, template_path, _device_map, config.data_type)
+        if auto_encoder:
+            Utils.trim_memory(True)
+            return auto_encoder
+
+    # 3. Load from pretrained folder
+    print(f"[Load] Loading Pretrained Vae")
+    auto_encoder = AutoencoderOobleck.from_pretrained(
+        str(vae_path),
+        torch_dtype=config.data_type,
+        device_map=_device_map,
+        **pipeline_kwargs
+    )
+    Utils.trim_memory(True)
+    return auto_encoder
+
+
+#------------------------------------------------
+# Load ConditionEncoder
+#------------------------------------------------
+def load_condition_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    if _pipeline and _pipeline.condition_encoder:
+        print(f"[Load] Loading Cached ConditionEncoder")
+        return _pipeline.condition_encoder
+
+    condition_encoder_path: Path = _model_config["condition_encoder"]
+    condition_encoder_config: Path = _model_config["condition_encoder_config"]
+    single_path: Path = _model_config["single_file"]
+    template_path: Path  = _model_config["template"]
+
+    # 1. Load from single file
+    if condition_encoder_path.is_file():
+        print(f"[Load] Loading SingleFile ConditionEncoder")
+        condition_encoder =  AceStepConditionEncoder.from_single_file(
+            str(condition_encoder_path),
+            config=str(condition_encoder_config),
+            torch_dtype=config.data_type,
+            device_map=_device_map,
+            **pipeline_kwargs
+        )
+        Utils.trim_memory(True)
+        return condition_encoder
+
+    # 2. Load component from single file
+    if single_path and single_path.is_file():
+        print(f"[Load] Loading Component ConditionEncoder")
+        condition_encoder = Utils.from_component(AceStepPipeline, "condition_encoder", single_path, template_path, _device_map, config.data_type)
+        if condition_encoder:
+            Utils.trim_memory(True)
+            return condition_encoder
+
+    # 3. Load from pretrained folder
+    print(f"[Load] Loading Pretrained ConditionEncoder")
+    condition_encoder = AceStepConditionEncoder.from_pretrained(
+        str(condition_encoder_path),
+        torch_dtype=config.data_type,
+        device_map=_device_map,
+        **pipeline_kwargs
+    )
+    Utils.trim_memory(True)
+    return condition_encoder
+
+
+#------------------------------------------------
+# Load AceStepAudioTokenizer
+#------------------------------------------------
+def load_audio_tokenizer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    if _pipeline and _pipeline.audio_tokenizer:
+        print(f"[Load] Loading Cached AudioTokenizer")
+        return _pipeline.audio_tokenizer
+
+    audio_tokenizer_path: Path = _model_config["audio_tokenizer"]
+    audio_tokenizer_config: Path = _model_config["audio_tokenizer_config"]
+    single_path: Path = _model_config["single_file"]
+    template_path: Path  = _model_config["template"]
+    if not audio_tokenizer_path.exists():
+        print(f"[Load] AudioTokenizer not found!")
+        return None
+
+    # 1. Load from single file
+    if audio_tokenizer_path.is_file():
+        print(f"[Load] Loading SingleFile AudioTokenizer")
+        audio_tokenizer =  AceStepAudioTokenizer.from_single_file(
+            str(audio_tokenizer_path),
+            config=str(audio_tokenizer_config),
+            torch_dtype=config.data_type,
+            device_map=_device_map,
+            **pipeline_kwargs
+        )
+        Utils.trim_memory(True)
+        return audio_tokenizer
+
+    # 2. Load component from single file
+    if single_path and single_path.is_file():
+        print(f"[Load] Loading Component AudioTokenizer")
+        audio_tokenizer = Utils.from_component(AceStepPipeline, "audio_tokenizer", single_path, template_path, _device_map, config.data_type)
+        if audio_tokenizer:
+            Utils.trim_memory(True)
+            return audio_tokenizer
+
+    # 3. Load from pretrained folder
+    print(f"[Load] Loading Pretrained AudioTokenizer")
+    audio_tokenizer = AceStepAudioTokenizer.from_pretrained(
+        str(audio_tokenizer_path),
+        torch_dtype=config.data_type,
+        device_map=_device_map,
+        **pipeline_kwargs
+    )
+    Utils.trim_memory(True)
+    return audio_tokenizer
+
+
+
+#------------------------------------------------
+# Load AceStepAudioTokenDetokenizer
+#------------------------------------------------
+def load_audio_token_detokenizer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    if _pipeline and _pipeline.audio_token_detokenizer:
+        print(f"[Load] Loading Cached AudioTokenDetokenizer")
+        return _pipeline.audio_token_detokenizer
+
+    audio_token_detokenizer_path: Path = _model_config["audio_token_detokenizer"]
+    audio_token_detokenizer_config: Path = _model_config["audio_token_detokenizer_config"]
+    single_path: Path = _model_config["single_file"]
+    template_path: Path  = _model_config["template"]
+    if not audio_token_detokenizer_path.exists():
+        print(f"[Load] AudioTokenDetokenizer not found!")
+        return None
+
+    # 1. Load from single file
+    if audio_token_detokenizer_path.is_file():
+        print(f"[Load] Loading SingleFile AudioTokenDetokenizer")
+        audio_token_detokenizer =  AceStepAudioTokenDetokenizer.from_single_file(
+            str(audio_token_detokenizer_path),
+            config=str(audio_token_detokenizer_config),
+            torch_dtype=config.data_type,
+            device_map=_device_map,
+            **pipeline_kwargs
+        )
+        Utils.trim_memory(True)
+        return audio_token_detokenizer
+
+    # 2. Load component from single file
+    if single_path and single_path.is_file():
+        print(f"[Load] Loading Component AudioTokenDetokenizer")
+        audio_token_detokenizer = Utils.from_component(AceStepPipeline, "audio_token_detokenizer", single_path, template_path, _device_map, config.data_type)
+        if audio_token_detokenizer:
+            Utils.trim_memory(True)
+            return audio_token_detokenizer
+
+    # 3. Load from pretrained folder
+    print(f"[Load] Loading Pretrained AudioTokenDetokenizer")
+    audio_token_detokenizer = AceStepAudioTokenDetokenizer.from_pretrained(
+        str(audio_token_detokenizer_path),
+        torch_dtype=config.data_type,
+        device_map=_device_map,
+        **pipeline_kwargs
+    )
+    Utils.trim_memory(True)
+    return audio_token_detokenizer
+
+
+#------------------------------------------------
+# Load ControlNetModel
+#------------------------------------------------
+def load_control_net(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
+    global _control_net_name, _control_net_cache
+
+    if _control_net_cache and _control_net_name == config.control_net.name:
+        print(f"[Load] Loading Cached ControlNet")
+        return _control_net_cache
+
+    if config.control_net.name is None:
+        _control_net_name = None
+        _control_net_cache = None
+        return None
+
+    # print(f"[Load] Loading Pretrained ControlNet, IsOffline: {config.control_net.is_offline_mode}")
+    # _control_net_name = config.control_net.name
+    # _control_net_cache = ControlNetModel.from_pretrained(
+    #     config.control_net.path,
+    #     torch_dtype=config.data_type,
+    #     device_map=_device_map,
+    #     **pipeline_kwargs
+    # )
+    return None
+
+
+#------------------------------------------------
+# Create a new pipeline
+#------------------------------------------------
+def create_pipeline(config: DataObjects.PipelineConfig):
+    template_path: Path = _model_config["template"]
+    pipeline_kwargs = {
+        "variant": config.variant,
+        "use_safetensors":True,
+        "low_cpu_mem_usage":True,
+        "local_files_only":True,
+    }
+
+    # Load Models
+    tokenizer = load_tokenizer(config, pipeline_kwargs)
+    text_encoder = load_text_encoder(config, pipeline_kwargs)
+    transformer = load_transformer(config, pipeline_kwargs)
+    vae = load_vae(config, pipeline_kwargs)
+    condition_encoder = load_condition_encoder(config, pipeline_kwargs)
+    audio_tokenizer = load_audio_tokenizer(config, pipeline_kwargs)
+    audio_token_detokenizer = load_audio_token_detokenizer(config, pipeline_kwargs)
+
+    # Build Pipeline
+    pipeline = _pipelineMap[_processType]
+    return pipeline.from_pretrained(
+        template_path,
+        tokenizer=tokenizer,
+        text_encoder=text_encoder,
+        transformer=transformer,
+        vae=vae,
+        condition_encoder=condition_encoder,
+        audio_tokenizer=audio_tokenizer,
+        audio_token_detokenizer=audio_token_detokenizer,
+        torch_dtype=config.data_type,
+        device_map=_pipeline_device_map,
+        **pipeline_kwargs
+    )
 
 
 #------------------------------------------------
@@ -276,178 +585,3 @@ def generate(
     # Cleanup
     Utils.trim_memory(_isMemoryOffload)
     return []
-
-
-
-#------------------------------------------------
-# Create a new pipeline
-#------------------------------------------------
-def create_pipeline(config: DataObjects.PipelineConfig, download_only: bool = False):
-    pipeline_kwargs = {
-        "variant": config.variant,
-        "token": config.secure_token,
-        "cache_dir": config.cache_directory
-    }
-
-    # Load Models
-    text_encoder = load_text_encoder(config, pipeline_kwargs)
-    transformer = load_transformer(config, pipeline_kwargs)
-    vae = load_vae(config, pipeline_kwargs)
-    condition_encoder = load_condition_encoder(config, pipeline_kwargs)
-
-    _progress_tracker.Clear()
-    if download_only:
-        return None
-
-    # Build Pipeline
-    pipeline = _pipelineMap[_processType]
-    return pipeline.from_pretrained(
-        config.base_model_path,
-        text_encoder=text_encoder,
-        transformer=transformer,
-        vae=vae,
-        condition_encoder=condition_encoder,
-        torch_dtype=config.data_type,
-        device_map=_pipeline_device_map,
-        local_files_only=True,
-        low_cpu_mem_usage=True,
-        **pipeline_kwargs
-    )
-
-
-#------------------------------------------------
-# Load TextEncoder Qwen3Model
-#------------------------------------------------
-def load_text_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
-
-    if _pipeline and _pipeline.text_encoder:
-        print(f"[Load] Loading Cached TextEncoder")
-        return _pipeline.text_encoder
-
-    _progress_tracker.Initialize(0, "text_encoder")
-
-    print(f"[Load] Loading Pretrained TextEncoder, IsOffline: {config.is_offline_mode}")
-    text_encoder = AutoModel.from_pretrained(
-        config.base_model_path,
-        subfolder="text_encoder",
-        torch_dtype=config.data_type,
-        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER),
-        use_safetensors=True,
-        low_cpu_mem_usage=True,
-        local_files_only=config.is_offline_mode,
-        device_map=_device_map,
-        **pipeline_kwargs
-    )
-    Utils.trim_memory(True)
-    return text_encoder
-
-
-#------------------------------------------------
-# Load AceStepTransformer1DModel
-#------------------------------------------------
-def load_transformer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
-
-    if _pipeline and _pipeline.transformer:
-        print(f"[Load] Loading Cached Transformer")
-        return _pipeline.transformer
-
-    _progress_tracker.Initialize(1, "transformer")
-
-    print(f"[Load] Loading Pretrained Transformer, IsOffline: {config.is_offline_mode}")
-    transformer = AceStepTransformer1DModel.from_pretrained(
-        config.base_model_path,
-        subfolder="transformer",
-        torch_dtype=config.data_type,
-        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TRANSFORMER),
-        use_safetensors=True,
-        low_cpu_mem_usage=True,
-        local_files_only=config.is_offline_mode,
-        device_map=_device_map,
-        **pipeline_kwargs
-    )
-    Utils.trim_memory(True)
-    return transformer
-
-
-#------------------------------------------------
-# Load AutoencoderOobleck
-#------------------------------------------------
-def load_vae(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
-
-    if _pipeline and _pipeline.vae:
-        print(f"[Load] Loading Cached Vae")
-        return _pipeline.vae
-
-    _progress_tracker.Initialize(2, "vae")
-
-    print(f"[Load] Loading Pretrained Vae, IsOffline: {config.is_offline_mode}")
-    auto_encoder = AutoencoderOobleck.from_pretrained(
-        config.base_model_path,
-        subfolder="vae",
-        torch_dtype=config.data_type,
-        use_safetensors=True,
-        low_cpu_mem_usage=True,
-        local_files_only=config.is_offline_mode,
-        device_map=_device_map,
-        **pipeline_kwargs
-    )
-    Utils.trim_memory(True)
-    return auto_encoder
-
-
-
-#------------------------------------------------
-# Load ConditionEncoder
-#------------------------------------------------
-def load_condition_encoder(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
-
-    if _pipeline and _pipeline.condition_encoder:
-        print(f"[Load] Loading Cached ConditionEncoder")
-        return _pipeline.condition_encoder
-
-    _progress_tracker.Initialize(3, "condition_encoder")
-
-    print(f"[Load] Loading Pretrained ConditionEncoder, IsOffline: {config.is_offline_mode}")
-    condition_encoder = AceStepConditionEncoder.from_pretrained(
-        config.base_model_path,
-        subfolder="condition_encoder",
-        torch_dtype=config.data_type,
-        use_safetensors=True,
-        low_cpu_mem_usage=True,
-        local_files_only=config.is_offline_mode,
-        device_map=_device_map,
-        **pipeline_kwargs
-    )
-    Utils.trim_memory(True)
-    return condition_encoder
-
-
-
-#------------------------------------------------
-# Load ControlNetModel
-#------------------------------------------------
-def load_control_net(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str, str]):
-    global _control_net_name, _control_net_cache
-
-    if _control_net_cache and _control_net_name == config.control_net.name:
-        print(f"[Load] Loading Cached ControlNet")
-        return _control_net_cache
-
-    if config.control_net.name is None:
-        _control_net_name = None
-        _control_net_cache = None
-        return None
-
-    # print(f"[Load] Loading Pretrained ControlNet, IsOffline: {config.control_net.is_offline_mode}")
-    # _control_net_name = config.control_net.name
-    # _progress_tracker.Initialize(4, "control_net")
-    # _control_net_cache = ControlNetModel.from_pretrained(
-    #     config.control_net.path,
-    #     torch_dtype=config.data_type,
-    #     use_safetensors=True,
-    #     low_cpu_mem_usage=True,
-    #     local_files_only=config.control_net.is_offline_mode,
-    #     device_map=_device_map,
-    #     cache_dir=config.cache_directory,
-    # )
-    return None

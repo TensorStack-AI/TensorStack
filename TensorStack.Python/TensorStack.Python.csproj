@@ -58,6 +58,9 @@
     <None Include="Python\lib\tensorstack\quantization.py" Pack="false" />
     <None Include="Python\lib\tensorstack\export.py" Pack="false" />
     <None Include="Python\lib\tensorstack\enums.py" Pack="false" />
+
+    <Content Include="Pipelines\Templates\**\*" Pack="true" PackagePath="contentFiles\any\any\Pipelines\Templates\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Pipelines\Templates\**\*" Pack="false" />
   </ItemGroup>
 
   <!--AceStepPipeline-->
@@ -125,13 +128,6 @@
     <Content Include="Pipelines\LTX20Pipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
     <None Include="Pipelines\LTX20Pipeline.py" Pack="false" />
   </ItemGroup>
-
-  <!--LTX2.3Pipeline-->
-  <ItemGroup>
-    <Content Include="Pipelines\LTX23Pipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
-    <None Include="Pipelines\LTX23Pipeline.py" Pack="false" />
-  </ItemGroup>
-
 
   <!--QwenImagePipeline-->
   <ItemGroup>

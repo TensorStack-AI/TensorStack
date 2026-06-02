@@ -6,8 +6,14 @@ namespace TensorStack.Python.Config
 {
     public sealed record PipelineConfig
     {
-        [JsonPropertyName("base_model_path")]
-        public string BaseModelPath { get; set; }
+        [JsonPropertyName("model_path")]
+        public string ModelPath { get; set; }
+
+        [JsonPropertyName("model_type")]
+        public string ModelType { get; set; }
+
+        [JsonPropertyName("template")]
+        public string Template { get; set; }
 
         [JsonPropertyName("pipeline")]
         public string Pipeline { get; set; }
@@ -42,12 +48,6 @@ namespace TensorStack.Python.Config
         [JsonPropertyName("variant")]
         public string Variant { get; set; }
 
-        [JsonPropertyName("cache_directory")]
-        public string CacheDirectory { get; set; }
-
-        [JsonPropertyName("secure_token")]
-        public string SecureToken { get; set; }
-
         [JsonPropertyName("lora_adapters")]
         public List<LoraConfig> LoraAdapters { get; set; }
 
@@ -60,7 +60,5 @@ namespace TensorStack.Python.Config
         [JsonPropertyName("checkpoint_config")]
         public CheckpointConfig CheckpointConfig { get; set; }
 
-        [JsonPropertyName("is_offline_mode")]
-        public bool IsOfflineMode { get; set; }
     }
 }

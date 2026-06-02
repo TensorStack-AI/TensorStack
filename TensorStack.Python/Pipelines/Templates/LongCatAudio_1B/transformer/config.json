@@ -1,0 +1,20 @@
+{
+  "_class_name": "LongCatAudioDiTTransformer",
+  "_diffusers_version": "0.38.0.dev0",
+  "adaln_type": "global",
+  "adaln_use_text_cond": true,
+  "bias": true,
+  "cross_attn": true,
+  "cross_attn_norm": false,
+  "dit_depth": 24,
+  "dit_dim": 1536,
+  "dit_heads": 24,
+  "dit_text_dim": 768,
+  "dropout": 0.0,
+  "eps": 1e-06,
+  "latent_dim": 64,
+  "long_skip": true,
+  "qk_norm": true,
+  "text_conv": true,
+  "use_latent_condition": true
+}
