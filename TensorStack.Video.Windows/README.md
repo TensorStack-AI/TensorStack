@@ -35,7 +35,7 @@ async Task QuickStartAsync()
         });
 
         // Save the output video
-        await outputStream.SaveAync("Output.mp4");
+        await outputStream.SaveAsync("Output.mp4");
     }
 }
 ```

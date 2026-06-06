@@ -39,7 +39,7 @@ static async Task QuickStartAsync()
     {
             Stream = inputStream.GetAsync()
     });
-    await depthMapVideo.SaveAync("Output.mp4");
+    await depthMapVideo.SaveAsync("Output.mp4");
 
     // 4. Add audio from the source video (optional)
     await AudioManager.AddAudioAsync("Output.mp4", "Input.mp4");
@@ -103,7 +103,7 @@ Buffers all frames in memory. Suitable for short-duration videos, AI-generated c
     });
 
     // Write Video
-    await outputVideo.SaveAync("Output.mp4");
+    await outputVideo.SaveAsync("Output.mp4");
 ```
 
 ---
@@ -123,7 +123,7 @@ Processes frames one-by-one for minimal memory usage. Ideal for high-resolution 
     });
 
     // Write Stream
-    await outputStream.SaveAync("Output.mp4");
+    await outputStream.SaveAsync("Output.mp4");
 ```
 
 

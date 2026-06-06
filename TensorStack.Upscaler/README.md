@@ -116,7 +116,7 @@ Buffers all frames in memory. Suitable for short-duration videos, AI-generated c
     });
 
     // Write Video
-    await outputVideo.SaveAync("Output.mp4");
+    await outputVideo.SaveAsync("Output.mp4");
 ```
 
 ---
@@ -137,7 +137,7 @@ Processes frames one-by-one for minimal memory usage. Ideal for high-resolution 
     });
 
     // Write Stream
-    await outputStream.SaveAync("Output.mp4");
+    await outputStream.SaveAsync("Output.mp4");
 ```
 
 ---
@@ -233,7 +233,7 @@ using (var interpolationPipeline = InterpolationPipeline.Create(provider))
     });
 
     // Save Steam  [2048 x 2048 @ 24fps]
-    await videoStream.SaveAync("Output.mp4");
+    await videoStream.SaveAsync("Output.mp4");
 }
 
 ```

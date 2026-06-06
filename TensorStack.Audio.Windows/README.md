@@ -66,7 +66,7 @@ AudioTensor tensor = await AudioManager.LoadTensorAsync("file.wav", "pcm_s16le",
 ```csharp
 AudioManager.SaveAudio("output.wav", tensor);
 
-await AudioManager.SaveAudioAync("output.wav", tensor);
+await AudioManager.SaveAudioAsync("output.wav", tensor);
 ```
 
 ---
