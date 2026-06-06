@@ -72,7 +72,7 @@ namespace TensorStack.Video
         /// <returns>A Task representing the asynchronous operation.</returns>
         public async Task SaveAsync(string filename, string videoCodec = "mp4v", float? frameRateOverride = default, CancellationToken cancellationToken = default)
         {
-            await VideoManager.SaveVideoTensorAync(filename, this, videoCodec, frameRateOverride, cancellationToken);
+            await VideoManager.SaveVideoTensorAsync(filename, this, videoCodec, frameRateOverride, cancellationToken);
         }
 
 

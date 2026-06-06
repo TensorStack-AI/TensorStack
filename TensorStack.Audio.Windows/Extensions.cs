@@ -14,9 +14,9 @@ namespace TensorStack.Audio
         /// <param name="sampleRateOverride">The sample rate override.</param>
         /// <param name="channelsOverride">The channels override.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public static Task SaveAync(this AudioInputStream audioStream, string audioFile, float? sampleRateOverride = default, int? channelsOverride = default, CancellationToken cancellationToken = default)
+        public static Task SaveAsync(this AudioInputStream audioStream, string audioFile, float? sampleRateOverride = default, int? channelsOverride = default, CancellationToken cancellationToken = default)
         {
-            return AudioManager.SaveVideoStreamAync(audioFile, audioStream, sampleRateOverride, channelsOverride, cancellationToken);
+            return AudioManager.SaveVideoStreamAsync(audioFile, audioStream, sampleRateOverride, channelsOverride, cancellationToken);
         }
     }
 }

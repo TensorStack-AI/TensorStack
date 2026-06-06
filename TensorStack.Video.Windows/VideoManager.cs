@@ -110,7 +110,7 @@ namespace TensorStack.Video
         /// <param name="framerate">The framerate.</param>
         /// <param name="videoCodec">The video codec.</param>
         /// <param name="cancellationToken">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        internal static async Task SaveVideoTensorAync(string videoFile, VideoTensor videoTensor, string videoCodec = "mp4v", float? frameRateOverride = default, CancellationToken cancellationToken = default)
+        internal static async Task SaveVideoTensorAsync(string videoFile, VideoTensor videoTensor, string videoCodec = "mp4v", float? frameRateOverride = default, CancellationToken cancellationToken = default)
         {
             var frameRate = frameRateOverride ?? videoTensor.FrameRate;
             var videoFrames = videoTensor

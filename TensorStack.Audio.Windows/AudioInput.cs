@@ -68,7 +68,7 @@ namespace TensorStack.Audio
             if (string.IsNullOrEmpty(_sourceFile))
                 _sourceFile = filename;
 
-            await AudioManager.SaveAudioAync(filename, this, cancellationToken);
+            await AudioManager.SaveAudioAsync(filename, this, cancellationToken);
         }
 
 

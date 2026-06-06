@@ -100,7 +100,7 @@ namespace TensorStack.Audio.Windows
         /// <param name="filename">The filename.</param>
         /// <param name="audioTensor">The audio tensor.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public static async Task SaveAudioAync(string filename, AudioTensor audioTensor, CancellationToken cancellationToken = default)
+        public static async Task SaveAudioAsync(string filename, AudioTensor audioTensor, CancellationToken cancellationToken = default)
         {
             await WriteAudioAsync(filename, audioTensor, cancellationToken);
         }
@@ -512,7 +512,7 @@ namespace TensorStack.Audio.Windows
         }
 
 
-        internal static async Task SaveVideoStreamAync(string audioFile, AudioInputStream audioStream, float? sampleRateOverride, int? channelsOverride, CancellationToken cancellationToken)
+        internal static async Task SaveVideoStreamAsync(string audioFile, AudioInputStream audioStream, float? sampleRateOverride, int? channelsOverride, CancellationToken cancellationToken)
         {
             string inputArgs = "";
             if (audioStream.AudioCodec == "pcm_s16le")
