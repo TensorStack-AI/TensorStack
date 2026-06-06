@@ -161,7 +161,7 @@ namespace TensorStack.StableDiffusion.Pipelines.StableDiffusion
             if (options.IsLowMemoryEnabled || options.IsLowMemoryTextEncoderEnabled)
                 await TextEncoder.UnloadAsync();
 
-            return SetPromptCache(options, new PromptResult(promptEmbeddings.HiddenStates, promptEmbeddings.TextEmbeds, negativePromptEmbeddings.HiddenStates, negativePromptEmbeddings.TextEmbeds));
+            return SetPromptCache(options, new PromptResult(promptEmbeddings.HiddenStates, promptEmbeddings.TextEmbeds, negativePromptEmbeddings?.HiddenStates, negativePromptEmbeddings?.TextEmbeds));
         }
 
 

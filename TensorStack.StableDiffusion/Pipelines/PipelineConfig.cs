@@ -44,5 +44,25 @@ namespace TensorStack.StableDiffusion.Pipelines
 
             return Path.Combine(modelFolder, model, filename);
         }
+
+
+        /// <summary>
+        /// Gets the ControlNet variant path.
+        /// </summary>
+        /// <param name="modelFolder">The model folder.</param>
+        /// <param name="model">The model.</param>
+        /// <param name="variant">The variant.</param>
+        protected static string GetControlNetVariantPath(string modelFolder, string model, string variant = default)
+        {
+            var controlNetPath = GetVariantPath(modelFolder, model, "controlnet.onnx", variant);
+            if (File.Exists(controlNetPath))
+                return controlNetPath;
+
+            controlNetPath = GetVariantPath(modelFolder, "controlnet", "model.onnx", variant);
+            if (File.Exists(controlNetPath))
+                return controlNetPath;
+
+            return null;
+        }
     }
 }

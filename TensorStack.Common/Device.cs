@@ -16,7 +16,6 @@ namespace TensorStack.Common
         public int HardwareID { get; init; }
         public int HardwareLUID { get; init; }
         public int HardwareVendorId { get; init; }
-        public string HardwareVendor { get; init; }
         public int Memory
         {
             get { return _memory; }

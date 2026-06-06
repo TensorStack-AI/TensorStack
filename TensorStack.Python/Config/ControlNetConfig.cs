@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace TensorStack.Python.Config
+﻿namespace TensorStack.Python.Config
 {
     public class ControlNetConfig
     {

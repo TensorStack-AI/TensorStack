@@ -1,11 +1,8 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using TensorStack.Common.Tensor;
-using TensorStack.Common.Video;
 
 namespace TensorStack.Video
 {

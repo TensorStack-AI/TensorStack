@@ -165,9 +165,7 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
             config.Transformer.Path = GetVariantPath(modelFolder, "transformer", "model.onnx", variant);
             config.AutoEncoder.DecoderModelPath = GetVariantPath(modelFolder, "vae_decoder", "model.onnx", variant);
             config.AutoEncoder.EncoderModelPath = GetVariantPath(modelFolder, "vae_encoder", "model.onnx", variant);
-            var controlNetPath = GetVariantPath(modelFolder, "transformer", "controlnet.onnx", variant);
-            if (File.Exists(controlNetPath))
-                config.Transformer.ControlNetPath = controlNetPath;
+            config.Transformer.ControlNetPath = GetControlNetVariantPath(modelFolder, "transformer", variant);
             return config;
         }
 

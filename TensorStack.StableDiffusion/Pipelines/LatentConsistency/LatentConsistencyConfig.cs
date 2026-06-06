@@ -102,9 +102,7 @@ namespace TensorStack.StableDiffusion.Pipelines.LatentConsistency
             config.Unet.Path = GetVariantPath(modelFolder, "unet", "model.onnx", variant);
             config.AutoEncoder.DecoderModelPath = GetVariantPath(modelFolder, "vae_decoder", "model.onnx", variant);
             config.AutoEncoder.EncoderModelPath = GetVariantPath(modelFolder, "vae_encoder", "model.onnx", variant);
-            var controlNetPath = GetVariantPath(modelFolder, "unet", "controlnet.onnx", variant);
-            if (File.Exists(controlNetPath))
-                config.Unet.ControlNetPath = controlNetPath;
+            config.Unet.ControlNetPath = GetControlNetVariantPath(modelFolder, "unet", variant);
             return config;
         }
     }

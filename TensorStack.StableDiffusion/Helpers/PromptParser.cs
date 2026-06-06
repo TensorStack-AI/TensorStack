@@ -56,6 +56,9 @@ namespace TensorStack.StableDiffusion.Helpers
         /// <returns>A Task&lt;TextEncoderResult&gt; representing the asynchronous operation.</returns>
         public static async Task<TextEncoderResult> EncodePromptAsync(CLIPTextModel textEncoder, TokenizerResult inputTokens, int minimumLength, int hiddenStateIndex = 0, CancellationToken cancellationToken = default)
         {
+            if (inputTokens.Length == 0)
+                return default;
+
             if (minimumLength <= textEncoder.SequenceLength)
             {
                 var textEncoderResult = await textEncoder.RunAsync(inputTokens, cancellationToken);

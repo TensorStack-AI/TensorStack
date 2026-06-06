@@ -1,8 +1,6 @@
 ﻿// Copyright (c) TensorStack. All rights reserved.
 // Licensed under the Apache 2.0 License.
 
-using System.ComponentModel;
-
 namespace TensorStack.Common
 {
     /// <summary>

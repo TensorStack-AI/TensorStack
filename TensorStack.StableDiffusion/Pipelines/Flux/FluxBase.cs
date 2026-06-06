@@ -179,9 +179,10 @@ namespace TensorStack.StableDiffusion.Pipelines.Flux
             promptPooledEmbeds = promptPooledEmbeds.Reshape([promptPooledEmbeds.Dimensions[^2], promptPooledEmbeds.Dimensions[^1]]).FirstBatch();
 
             // Negative promt
-            var negativePromptEmbeds = negativePrompt2Embeddings.HiddenStates;
-            var negativePromptPooledEmbeds = negativePromptEmbeddings.TextEmbeds;
-            negativePromptPooledEmbeds = negativePromptPooledEmbeds.Reshape([negativePromptPooledEmbeds.Dimensions[^2], negativePromptPooledEmbeds.Dimensions[^1]]).FirstBatch();
+            var negativePromptEmbeds = negativePrompt2Embeddings?.HiddenStates;
+            var negativePromptPooledEmbeds = negativePromptEmbeddings?.TextEmbeds;
+            if (negativePromptPooledEmbeds != null)
+                negativePromptPooledEmbeds = negativePromptPooledEmbeds.Reshape([negativePromptPooledEmbeds.Dimensions[^2], negativePromptPooledEmbeds.Dimensions[^1]]).FirstBatch();
 
             return SetPromptCache(options, new PromptResult(promptEmbeds, promptPooledEmbeds, negativePromptEmbeds, negativePromptPooledEmbeds));
         }
