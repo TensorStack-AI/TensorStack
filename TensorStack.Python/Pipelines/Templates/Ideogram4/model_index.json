@@ -1,7 +1,6 @@
 {
   "_class_name": "Ideogram4Pipeline",
   "_diffusers_version": "0.39.0.dev0",
-  "_name_or_path": "ideogram-ai/debug-ideogram-v4",
   "scheduler": [
     "diffusers",
     "FlowMatchEulerDiscreteScheduler"

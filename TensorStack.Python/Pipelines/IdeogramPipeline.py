@@ -445,7 +445,7 @@ def generate(
         "height": options.height,
         "width": options.width,
         "generator": _generator.manual_seed(options.seed),
-        "guidance_scale": options.guidance_scale,
+        #"guidance_scale": options.guidance_scale,
         "num_inference_steps": options.steps,
         "output_type": "np",
         "callback_on_step_end": _progress_callback,
