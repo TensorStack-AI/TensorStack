@@ -1,0 +1,19 @@
+{
+  "_class_name": "Ideogram4Transformer2DModel",
+  "_diffusers_version": "0.39.0.dev0",
+  "_name_or_path": "/home/jinli/.cache/huggingface/hub/models--ideogram-ai--debug-ideogram-v4/snapshots/41af6183c9fd9b6254864b0720319ef984535bfc/unconditional_transformer",
+  "adaln_dim": 512,
+  "attention_head_dim": 256,
+  "in_channels": 128,
+  "intermediate_size": 12288,
+  "llm_features_dim": 53248,
+  "mrope_section": [
+    24,
+    20,
+    20
+  ],
+  "norm_eps": 1e-05,
+  "num_attention_heads": 18,
+  "num_layers": 34,
+  "rope_theta": 5000000
+}

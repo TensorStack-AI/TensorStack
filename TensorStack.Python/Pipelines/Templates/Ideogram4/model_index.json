@@ -1,0 +1,29 @@
+{
+  "_class_name": "Ideogram4Pipeline",
+  "_diffusers_version": "0.39.0.dev0",
+  "_name_or_path": "ideogram-ai/debug-ideogram-v4",
+  "scheduler": [
+    "diffusers",
+    "FlowMatchEulerDiscreteScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "Qwen3VLModel"
+  ],
+  "tokenizer": [
+    "transformers",
+    "Qwen2Tokenizer"
+  ],
+  "transformer": [
+    "diffusers",
+    "Ideogram4Transformer2DModel"
+  ],
+  "unconditional_transformer": [
+    "diffusers",
+    "Ideogram4Transformer2DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLFlux2"
+  ]
+}
