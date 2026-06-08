@@ -1,0 +1,16 @@
+{
+  "add_prefix_space": false,
+  "backend": "tokenizers",
+  "bos_token": null,
+  "clean_up_tokenization_spaces": false,
+  "eos_token": "<|im_end|>",
+  "errors": "replace",
+  "is_local": true,
+  "local_files_only": false,
+  "model_max_length": 131072,
+  "pad_token": "<|endoftext|>",
+  "processor_class": "Qwen2_5_VLProcessor",
+  "split_special_tokens": false,
+  "tokenizer_class": "Qwen2Tokenizer",
+  "unk_token": null
+}

@@ -1,0 +1,14 @@
+{
+  "_class_name": "AnimaTextConditioner",
+  "_diffusers_version": "0.39.0.dev0",
+  "min_sequence_length": 512,
+  "mlp_ratio": 4.0,
+  "model_dim": 1024,
+  "num_attention_heads": 16,
+  "num_layers": 6,
+  "source_dim": 1024,
+  "target_dim": 1024,
+  "target_vocab_size": 32128,
+  "use_layer_norm": false,
+  "use_self_attention": true
+}

@@ -1,0 +1,32 @@
+{
+  "_class_name": "AnimaPipeline",
+  "_diffusers_version": "0.38.0",
+  "scheduler": [
+    "diffusers",
+    "FlowMatchEulerDiscreteScheduler"
+  ],
+  "tokenizer": [
+    "transformers",
+    "Qwen2Tokenizer"
+  ],
+  "text_encoder": [
+    "transformers",
+    "Qwen3Model"
+  ],
+  "t5_tokenizer": [
+    "transformers",
+    "T5Tokenizer"
+  ],
+  "text_conditioner": [
+    "diffusers",
+    "AnimaTextConditioner"
+  ],
+  "transformer": [
+    "diffusers",
+    "CosmosTransformer3DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLQwenImage"
+  ]
+}
