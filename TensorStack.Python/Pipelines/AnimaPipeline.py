@@ -17,7 +17,7 @@ from diffusers import (
     CosmosTransformer3DModel,
     AnimaTextConditioner
 )
-from tensorstack.pipelines.AnimaPipeline import AnimaPipeline
+from tensorstack.pipelines.custom_pipeline_anima import AnimaPipeline
 
 # Globals
 _config = None

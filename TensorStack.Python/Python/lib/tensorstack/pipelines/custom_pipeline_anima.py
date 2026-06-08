@@ -14,6 +14,7 @@ from diffusers.video_processor import VideoProcessor
 from diffusers.pipelines.pipeline_utils import DiffusionPipeline
 from diffusers.pipelines.cosmos.pipeline_output import CosmosImagePipelineOutput
 from diffusers import AnimaTextConditioner
+from diffusers.loaders import AnimaLoraLoaderMixin
 
 logger = logging.get_logger(__name__)
 
@@ -35,7 +36,7 @@ def retrieve_timesteps(scheduler, num_inference_steps = None, device = None, tim
     return timesteps, num_inference_steps
 
 
-class AnimaPipeline(DiffusionPipeline) :
+class AnimaPipeline(DiffusionPipeline, AnimaLoraLoaderMixin) :
     """Pipeline for text-to-image generation using the Anima model.
 
     Anima uses a Cosmos Predict2 backbone with a Qwen3 text encoder and an LLM adapter
