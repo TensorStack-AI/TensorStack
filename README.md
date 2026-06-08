@@ -1,5 +1,9 @@
 # TensorStack
 
+[![Common Badge](https://img.shields.io/nuget/v/TensorStack.Common?color=4bc51e&label=version)](https://www.nuget.org/packages/TensorStack.Common)
+![Nuget](https://img.shields.io/nuget/dt/TensorStack.Common?label=Nuget%20Downloads)
+[![GitHub last commit](https://img.shields.io/github/last-commit/TensorStack-AI/AmuseAI)](https://github.com/TensorStack-AI/AmuseAI/commits/master/)
+
 A modular .NET SDK for building AI-powered applications.
 
 TensorStack provides reusable components for local AI inference, text generation, image generation, media processing, hardware acceleration, and application development through a unified developer experience.
