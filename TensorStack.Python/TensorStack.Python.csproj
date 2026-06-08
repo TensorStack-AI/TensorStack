@@ -59,6 +59,9 @@
     <None Include="Python\lib\tensorstack\export.py" Pack="false" />
     <None Include="Python\lib\tensorstack\enums.py" Pack="false" />
 
+    <Content Include="Python\lib\tensorstack\pipelines\custom_pipeline_anima.py" Pack="true" PackagePath="contentFiles\any\any\Python\lib\tensorstack\pipelines\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
+    <None Include="Python\lib\tensorstack\pipelines\custom_pipeline_anima.py" Pack="false" />
+
     <Content Include="Pipelines\Templates\**\*" Pack="true" PackagePath="contentFiles\any\any\Pipelines\Templates\" CopyToOutputDirectory="Always" PackageCopyToOutput="true" />
     <None Include="Pipelines\Templates\**\*" Pack="false" />
   </ItemGroup>
@@ -67,6 +70,12 @@
   <ItemGroup>
     <Content Include="Pipelines\AceStepPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
     <None Include="Pipelines\AceStepPipeline.py" Pack="false" />
+  </ItemGroup>
+
+  <!--AnimaPipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\AnimaPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\AnimaPipeline.py" Pack="false" />
   </ItemGroup>
 
   <!--ChromaPipeline-->

@@ -17,9 +17,9 @@ namespace TensorStack.Python.Config
         [
             "typing==3.7.4.3",
             "wheel==0.46.3",
-            "transformers==4.57.6",
+            "transformers==5.5.4",
             "accelerate==1.13.0",
-            "diffusers@https://github.com/huggingface/diffusers/archive/d0c9cbad28d7d3bba28db94622e13500c4179075.zip",
+            "diffusers@https://github.com/huggingface/diffusers/archive/f3d42be118f9af7ed9697b686fba09a8bdcd71d1.zip",
             "protobuf==7.34.1",
             "sentencepiece==0.2.1",
             "ftfy==6.3.1",
@@ -30,7 +30,8 @@ namespace TensorStack.Python.Config
             "gguf==0.18.0",
             "av==17.0.1",
             "optimum-quanto==0.2.7",
-            "bitsandbytes==0.49.2"
+            "bitsandbytes==0.49.2",
+            "soundfile==0.13.1"
         ];
 
 
