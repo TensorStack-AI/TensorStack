@@ -77,7 +77,7 @@ namespace TensorStack.Python.Common
         public float Duration { get; set; } = 5f;
 
         [JsonPropertyName("language")]
-        public string VocalLanguage { get; set; }
+        public string Language { get; set; }
 
         [JsonPropertyName("instruction")]
         public string Instruction { get; set; }
