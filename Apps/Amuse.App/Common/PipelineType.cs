@@ -38,6 +38,8 @@ namespace Amuse.App.Common
         [Display(Name = "Kandinsky5 Pipeline", ShortName = "Kandinsky5")]
         Kandinsky5Pipeline = 60,
 
+        [Display(Name = "Ideogram4 Pipeline", ShortName = "Ideogram4")]
+        IdeogramPipeline = 61,
 
         [Display(Name = "Anima Pipeline", ShortName = "Anima")]
         AnimaPipeline = 62,
