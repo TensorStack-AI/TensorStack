@@ -260,12 +260,12 @@ def create_scheduler(
 #------------------------------------------------
 def get_device_map(config: DataObjects.PipelineConfig, execution_device: str):
     if config.memory_mode in(MemoryMode.Balanced, MemoryMode.OffloadGPU):
-        return "cuda"
+        return config.device
     elif config.memory_mode == MemoryMode.OffloadCPU:
         return None
 
     if config.is_device_quantization_enabled:
-        return "cuda"
+        return config.device
 
     return None
 
@@ -277,7 +277,7 @@ def get_pipeline_device_map(config: DataObjects.PipelineConfig, execution_device
     if config.memory_mode == MemoryMode.Balanced:
         return "balanced"
     elif config.memory_mode == MemoryMode.OffloadGPU:
-        return "cuda"
+        return config.device
     elif config.memory_mode == MemoryMode.OffloadCPU:
         return "cpu"
     return None
