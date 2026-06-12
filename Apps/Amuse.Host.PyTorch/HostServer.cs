@@ -1,0 +1,156 @@
+﻿using Amuse.Common;
+using Amuse.Common.Config;
+using Amuse.Common.Message;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+using TensorStack.Python;
+
+namespace Amuse.Host.PyTorch
+{
+    public sealed class HostServer : PipelineServer
+    {
+        private readonly IProgress<TensorStack.Python.Common.PipelineProgress> _progressCallback;
+        private PythonPipeline _pipeline;
+
+        public HostServer(ServerConfig config, ILogger logger)
+            : base(config, logger)
+        {
+            _progressCallback = new Progress<TensorStack.Python.Common.PipelineProgress>(async (p) => await UpdateProgress(p));
+        }
+
+
+        /// <summary>
+        /// Called when the Channel is opened.
+        /// </summary>
+        /// <returns>Task.</returns>
+        protected override Task ChannelOpenedAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Called when the Channel is closed.
+        /// </summary>
+        protected override Task ChannelClosedAsync()
+        {
+            _pipeline?.Dispose();
+            return Task.CompletedTask;
+        }
+
+        protected override async Task CreatePipelineAsync(PipelineRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var timestamp = Stopwatch.GetTimestamp();
+                var environmentRequest = request.CreateOptions;
+                var pythonOptions = request.CreateOptions.ToPythonOptions();
+                var environmentMode = environmentRequest.Mode.Cast<Amuse.Common.EnvironmentMode, TensorStack.Python.Common.EnvironmentMode>();
+                var pythonEnvironment = new PythonManager(pythonOptions, Config.DirectoryBase, Logger);
+                if (environmentRequest.Mode == Amuse.Common.EnvironmentMode.Load || (environmentRequest.Mode == Amuse.Common.EnvironmentMode.Create && pythonEnvironment.Exists()))
+                {
+                    Logger.LogInformation("[PipelineServer] [CreatePipeline] Loading existing environment...");
+                    await pythonEnvironment.LoadAsync(_progressCallback);
+                }
+                else
+                {
+                    Logger.LogInformation($"[PipelineServer] [CreatePipeline] Creating environment, Mode: {environmentRequest.Mode}...");
+                    await pythonEnvironment.CreateAsync(environmentMode, _progressCallback);
+                }
+
+                Logger.LogInformation($"[PipelineServer] [CreatePipeline] Environment created, Elapsed: {Stopwatch.GetElapsedTime(timestamp)}");
+                await SendResponse(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[PipelineServer] [CreatePipeline] An exception occurred creating environment.");
+                await SendException(ex, cancellationToken);
+            }
+        }
+
+        protected override async Task LoadPipelineAsync(PipelineRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var pythonOptions = request.LoadOptions.ToPythonOptions();
+                _pipeline = new PythonPipeline(pythonOptions, _progressCallback, Logger);
+                await _pipeline.LoadAsync();
+                await SendResponse(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[PipelineServer] [LoadPipeline] An exception occurred loading pipeline.");
+                await SendException(ex, cancellationToken);
+            }
+        }
+
+
+        protected override async Task ReloadPipelineAsync(PipelineRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var pythonOptions = request.ReloadOptions.ToPythonOptions();
+                await _pipeline.ReloadAsync(pythonOptions);
+                await SendResponse(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[PipelineServer] [ReloadPipeline] An exception occurred reloading pipeline.");
+                await SendException(ex, cancellationToken);
+            }
+        }
+
+
+        protected override async Task UnloadPipelineAsync(PipelineRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _pipeline.UnloadAsync();
+                await SendResponse(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[PipelineServer] [UnloadPipeline] An exception occurred unloading pipeline.");
+                await SendException(ex, cancellationToken);
+            }
+        }
+
+
+        protected override async Task RunPipelineAsync(PipelineRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                request.UnpackTensors();
+                PipelineCancellation = new CancellationTokenSource();
+                var pythonOptions = request.RunOptions.ToPythonOptions();
+                var response = await _pipeline.GenerateAsync(pythonOptions, PipelineCancellation.Token);
+                await SendMessage(new PipelineResponse(response), cancellationToken);
+            }
+            catch (OperationCanceledException ex)
+            {
+                Logger.LogError("[PipelineServer] [RunPipeline] {Message}", ex.Message);
+                await SendException(ex, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "[PipelineServer] [RunPipeline] An exception occurred running pipeline.");
+                await SendException(ex, cancellationToken);
+            }
+            finally
+            {
+                PipelineCancellation.Dispose();
+                PipelineCancellation = null;
+            }
+        }
+
+
+        private async Task UpdateProgress(TensorStack.Python.Common.PipelineProgress progress)
+        {
+            await QueueProgress(progress.ToProgress());
+        }
+
+    }
+}

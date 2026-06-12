@@ -1,0 +1,127 @@
+﻿<Views:ViewBaseModel x:Class="Amuse.App.Views.VideoInterpolateView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+    xmlns:local="clr-namespace:Amuse.App.Views"
+    xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls;assembly=TensorStack.WPF"
+    xmlns:Views="clr-namespace:Amuse.App.Views"
+    xmlns:Controls="clr-namespace:Amuse.App.Controls">
+    <Grid DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:VideoInterpolateView}}}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition MinWidth="380"/>
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="4*" />
+            </Grid.ColumnDefinitions>
+
+            <!--***Left Panel***-->
+            <Grid Grid.Column="0">
+                <Border  Margin="4">
+                    <DockPanel x:Name="LeftPanelContainer" Margin="4" IsEnabled="{Binding IsViewBusy, Converter={StaticResource InverseBoolConverter}}">
+
+                        <!--ModelControl-->
+                        <Grid DockPanel.Dock="Top" IsEnabled="{Binding InterpolationService.IsLoading, Converter={StaticResource InverseBoolConverter}}">
+                            <Grid IsEnabled="{Binding InterpolationService.IsExecuting, Mode=OneWay, Converter={StaticResource InverseBoolConverter}}">
+                                <Grid IsEnabled="{Binding IsAutomating, Mode=OneWay, Converter={StaticResource InverseBoolConverter}}">
+                                    <Controls:ModelControl
+                                            x:Name="ModelControl"
+                                            Settings="{Binding Settings, Mode=OneWay}" 
+                                            IsPipelineLoaded="{Binding IsPipelineLoaded, Mode=OneWay}"
+                                            DownloadService="{Binding DownloadService, Mode=OneTime}"
+                                            NavigationService="{Binding NavigationService, Mode=OneTime}"
+                                            SelectionChanged="SelectedInterpolationChanged"/>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+
+                        <!--Execute/Cancel-->
+                        <UniformGrid DockPanel.Dock="Bottom" Columns="2" Height="30">
+                            <Button Content="Cancel" Command="{Binding CancelCommand}" />
+                            <Grid IsEnabled="{Binding IsSelectionValid, Mode=OneWay, ElementName=ModelControl}">
+                                <Button Content="Generate" Command="{Binding ExecuteCommand}" Visibility="{Binding SelectedOption, ElementName=InputControl, Converter={StaticResource InverseEnumToVisibilityConverter}, ConverterParameter=Automation}"/>
+                                <Button Content="Automate" Command="{Binding ExecuteAutomationCommand}" Visibility="{Binding SelectedOption, ElementName=InputControl, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Automation}"/>
+                            </Grid>
+                        </UniformGrid>
+
+                        <DockPanel>
+
+                            <!--Input Video-->
+                            <Grid DockPanel.Dock="Top" Margin="0,10,0,5"
+                                VerticalAlignment="Top"
+                                Width="{Binding ActualWidth,ElementName=LeftPanelContainer}"
+                                Height="{Binding ActualWidth,ElementName=LeftPanelContainer}"
+                                MaxHeight="{Binding ActualWidth,ElementName=LeftPanelContainer}"
+                                IsEnabled="{Binding SelectedOption, Mode=OneWay, ElementName=InputControl, Converter={StaticResource InverseEnumToBooleanConverter}, ConverterParameter=Automation}">
+                                <CommonControls:VideoStreamElement
+                                    IsLoadEnabled="True"
+                                    IsLoadOverlayEnabled="False" 
+                                    IsSaveEnabled="False"
+                                    Source="{Binding SourceVideo, Mode=TwoWay}"
+                                    Volume="{Binding Settings.VolumeInput, Mode=TwoWay}"
+                                    IsVolumeMute="{Binding Settings.IsVolumeInputMute, Mode=TwoWay}"
+                                    IsInputEnabled="{Binding InterpolationService.IsLoaded}"
+                                    OnMediaImport="OnMediaImport"/>
+                            </Grid>
+
+                            <!--Options-->
+                            <Controls:InterpolateInputControl 
+                                x:Name="InputControl"
+                                ViewType="VideoInterpolate"
+                                Pipeline="{Binding CurrentPipeline, Mode=OneWay}" 
+                                IsExecuting="{Binding InterpolationService.IsExecuting, Mode=OneWay}"
+                                IsAutomating="{Binding IsAutomating, Mode=OneWay}"
+                                Options="{Binding Options, Mode=OneWayToSource}"
+                                AutomationOptions="{Binding AutomationOptions, Mode=OneWayToSource}"
+                                AutomationProgress="{Binding AutomationProgress, Mode=OneWay}"
+                                IsEnabled="{Binding InterpolationService.IsLoaded}"/>
+                        </DockPanel>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+
+            <!--GridSplitter-->
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Width="5" Opacity=".4" Margin="0,20" />
+
+
+            <!--***Right Panel***-->
+            <Grid Grid.Column="2" Grid.Row="0" >
+
+                <!--Content-->
+                <DockPanel>
+
+                    <!--Statistics-->
+                    <Controls:StatisticsControl 
+                        DockPanel.Dock="Bottom"
+                        Margin="14,0,14,8"
+                        Statistics="{Binding Statistics}"
+                        Progress="{Binding Progress}" />
+
+                    <Border Margin="4" IsEnabled="{Binding IsViewBusy, Converter={StaticResource InverseBoolConverter}}">
+
+                        <!--Output-->
+                        <Grid Margin="10,10,10,2" >
+                            <CommonControls:VideoStreamElement 
+                                x:Name="ResultControl"
+                                SplitterVisibility="Auto"
+                                SplitterPosition="Source"
+                                SplitterDirection="LeftToRight"
+                                IsLoadEnabled="False" 
+                                IsLoadOverlayEnabled="False"
+                                IsFrameViewerEnabled="True"
+                                Source="{Binding ResultVideo, Mode=TwoWay}" 
+                                OverlaySource="{Binding CompareVideo, Mode=TwoWay}" 
+                                Volume="{Binding Settings.VolumeOutput, Mode=TwoWay}"
+                                IsVolumeMute="{Binding Settings.IsVolumeOutputMute, Mode=TwoWay}"/>
+                        </Grid>
+                    </Border>
+                </DockPanel>
+
+            </Grid>
+        </Grid>
+    </Grid>
+</Views:ViewBaseModel>

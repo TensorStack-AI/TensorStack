@@ -1,0 +1,133 @@
+﻿<CommonControls:BaseControl x:Class="Amuse.App.Controls.CheckpointControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Amuse.App.Controls"
+             xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls;assembly=TensorStack.WPF" >
+    <Grid DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:CheckpointControl}}}">
+        <DockPanel Margin="4">
+            <DockPanel DockPanel.Dock="Top">
+                <UniformGrid Rows="1" DockPanel.Dock="Left" Width="250">
+                    <StackPanel>
+                        <TextBlock Text="Type" Style="{StaticResource FieldTextBlockStyle}"/>
+                        <ComboBox ItemsSource="{Binding SupportedTypes}" SelectedItem="{Binding Checkpoint.Type}" Height="25" Style="{StaticResource EnumComboBox}"/>
+                    </StackPanel>
+                </UniformGrid>
+                <Grid>
+
+                    <!--OnlineFolder-->
+                    <Grid>
+                        <UniformGrid Columns="2">
+                            <StackPanel>
+                                <TextBlock Text="Folder" Style="{StaticResource FieldTextBlockStyle}"/>
+                                <TextBox Text="{Binding Checkpoint.Folder, UpdateSourceTrigger=PropertyChanged}" Height="25"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="SubFolder (optional)" Style="{StaticResource FieldTextBlockStyle}"/>
+                                <ComboBox ItemsSource="{Binding ComponentNames, RelativeSource={RelativeSource AncestorType={x:Type local:CheckpointControl}}}" SelectedItem="{Binding Checkpoint.Path}" Height="25"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <Grid.Style>
+                            <Style TargetType="{x:Type Grid}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Checkpoint.Type}" Value="OnlineFile" />
+                                            <Condition Binding="{Binding IsDiffusionCheckpoint, RelativeSource={RelativeSource AncestorType={x:Type local:CheckpointControl}}}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Checkpoint.Type}" Value="OnlineFolder" />
+                                            <Condition Binding="{Binding IsDiffusionCheckpoint, RelativeSource={RelativeSource AncestorType={x:Type local:CheckpointControl}}}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                    </Grid>
+                    <Grid>
+                        <UniformGrid Columns="2">
+                            <StackPanel>
+                                <TextBlock Text="Folder" Style="{StaticResource FieldTextBlockStyle}"/>
+                                <TextBox Text="{Binding Checkpoint.Folder, UpdateSourceTrigger=PropertyChanged}" Height="25"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="SubFolder (optional)" Style="{StaticResource FieldTextBlockStyle}"/>
+                                <TextBox Text="{Binding Checkpoint.Path, UpdateSourceTrigger=PropertyChanged}" Height="25"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <Grid.Style>
+                            <Style TargetType="{x:Type Grid}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Checkpoint.Type}" Value="OnlineFile" />
+                                            <Condition Binding="{Binding IsDiffusionCheckpoint, RelativeSource={RelativeSource AncestorType={x:Type local:CheckpointControl}}}" Value="False"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Checkpoint.Type}" Value="OnlineFolder" />
+                                            <Condition Binding="{Binding IsDiffusionCheckpoint, RelativeSource={RelativeSource AncestorType={x:Type local:CheckpointControl}}}" Value="False"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                    </Grid>
+
+                    <!--Component-->
+                    <Grid Visibility="{Binding Checkpoint.Type, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Component}">
+                        <StackPanel>
+                            <TextBlock Text="Component" Style="{StaticResource FieldTextBlockStyle}"/>
+                            <ComboBox ItemsSource="{Binding Settings.Components, RelativeSource={RelativeSource AncestorType={x:Type local:CheckpointControl}}}" SelectedValue="{Binding Checkpoint.Path}" SelectedValuePath="Key" DisplayMemberPath="Name" Height="25"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!--File-->
+                    <Grid Visibility="{Binding Checkpoint.Type, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=LocalFile}">
+                        <StackPanel Visibility="{Binding Backend, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=PyTorch}">
+                            <TextBlock Text="Model File" Style="{StaticResource FieldTextBlockStyle}"/>
+                            <CommonControls:FilePickerTextBox FileName="{Binding Checkpoint.Path, Mode=TwoWay}" IsFolderPicker="False" IsRequired="True" Filter="Model Files|*.safetensors;*.gguf;" DefaultExt="safetensors" />
+                        </StackPanel>
+                        <StackPanel Visibility="{Binding Backend, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=OnnxRuntime}">
+                            <TextBlock Text="Model File" Style="{StaticResource FieldTextBlockStyle}"/>
+                            <CommonControls:FilePickerTextBox FileName="{Binding Checkpoint.Path, Mode=TwoWay}" IsFolderPicker="False" IsRequired="True" Filter="Model Files|*.onnx;" DefaultExt="safetensors" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!--Folder-->
+                    <Grid Visibility="{Binding Checkpoint.Type, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=LocalFolder}">
+                        <StackPanel>
+                            <TextBlock Text="Model Folder" Style="{StaticResource FieldTextBlockStyle}"/>
+                            <CommonControls:FilePickerTextBox FileName="{Binding Checkpoint.Path, Mode=TwoWay}" IsFolderPicker="True" IsRequired="True"/>
+                        </StackPanel>
+                    </Grid>
+
+                </Grid>
+
+            </DockPanel>
+
+            <DockPanel Visibility="{Binding Checkpoint.Type, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=OnlineFolder|OnlineFile}">
+                <TextBlock DockPanel.Dock="Top" Text="Download Flies" Style="{StaticResource FieldTextBlockStyle}"/>
+                <TextBox Text="{Binding Checkpoint.DownloadFiles, Converter={StaticResource StringArrayConverter}}" AcceptsReturn="True" VerticalScrollBarVisibility="Visible" />
+            </DockPanel>
+        </DockPanel>
+    </Grid>
+</CommonControls:BaseControl>

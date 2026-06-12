@@ -1,0 +1,105 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Amuse</AssemblyName>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Images\Icon.ico</ApplicationIcon>
+    <Configurations>Debug;Release;Release_Installer</Configurations>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+  </PropertyGroup>
+
+  <!--Projects-->
+  <ItemGroup>
+    <ProjectReference Include="..\Amuse.Common\Amuse.Common.csproj" />
+  </ItemGroup>
+
+  <!--Common-->
+  <ItemGroup>
+    <PackageReference Include="System.Linq.Async" Version="7.0.1" />
+    <PackageReference Include="System.Management" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+  <!--Debug-->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <ProjectReference Include="..\..\TensorStack.Common\TensorStack.Common.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Image.BitmapImage\TensorStack.Image.BitmapImage.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Upscaler\TensorStack.Upscaler.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Extractors\TensorStack.Extractors.csproj" />
+    <ProjectReference Include="..\..\TensorStack.TextGeneration\TensorStack.TextGeneration.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Audio.Windows\TensorStack.Audio.Windows.csproj" />
+    <ProjectReference Include="..\..\TensorStack.WPF\TensorStack.WPF.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Providers.DML\TensorStack.Providers.DML.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Audio\TensorStack.Audio.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Image\TensorStack.Image.csproj" />
+    <ProjectReference Include="..\..\TensorStack.Video.Windows\TensorStack.Video.Windows.csproj" />
+  </ItemGroup>
+
+  <!--Release-->
+  <ItemGroup Condition="'$(Configuration)' == 'Release' OR '$(Configuration)' == 'Release_Installer'">
+    <PackageReference Include="TensorStack.WPF" Version="$(PackageVersion)" />
+    <PackageReference Include="TensorStack.Upscaler" Version="$(PackageVersion)" />
+    <PackageReference Include="TensorStack.Extractors" Version="$(PackageVersion)" />
+    <PackageReference Include="TensorStack.TextGeneration" Version="$(PackageVersion)" />
+    <PackageReference Include="TensorStack.Providers.DML" Version="$(PackageVersion)" />
+  </ItemGroup>
+
+  <!--Binaries-->
+  <ItemGroup>
+    <Reference Include="ColorPicker">
+      <HintPath>ColorPicker.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="CSnakes.Runtime">
+      <HintPath>CSnakes.Runtime.dll</HintPath>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="OnnxStack.Adapter.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+  <!--Images-->
+  <ItemGroup>
+    <Resource Include="Images\Amuse-512.png" />
+    <Resource Include="Images\Amuse-Logo-512.png" />
+    <Resource Include="Images\Amuse-Logo-Long-256.png" />
+    <Resource Include="Images\Icon.ico" />
+    <Resource Include="Images\Icon.png" />
+    <Resource Include="Images\Splash_Logo.png" />
+  </ItemGroup>  
+
+  <!--Fonts-->
+  <ItemGroup Condition="Exists('Fonts\Brands-Regular-400.otf')">
+    <Resource Include="Fonts\Brands-Regular-400.otf" />
+    <Resource Include="Fonts\Light-300.otf" />
+    <Resource Include="Fonts\Regular-400.otf" />
+    <Resource Include="Fonts\Sharp-Light-300.otf" />
+    <Resource Include="Fonts\Sharp-Regular-400.otf" />
+    <Resource Include="Fonts\Sharp-Solid-900.otf" />
+    <Resource Include="Fonts\Sharp-Thin-100.otf" />
+    <Resource Include="Fonts\Solid-900.otf" />
+    <Resource Include="Fonts\Thin-100.otf" />
+  </ItemGroup>
+
+  <!--Settings-->
+  <ItemGroup>
+    <None Update="Settings.default.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Templates.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

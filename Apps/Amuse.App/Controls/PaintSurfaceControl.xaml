@@ -1,0 +1,377 @@
+﻿<CommonControls:BaseControl x:Class="Amuse.App.Controls.PaintSurfaceControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:colorPicker="clr-namespace:ColorPicker;assembly=ColorPicker"
+             xmlns:base="clr-namespace:Amuse.App"
+             xmlns:local="clr-namespace:Amuse.App.Controls"
+             xmlns:Behaviors="clr-namespace:TensorStack.WPF.Behaviors;assembly=TensorStack.WPF"
+             xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls;assembly=TensorStack.WPF"
+             xmlns:CommonConverters="clr-namespace:TensorStack.WPF.Converters;assembly=TensorStack.WPF"
+             xmlns:Controls="clr-namespace:Amuse.App.Controls"
+             xmlns:Common="clr-namespace:Amuse.App.Common"
+             xmlns:Views="clr-namespace:Amuse.App.Views"
+             Focusable="True"
+             AllowDrop="True">
+    <CommonControls:BaseControl.InputBindings>
+        <KeyBinding Modifiers="Ctrl" Key="O" Command="{Binding LoadCanvasCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaintSurfaceControl}}}" />
+        <KeyBinding Modifiers="Ctrl" Key="C" Command="{Binding CopyCanvasCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaintSurfaceControl}}}" />
+        <KeyBinding Modifiers="Ctrl" Key="V" Command="{Binding PasteCanvasCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaintSurfaceControl}}}" />
+        <KeyBinding Modifiers="Ctrl" Key="S" Command="{Binding SaveCanvasCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaintSurfaceControl}}}" />
+        <KeyBinding Modifiers="Ctrl" Key="Z" Command="{Binding UndoCanvasCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaintSurfaceControl}}}" />
+        <KeyBinding Modifiers="Ctrl" Key="Y" Command="{Binding RedoCanvasCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaintSurfaceControl}}}" />
+    </CommonControls:BaseControl.InputBindings>
+    <Border DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:PaintSurfaceControl}}}" BorderBrush="{StaticResource ControlBrightDefaultBorderBrush}" BorderThickness="1" >
+        <DockPanel>
+
+            <!--Leftbar-->
+            <DockPanel DockPanel.Dock="Left" Width="44" >
+
+                <UniformGrid DockPanel.Dock="Top" Rows="10" Margin="2">
+
+                    <!--Refresh-->
+                    <Grid>
+                        <Button Command="{Binding ExecuteCommand}" Visibility="{Binding IsGenerating, Converter={StaticResource InverseBooleanToVisibilityConverter}}"  ToolTip="Live Generation" >
+                            <CommonControls:FontAwesome Icon="&#xe2ca;" IconStyle="Light" Color="{StaticResource SuccessColour}"/>
+                        </Button>
+                        <Button Command="{Binding CancelCommand}" Visibility="{Binding IsGenerating, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Cancel Generation" >
+                            <CommonControls:FontAwesome Icon="&#xf00d;" IconStyle="Light" Color="{StaticResource WarningColour}"/>
+                        </Button>
+                    </Grid>
+
+                    <!--RoundBrush-->
+                    <Button Command="{Binding SelectToolCommand}" CommandParameter="{x:Static local:PaintDrawingTool.RoundBrush}" Height="40" ToolTip="Round Paint Brush">
+                        <CommonControls:FontAwesome Icon="&#xf1fc;" IconStyle="Light"  >
+                            <CommonControls:FontAwesome.Style>
+                                <Style TargetType="{x:Type CommonControls:FontAwesome}" >
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Color" Value="{StaticResource ButtonForeground}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CanvasDrawingTool}" Value="RoundBrush" >
+                                            <Setter Property="BorderThickness" Value="1" />
+                                            <Setter Property="Color" Value="{StaticResource ControlPrimaryColourBackground}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CommonControls:FontAwesome.Style>
+                        </CommonControls:FontAwesome>
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}" >
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanvasDrawingTool}" Value="RoundBrush" >
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource ControlPrimaryColourBackground}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!--SquareBrush-->
+                    <Button Command="{Binding SelectToolCommand}" CommandParameter="{x:Static local:PaintDrawingTool.SquareBrush}" Height="40" ToolTip="Square Paint Brush">
+                        <CommonControls:FontAwesome Icon="&#xf55d;" IconStyle="Light"  >
+                            <CommonControls:FontAwesome.Style>
+                                <Style TargetType="{x:Type CommonControls:FontAwesome}" >
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Color" Value="{StaticResource ButtonForeground}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CanvasDrawingTool}" Value="SquareBrush" >
+                                            <Setter Property="BorderThickness" Value="1" />
+                                            <Setter Property="Color" Value="{StaticResource ControlPrimaryColourBackground}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CommonControls:FontAwesome.Style>
+                        </CommonControls:FontAwesome>
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}" >
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanvasDrawingTool}" Value="SquareBrush" >
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource ControlPrimaryColourBackground}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!--Highlighter-->
+                    <Button Command="{Binding SelectToolCommand}" CommandParameter="{x:Static local:PaintDrawingTool.Highlight}" ToolTip="Highlighter Pen">
+                        <CommonControls:FontAwesome Icon="&#xf591;" IconStyle="Light"  >
+                            <CommonControls:FontAwesome.Style>
+                                <Style TargetType="{x:Type CommonControls:FontAwesome}" >
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Color" Value="{StaticResource ButtonForeground}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CanvasDrawingTool}" Value="Highlight" >
+                                            <Setter Property="BorderThickness" Value="1" />
+                                            <Setter Property="Color" Value="{StaticResource ControlPrimaryColourBackground}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CommonControls:FontAwesome.Style>
+                        </CommonControls:FontAwesome>
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}" >
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanvasDrawingTool}" Value="Highlight" >
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource ControlPrimaryColourBackground}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!--Eraser-->
+                    <Button Command="{Binding SelectToolCommand}" CommandParameter="{x:Static local:PaintDrawingTool.Eraser}" ToolTip="Eraser">
+                        <CommonControls:FontAwesome Icon="&#xf12d;" IconStyle="Light"  >
+                            <CommonControls:FontAwesome.Style>
+                                <Style TargetType="{x:Type CommonControls:FontAwesome}" >
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Color" Value="{StaticResource ButtonForeground}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CanvasDrawingTool}" Value="Eraser" >
+                                            <Setter Property="BorderThickness" Value="1" />
+                                            <Setter Property="Color" Value="{StaticResource ControlPrimaryColourBackground}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CommonControls:FontAwesome.Style>
+                        </CommonControls:FontAwesome>
+                        <Button.Style>
+                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}" >
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanvasDrawingTool}" Value="Eraser" >
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource ControlPrimaryColourBackground}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!--FitToCurve-->
+                    <ToggleButton IsChecked="{Binding IsFitToCurveEnabled}" ToolTip="Fit to curve">
+                        <CommonControls:FontAwesome Icon="&#xe23f;" IconStyle="Light" Color="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}}" />
+                    </ToggleButton>
+
+                    <!--Pressure-->
+                    <ToggleButton IsChecked="{Binding IsPressureEnabled}" ToolTip="Enable stylus pressure support" >
+                        <CommonControls:FontAwesome Icon="&#xe211;" IconStyle="Light" Color="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type ToggleButton}}}" />
+                    </ToggleButton>
+
+                </UniformGrid>
+
+                <DockPanel DockPanel.Dock="Bottom" Height="40" Margin="2">
+                    <!--Bottom Left Corner-->
+                </DockPanel>
+
+                <!--ToolSize-->
+                <DockPanel  Margin="2" >
+                    <TextBlock DockPanel.Dock="Top" Text="Tool Size" FontSize="8" Margin="5,-4,6,0" Opacity=".6" FontStyle="Italic" HorizontalAlignment="Center"/>
+                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding DrawingToolSize, StringFormat={}{0}}"  FontSize="8" Opacity=".6" FontWeight="Medium" HorizontalAlignment="Center" />
+                    <Slider HorizontalAlignment="Center" Value="{Binding DrawingToolSize}" Orientation="Vertical" Minimum="1" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="5" >
+                        <i:Interaction.Behaviors>
+                            <Behaviors:SliderMouseWheelBehavior />
+                        </i:Interaction.Behaviors>
+                    </Slider>
+                </DockPanel>
+
+            </DockPanel>
+
+
+            <!--TopBar-->
+            <DockPanel DockPanel.Dock="Top"  Height="44">
+
+                <!--ColorPicker-->
+                <Border DockPanel.Dock="Left" BorderBrush="{StaticResource ButtonBorderDefault}" BorderThickness="1" Width="40" Margin="5,2">
+                    <colorPicker:PortableColorPicker  
+                         SelectedColor="{Binding SelectedColor, Mode=TwoWay}" 
+                         IsPickerOpen="{Binding IsPickerOpen, Mode=OneWayToSource}"  
+                         Background="{StaticResource ContainerBackground}" />
+                </Border>
+
+                <!--Recent Colors-->
+                <ListBox  DockPanel.Dock="Left" ItemsSource="{Binding RecentColors}" SelectedValue="{Binding SelectedColor, Mode=TwoWay}" Background="Transparent" BorderBrush="Transparent" SnapsToDevicePixels="True">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListBoxItem}">
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Background" Value="{Binding ., Converter={StaticResource ColorToBrushConverter}}" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                                        <Border BorderThickness="1" Width="20"  Background="{TemplateBinding Background}">
+                                            <GridViewRowPresenter HorizontalAlignment="Stretch" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"  Margin="0" Content="{TemplateBinding Content}"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="2" Columns="8" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+
+                <!--Fill-->
+                <Button DockPanel.Dock="Left"  Command="{Binding FillCanvasCommand}" Style="{StaticResource TransparentButton}" Margin="4" ToolTip="Fill Background">
+                    <CommonControls:FontAwesome Icon="&#xf576;" IconStyle="Light"  />
+                </Button>
+
+                <!--Image-->
+                <Button DockPanel.Dock="Left" Command="{Binding LoadCanvasCommand}"  Style="{StaticResource TransparentButton}" Margin="4" ToolTip="Load Image Background">
+                    <CommonControls:FontAwesome Icon="&#xf03e;" IconStyle="Light"  />
+                </Button>
+
+                <!--Clear-->
+                <Button DockPanel.Dock="Left" Command="{Binding ClearCanvasCommand}" Style="{StaticResource TransparentButton}" Margin="4" ToolTip="Clear Drawing">
+                    <CommonControls:FontAwesome Icon="&#xf05e;" IconStyle="Light" Color="{StaticResource DangerColour}"  />
+                </Button>
+
+                <!--OverlayOpacity-->
+                <DockPanel Margin="10,4,0,0">
+                    <CommonControls:SliderControl Text="Overlay" Value="{Binding OverlayOpacity}" Minimum="0" Maximum="1" TickFrequency="0.01" IsPercent="True"/>
+                </DockPanel>
+
+            </DockPanel>
+
+
+            <!--BottomBar-->
+            <DockPanel DockPanel.Dock="Bottom" Height="40">
+                <UniformGrid Columns="2">
+
+                    <!--Steps-->
+                    <CommonControls:SliderControl Text="Quality" Value="{Binding Options.Steps}" Minimum="1" Maximum="100" TickFrequency="1" />
+
+                    <!--Strength-->
+                    <Grid>
+                        <CommonControls:SliderControl Text="Strength" Value="{Binding Options.Strength}" Minimum="0" Maximum="1" TickFrequency="0.01" IsPercent="True" Visibility="{Binding IsControlNetEnabled, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                        <CommonControls:SliderControl Text="Strength" Value="{Binding Options.ControlNetStrength}" Minimum="0" Maximum="1" TickFrequency="0.01" IsPercent="True" Visibility="{Binding IsControlNetEnabled, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    </Grid>
+                </UniformGrid>
+
+            </DockPanel>
+
+
+            <!--Surface-->
+            <Border Background="#40000000" Padding="5" >
+
+                <Viewbox StretchDirection="Both" UseLayoutRounding="True" RenderOptions.BitmapScalingMode="Fant">
+                    <Grid x:Name="SurfaceCanvas">
+                        <InkCanvas x:Name="PaintCanvas"  
+                             Background="White"
+                             ForceCursor="True" 
+                             Cursor="Pen"
+                             PreviewMouseLeftButtonUp="PaintCanvas_MouseLeftButtonUp"
+                             PreviewMouseLeftButtonDown="PaintCanvas_MouseLeftButtonDown"
+                             PreviewMouseMove="PaintCanvas_PreviewMouseMove"
+                             PreviewMouseWheel="PaintCanvas_OnMouseWheel"
+                             EditingMode="{Binding CanvasEditingMode}" 
+                             Width="{Binding Options.Width}" 
+                             Height="{Binding Options.Height}" 
+                             DefaultDrawingAttributes="{Binding BrushAttributes}" >
+                        </InkCanvas>
+
+                        <Canvas x:Name="PaintCanvasToolSurface" 
+                            IsHitTestVisible="False"
+                            ClipToBounds="True"
+                            Background="Transparent"
+                            Width="{Binding Options.Width}" 
+                            Height="{Binding Options.Height}" >
+                            <Rectangle 
+                                Stroke="Black"
+                                StrokeThickness="1"
+                                Canvas.Left="{Binding ToolOutlineX}"
+                                Canvas.Top="{Binding ToolOutlineY}" 
+                                Width="{Binding BrushAttributes.Width}" 
+                                Height="{Binding BrushAttributes.Height}" 
+                                Visibility="{Binding ToolOutlineVisibility}">
+                                <Rectangle.Fill>
+                                    <SolidColorBrush Color="{Binding SelectedColor}" />
+                                </Rectangle.Fill>
+                                <Rectangle.Style>
+                                    <Style TargetType="{x:Type Rectangle}" >
+                                        <Setter Property="RadiusX" Value="0" />
+                                        <Setter Property="RadiusY" Value="0" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding BrushAttributes.StylusTip}" Value="Ellipse" >
+                                                <Setter Property="RadiusX" Value="10000" />
+                                                <Setter Property="RadiusY" Value="10000" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Rectangle.Style>
+                            </Rectangle>
+                            <Canvas.Style>
+                                <Style TargetType="{x:Type Canvas}" >
+                                    <Setter Property="Visibility" Value="Hidden" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, ElementName=PaintCanvas}" Value="True" >
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Canvas.Style>
+                        </Canvas>
+                        <Image 
+                            IsHitTestVisible="False"
+                            Source="{Binding OverlayImage.Image}" 
+                            Opacity="{Binding OverlayOpacity}"
+                            Width="{Binding Options.Width}" 
+                            Height="{Binding Options.Height}" />
+                        <Grid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Open" InputGestureText="Ctrl+O" Command="{Binding LoadCanvasCommand}" >
+                                    <MenuItem.Icon>
+                                        <CommonControls:FontAwesome Icon="&#xf1c5;" IconStyle="Light" Size="15" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Copy" InputGestureText="Ctrl+C" Command="{Binding CopyCanvasCommand}" >
+                                    <MenuItem.Icon>
+                                        <CommonControls:FontAwesome Icon="&#xf0c5;" IconStyle="Light" Size="15" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Paste" InputGestureText="Ctrl+V" Command="{Binding PasteCanvasCommand}" >
+                                    <MenuItem.Icon>
+                                        <CommonControls:FontAwesome Icon="&#xf0ea;" IconStyle="Light" Size="15" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Save" InputGestureText="Ctrl+S" Command="{Binding SaveCanvasCommand}" >
+                                    <MenuItem.Icon>
+                                        <CommonControls:FontAwesome Icon="&#xf0c7;" IconStyle="Light" Size="15" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Undo" InputGestureText="Ctrl+Z" Command="{Binding UndoCanvasCommand}"  >
+                                    <MenuItem.Icon>
+                                        <CommonControls:FontAwesome Icon="&#xf2ea;" IconStyle="Light" Size="15" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Redo" InputGestureText="Ctrl+Y" Command="{Binding RedoCanvasCommand}"  >
+                                    <MenuItem.Icon>
+                                        <CommonControls:FontAwesome Icon="&#xf2f9;" IconStyle="Light" Size="15" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </Grid.ContextMenu>
+                    </Grid>
+                </Viewbox>
+
+            </Border>
+
+        </DockPanel>
+    </Border>
+</CommonControls:BaseControl>

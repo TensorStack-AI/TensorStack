@@ -1,0 +1,87 @@
+﻿<CommonControls:DialogControl x:Class="Amuse.App.Dialogs.DiffusionModelWizardDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Amuse.App.Dialogs"
+        xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls;assembly=TensorStack.WPF"
+        xmlns:Common="clr-namespace:Amuse.App.Common"
+        xmlns:Controls="clr-namespace:Amuse.App.Controls"
+        Title="Add Model"
+        MinWidth="800"
+        MaxWidth="800"
+        Icon="/Images/Icon.ico"
+        Style="{StaticResource {x:Type CommonControls:DialogControl}}">
+    <DockPanel DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:DiffusionModelWizardDialog}}}" Margin="15, 15, 15, 10">
+
+        <!--Save/Cancel/Errors-->
+        <DockPanel DockPanel.Dock="Bottom" Height="30" Margin="0,15,0,0">
+            <UniformGrid DockPanel.Dock="Right" Columns="2" >
+                <Button Content="Save" Command="{Binding SaveCommand}" Width="100" IsDefault="True"/>
+                <Button Content="Cancel" Command="{Binding CancelCommand}"/>
+            </UniformGrid>
+            <ItemsControl ItemsSource="{Binding Errors}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" Foreground="IndianRed" TextWrapping="Wrap" FontSize="11"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </DockPanel>
+
+        <!--Main Content-->
+        <StackPanel >
+
+            <UniformGrid Columns="4" >
+                <StackPanel Margin="0,0,2,0">
+                    <TextBlock Text="Backend" Style="{StaticResource FieldTextBlockStyle}"/>
+                    <ComboBox ItemsSource="{Binding Source={StaticResource BackendType}}" SelectedItem="{Binding SelectedBackend}" Style="{StaticResource EnumComboBox}"/>
+                </StackPanel>
+                <StackPanel Margin="2,0,2,0">
+                    <TextBlock Text="Pipeline" Style="{StaticResource FieldTextBlockStyle}"/>
+                    <ComboBox ItemsSource="{Binding PipelineOptions}" SelectedItem="{Binding SelectedPipelineOption}" DisplayMemberPath="Name" />
+                </StackPanel>
+                <StackPanel Margin="2,0,2,0">
+                    <TextBlock Text="Type" Style="{StaticResource FieldTextBlockStyle}"/>
+                    <ComboBox ItemsSource="{Binding SelectedPipelineOption.Options}" SelectedItem="{Binding SelectedTemplateOption}" DisplayMemberPath="Name" />
+                </StackPanel>
+                <StackPanel Margin="2,0,0,0">
+                    <TextBlock Text="Source" Style="{StaticResource FieldTextBlockStyle}"/>
+                    <ComboBox x:Name="ComboBoxSource" ItemsSource="{Binding ModelSources}" SelectedItem="{Binding SelectedSource}" Style="{StaticResource EnumComboBox}"/>
+                </StackPanel>
+            </UniformGrid>
+
+            <Grid>
+                <!--File-->
+                <StackPanel Visibility="{Binding SelectedSource, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=LocalFile}">
+                    <TextBlock Text="Model File" Style="{StaticResource FieldTextBlockStyle}"/>
+                    <CommonControls:FilePickerTextBox FileName="{Binding SelectedFile, Mode=TwoWay}" IsFolderPicker="False" IsRequired="True" Filter="{Binding FileFilter}"/>
+                </StackPanel>
+
+                <!--Folder-->
+                <StackPanel Visibility="{Binding SelectedSource, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=LocalFolder}">
+                    <TextBlock Text="Model Folder" Style="{StaticResource FieldTextBlockStyle}"/>
+                    <CommonControls:FilePickerTextBox FileName="{Binding SelectedPath, Mode=TwoWay}" IsFolderPicker="True" IsRequired="True"/>
+                </StackPanel>
+
+                <!--Checkpoint Settings-->
+                <Grid Visibility="{Binding SelectedSource, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Checkpoint}" Margin="0,10,0,0">
+                    <Controls:DiffusionCheckpointControl Settings="{Binding Settings}" Checkpoint="{Binding SelectedTemplate.Checkpoint}" Backend="{Binding SelectedTemplate.Backend}"/>
+                </Grid>
+            </Grid>
+
+            <DockPanel  Margin="0,4,0,0">
+                <StackPanel DockPanel.Dock="Right" Margin="4,0,0,0">
+                    <TextBlock Text="Variant (optional)" Style="{StaticResource FieldTextBlockStyle}"/>
+                    <TextBox Text="{Binding SelectedVariant, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="Model Name" Style="{StaticResource FieldTextBlockStyle}"/>
+                    <TextBox Text="{Binding SelectedName, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+            </DockPanel>
+
+        </StackPanel>
+
+    </DockPanel>
+</CommonControls:DialogControl>

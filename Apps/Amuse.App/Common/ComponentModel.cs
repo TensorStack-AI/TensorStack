@@ -1,0 +1,126 @@
+﻿using System.Linq;
+using System.Text.Json.Serialization;
+using TensorStack.Common;
+using TensorStack.Common.Common;
+using TensorStack.WPF;
+
+namespace Amuse.App.Common
+{
+    public sealed class ComponentModel : BaseModel, IDownloadModel
+    {
+        private BackendType _backend;
+        private string _name;
+        private string _key;
+        private string _link;
+        private string _accessToken;
+        private ModelStatusType _status;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int Id { get; set; }
+
+        public BackendType Backend
+        {
+            get { return _backend; }
+            set { SetProperty(ref _backend, value); }
+        }
+
+        public string Name
+        {
+            get { return _name; }
+            set { SetProperty(ref _name, value); }
+        }
+
+        public string Key
+        {
+            get { return _key; }
+            set { SetProperty(ref _key, value); }
+        }
+
+        public CheckpointComponent Checkpoint { get; set; }
+
+        public ModelStatusType Status
+        {
+            get { return _status; }
+            set { SetProperty(ref _status, value); }
+        }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public string AccessToken
+        {
+            get { return _accessToken; }
+            set { SetProperty(ref _accessToken, value); }
+        }
+
+        public string Link
+        {
+            get { return _link; }
+            set { SetProperty(ref _link, value); }
+        }
+
+
+        public void Initialize(Settings settings)
+        {
+            Status = GetModelStatus(settings);
+        }
+
+
+        public void Delete(Settings settings)
+        {
+            var resolvedCheckpoint = GetDirectory(settings);
+            if (System.IO.File.Exists(resolvedCheckpoint))
+            {
+                FileHelper.DeleteFile(resolvedCheckpoint);
+                FileHelper.DeleteDirectory(System.IO.Path.GetDirectoryName(resolvedCheckpoint), false);
+            }
+            else if (System.IO.Directory.Exists(resolvedCheckpoint))
+            {
+                FileHelper.DeleteDirectory(resolvedCheckpoint);
+            }
+        }
+
+
+        public string GetDirectory(Settings settings)
+        {
+            var resolvedCheckpoint = Checkpoint.Resolve(settings, null);
+            if (string.IsNullOrEmpty(resolvedCheckpoint))
+                return null;
+
+            if (System.IO.Directory.Exists(resolvedCheckpoint))
+                return resolvedCheckpoint;
+
+            return System.IO.Path.GetDirectoryName(resolvedCheckpoint);
+        }
+
+
+        private ModelStatusType GetModelStatus(Settings settings)
+        {
+            if (Checkpoint == null)
+                return ModelStatusType.Available;
+
+            var isValid = Checkpoint.IsInstalled(settings.DirectoryModel);
+            if (Status == ModelStatusType.Available && isValid)
+                return ModelStatusType.Installed;
+            else if (Status == ModelStatusType.Installed && !isValid)
+                return ModelStatusType.Available;
+            else if (Status == ModelStatusType.Downloading || Status == ModelStatusType.DownloadQueue || Status == ModelStatusType.DownloadFailed)
+                return ModelStatusType.Available;
+
+            return Status;
+        }
+
+
+        public ComponentModel DeepClone(int id)
+        {
+            return new ComponentModel
+            {
+                Id = id,
+                Backend = Backend,
+                Name = Name,
+                Key = Key,
+                Link = Link,
+                Checkpoint = Checkpoint.DeepClone(),
+                AccessToken = AccessToken
+            };
+        }
+    }
+}

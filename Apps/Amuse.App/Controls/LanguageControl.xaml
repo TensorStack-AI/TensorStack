@@ -1,0 +1,11 @@
+﻿<CommonControls:BaseControl x:Class="Amuse.App.Controls.LanguageControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Amuse.App.Controls"
+             xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls;assembly=TensorStack.WPF" >
+    <Grid DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:LanguageControl}}}">
+        <ComboBox ItemsSource="{Binding SupportedLanguages}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" Style="{StaticResource EnumComboBox}"/>
+    </Grid>
+</CommonControls:BaseControl>

@@ -358,3 +358,5 @@ TensorStack.Providers.RyzenAI/onnx_custom_ops.dll
 Examples/TensorStack.Example.Upscaler/Models/*.onnx
 Examples/TensorStack.Example.Extractors/Models/*.onnx
 
+*.otf
+*.pubxml
