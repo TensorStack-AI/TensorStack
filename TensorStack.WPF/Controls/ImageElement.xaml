@@ -1,0 +1,247 @@
+﻿<CommonControls:ImageElementBase x:Class="TensorStack.WPF.Controls.ImageElement"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls"
+             xmlns:CommonConverters="clr-namespace:TensorStack.WPF.Converters"
+             Focusable="True">
+    <CommonControls:ImageElementBase.InputBindings>
+        <KeyBinding Modifiers="Ctrl" Key="O" Command="{Binding LoadSourceCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="C"  Command="{Binding CopySourceCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="S" Command="{Binding SaveSourceCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="V"  Command="{Binding PasteSourceCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="Z"  Command="{Binding ClearCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="F" Command="{Binding LoadOverlayCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="G"  Command="{Binding CopyOverlayCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="H" Command="{Binding SaveOverlayCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="J" Command="{Binding CopyCanvasCommand , RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="K"  Command="{Binding SaveCanvasCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" />
+    </CommonControls:ImageElementBase.InputBindings>
+    <Border DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageElement}}, Mode=OneTime}" BorderBrush="{StaticResource ButtonBorderBrush}" Background="{StaticResource ContainerBackground}" BorderThickness="1" >
+        <DockPanel>
+
+            <!--Controls-->
+            <DockPanel DockPanel.Dock="Bottom" Visibility="{Binding IsToolbarEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="-1,0,-1,-1" Height="60">
+
+                <!--Progress-->
+                <Grid DockPanel.Dock="Top">
+                    <CommonControls:ProgressElement Height="6" Margin="1" Progress="{Binding Progress}"/>
+                </Grid>
+
+                <!--Buttons-->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" >
+                    <Button 
+                        Command="{Binding LoadSourceCommand}" 
+                        Width="{Binding ActualHeight, RelativeSource={RelativeSource Self}}" 
+                        Visibility="{Binding IsLoadEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" >
+                        <CommonControls:FontAwesome Icon="f03e" />
+                    </Button>
+                    <Button 
+                        Command="{Binding SaveSourceCommand}" 
+                        Width="{Binding ActualHeight, RelativeSource={RelativeSource Self}}" 
+                        Visibility="{Binding IsSaveEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <CommonControls:FontAwesome Icon="f0c7" />
+                    </Button>
+                    <Button 
+                        Command="{Binding LoadOverlayCommand}" 
+                        Width="{Binding ActualHeight, RelativeSource={RelativeSource Self}}" 
+                        Visibility="{Binding IsLoadOverlayEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <CommonControls:FontAwesome Icon="e80b" />
+                    </Button>
+                    <Button 
+                        Command="{Binding SaveOverlayCommand}" 
+                        Width="{Binding ActualHeight, RelativeSource={RelativeSource Self}}" 
+                        Visibility="{Binding IsSaveOverlayEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <CommonControls:FontAwesome Icon="f0c7" />
+                    </Button>
+                    <Button 
+                        Command="{Binding SaveCanvasCommand}" 
+                        Width="{Binding ActualHeight, RelativeSource={RelativeSource Self}}" 
+                        Visibility="{Binding IsSaveCanvasEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <CommonControls:FontAwesome Icon="f0c7" />
+                    </Button>
+                </StackPanel>
+
+                <!--Clear-->
+                <Grid DockPanel.Dock="Right" Visibility="{Binding IsRemoveEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Button Command="{Binding ClearCommand}" Width="50">
+                        <CommonControls:FontAwesome Icon="f2ed" />
+                    </Button>
+                </Grid>
+
+                <!--Image Info-->
+                <Grid VerticalAlignment="Bottom">
+                    <StackPanel Margin="0,0,10,4" >
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding Source.Width, FallbackValue=0}" />
+                            <TextBlock Text=" x " Opacity=".7" VerticalAlignment="Center" FontStyle="Italic"/>
+                            <TextBlock Text="{Binding Source.Height, FallbackValue=0}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,-3,-1,0">
+                            <TextBlock Text="{Binding Title}" HorizontalAlignment="Right" Opacity=".9"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+            </DockPanel>
+
+            <!--Main Content-->
+            <Border x:Name="DragDropContainer">
+                <Grid x:Name="MainContent" Background="Transparent">
+
+                    <!--Image Viewer-->
+                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                        <!--Image-->
+                        <Grid x:Name="SourceContainer">
+
+                            <!--PlaceHolder-->
+                            <Image Source="{Binding Placeholder, TargetNullValue={StaticResource PlaceholderImage}}" Visibility="{Binding Source, Converter={StaticResource InverseNullVisibilityConverter}}" Stretch="Uniform" IsHitTestVisible="False"/>
+
+                            <!--Source-->
+                            <CommonControls:TransparentImageElement x:Name="ImageControl" BitmapSource="{Binding Source.Image}" Stretch="Uniform" />
+
+                            <!--Overlay-->
+                            <CommonControls:TransparentImageElement x:Name="ImageOverlayControl" BitmapSource="{Binding OverlaySource.Image}" Stretch="Uniform" >
+                                <CommonControls:TransparentImageElement.Clip>
+                                    <RectangleGeometry Rect="0,0,0,0" />
+                                </CommonControls:TransparentImageElement.Clip>
+                            </CommonControls:TransparentImageElement>
+
+                            <!--DragDrop Notification-->
+                            <Grid Visibility="{Binding Source, Converter={StaticResource NullVisibilityConverter}}" IsHitTestVisible="False">
+                                <Grid Visibility="{Binding AllowDrop, ElementName=DragDropContainer, Converter={StaticResource BooleanToVisibilityConverter}}" Background="#B0000000"/>
+                            </Grid>
+                        </Grid>
+
+                        <!--Splitter-->
+                        <Grid x:Name="GridSplitterContainer" MaxWidth="{Binding ActualWidth, ElementName=SourceContainer}" ClipToBounds="True" Visibility="Hidden">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition x:Name="GridSplitterColumn" MaxWidth="{Binding ActualWidth, ElementName=SourceContainer}"/>
+                                <ColumnDefinition Width="30" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid x:Name="GridSplitterControl" Grid.Column="0" SizeChanged="GridSplitter_SizeChanged" />
+                            <GridSplitter x:Name="SplitterControl" Grid.Column="1"  Margin="-15,0,15,0"  Width="30" HorizontalAlignment="Stretch" Background="Transparent" Cursor="ScrollWE" Style="{x:Null}" PreviewMouseDown="SplitterControl_PreviewMouseDown" PreviewMouseUp="SplitterControl_PreviewMouseUp"/>
+                            <Border Grid.Column="1" Margin="-15,0,15,0" BorderBrush="White" BorderThickness="1,0,1,0" Width="1" Opacity=".4" IsHitTestVisible="False" HorizontalAlignment="Center"  />
+                            <Grid Grid.Column="1" Margin="-15,0,15,0"  HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="False" Opacity="1" IsHitTestVisible="False" >
+                                <TextBlock Text="&lt; &gt;" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3" Foreground="White" Opacity=".8" FontWeight="Bold" FontSize="16"  />
+                                <Ellipse  Width="30" Height="30" Stroke="White" Fill="White" Opacity=".8"  StrokeThickness="2" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
+                    <!--DragDrop Notification-->
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding AllowDrop, ElementName=DragDropContainer, Converter={StaticResource BooleanToVisibilityConverter}}" IsHitTestVisible="False">
+                        <CommonControls:FontAwesome Icon="e74c" Size="30" IconStyle="SharpLight" Color="{StaticResource AccentColour2}"/>
+                        <TextBlock Text="Drag &amp; Drop Image Here" Foreground="{StaticResource AccentColour2}" FontSize="13" FontWeight="DemiBold" Margin="0,6,0,0"/>
+                    </StackPanel>
+
+                    <!--ContextMenu-->
+                    <Grid.ContextMenu>
+                        <ContextMenu>
+                            <!--Source-->
+                            <MenuItem Header="Load" InputGestureText="Ctrl+O" Command="{Binding LoadSourceCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f07c" IconStyle="Light" Size="15" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Copy" InputGestureText="Ctrl+C" Command="{Binding CopySourceCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c5" IconStyle="Light" Size="15" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Paste" InputGestureText="Ctrl+V" Command="{Binding PasteSourceCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0ea" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save" InputGestureText="Ctrl+S" Command="{Binding SaveSourceCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c7" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Clear" InputGestureText="Ctrl+Z" Command="{Binding ClearCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f2ed" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <!--Overlay-->
+                            <Separator Margin="0,3" Opacity=".3"/>
+                            <MenuItem Header="Load Overlay" InputGestureText="Ctrl+F" Command="{Binding LoadOverlayCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f07c" IconStyle="Light" Size="15" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Copy Overlay" InputGestureText="Ctrl+G" Command="{Binding CopyOverlayCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c5" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save Overlay" InputGestureText="Ctrl+H" Command="{Binding SaveOverlayCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c7" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <!--Canvas-->
+                            <Separator Margin="0,3" Opacity=".3"/>
+                            <MenuItem Header="Copy Canvas" InputGestureText="Ctrl+J" Command="{Binding CopyCanvasCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c5" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save Canvas" InputGestureText="Ctrl+K" Command="{Binding SaveCanvasCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c7" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <ContextMenu.Style>
+                                <Style TargetType="{x:Type ContextMenu}" BasedOn="{StaticResource {x:Type ContextMenu}}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsInputEnabled}" Value="True"/>
+                                                <Condition Binding="{Binding IsContextMenuEnabled}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <MultiDataTrigger.Setters>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger.Setters>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContextMenu.Style>
+                        </ContextMenu>
+                    </Grid.ContextMenu>
+                </Grid>
+
+                <Border.Style>
+                    <Style TargetType="{x:Type Border}">
+                        <Setter Property="AllowDrop" Value="False"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsLoadEnabled}" Value="True" />
+                                    <Condition Binding="{Binding IsInputEnabled}" Value="True" />
+                                    <Condition Binding="{Binding IsDragDrop, RelativeSource={RelativeSource AncestorType=CommonControls:ViewControl}}" Value="True" />
+                                    <Condition Binding="{Binding DragDropType, RelativeSource={RelativeSource AncestorType=CommonControls:ViewControl}}" Value="Image" />
+                                </MultiDataTrigger.Conditions>
+                                <MultiDataTrigger.Setters>
+                                    <Setter Property="AllowDrop" Value="True"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentColour2}"/>
+                                </MultiDataTrigger.Setters>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
+        </DockPanel>
+    </Border>
+
+</CommonControls:ImageElementBase>

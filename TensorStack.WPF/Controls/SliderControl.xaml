@@ -1,0 +1,23 @@
+﻿<CommonControls:BaseControl x:Class="TensorStack.WPF.Controls.SliderControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:local="clr-namespace:TensorStack.WPF.Controls"
+             xmlns:Behaviors="clr-namespace:TensorStack.WPF.Behaviors"
+             xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls"
+             xmlns:CommonConverters="clr-namespace:TensorStack.WPF.Converters"
+             x:Name="SliderControlUI">
+    <StackPanel DataContext="{Binding ElementName=SliderControlUI}">
+        <DockPanel >
+            <TextBlock Style="{StaticResource FieldTextBlockStyle}" Text="{Binding Text}"/>
+            <TextBlock Style="{StaticResource FieldTextBlockStyle}" Text="{Binding ValueText}" VerticalAlignment="Bottom" HorizontalAlignment="Right" FontSize="10" Margin="0,0,6,0" FontWeight="Medium" />
+        </DockPanel>
+        <Slider Value="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" TickFrequency="{Binding TickFrequency}" IsSnapToTickEnabled="True" SmallChange="{Binding TickFrequency}" LargeChange="{Binding TickFrequency}" ValueChanged="Slider_ValueChanged">
+            <i:Interaction.Behaviors>
+                <Behaviors:SliderMouseWheelBehavior />
+            </i:Interaction.Behaviors>
+        </Slider>
+    </StackPanel>
+</CommonControls:BaseControl>

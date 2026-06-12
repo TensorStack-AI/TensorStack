@@ -1,0 +1,56 @@
+﻿<controls:BaseControl x:Class="TensorStack.WPF.Controls.IconButton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:TensorStack.WPF.Controls"
+             mc:Ignorable="d" 
+             d:DesignWidth="200" 
+             x:Name="IconButtonControl" HorizontalContentAlignment="Stretch" >
+    <Grid DataContext="{Binding ElementName=IconButtonControl}" >
+        <Button Command="{Binding Command}" CommandParameter="{Binding CommandParameter}" HorizontalContentAlignment="Stretch" >
+            <Grid>
+                <StackPanel Orientation="Horizontal" Visibility="{Binding Orientation, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Horizontal}" HorizontalAlignment="{Binding Alignment}">
+                    <controls:FontAwesome Icon="{Binding Icon}" IconStyle="{Binding IconStyle}" Color="{Binding IconColor}" Size="{Binding IconSize}" Margin="{Binding IconMargin}" Opacity="{Binding IconOpacity}"/>
+                    <StackPanel Margin="{Binding TextMargin}">
+                        <TextBlock Text="{Binding Text}" Foreground="{Binding Foreground}" FontSize="{Binding FontSize}" FontWeight="{Binding FontWeight}" Opacity="{Binding TextOpacity}" Margin="4,0,0,0" Visibility="{Binding Text, Converter={StaticResource NullOrEmptyVisibilityConverter}}"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Vertical" Visibility="{Binding Orientation, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Vertical}" HorizontalAlignment="{Binding Alignment}">
+                    <controls:FontAwesome Icon="{Binding Icon}" IconStyle="{Binding IconStyle}" Color="{Binding IconColor}" Size="{Binding IconSize}" Margin="{Binding IconMargin}" Opacity="{Binding IconOpacity}"/>
+                    <StackPanel Margin="{Binding TextMargin}">
+                        <TextBlock Text="{Binding Text}" Foreground="{Binding Foreground}" FontSize="{Binding FontSize}" FontWeight="{Binding FontWeight}" TextAlignment="Center" LineStackingStrategy="BlockLineHeight" LineHeight="{Binding LineHeight}" Opacity="{Binding TextOpacity}"  Margin="0,4,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Button>
+
+        <Border>
+            <Border.Style>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="BorderThickness" Value="0,0,0,5" />
+                    <Setter Property="BorderBrush" Value="Transparent" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Placement, ElementName=IconButtonControl}" Value="Top">
+                            <Setter Property="BorderThickness" Value="0,5,0,0" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Placement, ElementName=IconButtonControl}" Value="Bottom">
+                            <Setter Property="BorderThickness" Value="0,0,0,5" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Placement, ElementName=IconButtonControl}" Value="Left">
+                            <Setter Property="BorderThickness" Value="5,0,0,0" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Placement, ElementName=IconButtonControl}" Value="Right">
+                            <Setter Property="BorderThickness" Value="0,0,5,0" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsSelected, ElementName=IconButtonControl}" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource AccentColour1}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+        </Border>
+
+      
+    </Grid>
+</controls:BaseControl>

@@ -1,0 +1,423 @@
+﻿<CommonControls:ImageElementBase x:Class="TensorStack.WPF.Controls.ImageEditElement"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:WindowsControls="clr-namespace:System.Windows.Controls;assembly=PresentationFramework"
+             xmlns:CommonControls="clr-namespace:TensorStack.WPF.Controls"
+             xmlns:CommonConverters="clr-namespace:TensorStack.WPF.Converters"
+             Focusable="True">
+    <CommonControls:ImageElementBase.InputBindings>
+        <KeyBinding Modifiers="Ctrl" Key="O" Command="{Binding LoadSourceCommand , RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="C"  Command="{Binding CopySourceCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="S" Command="{Binding SaveSourceCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="V"  Command="{Binding PasteSourceCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="Z"  Command="{Binding ClearCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="F" Command="{Binding LoadMaskCommand , RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="G"  Command="{Binding CopyMaskCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="H" Command="{Binding SaveMaskCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="J" Command="{Binding CopyCanvasCommand , RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+        <KeyBinding Modifiers="Ctrl" Key="K"  Command="{Binding SaveCanvasCommand, RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" />
+    </CommonControls:ImageElementBase.InputBindings>
+    <Border DataContext="{Binding RelativeSource={RelativeSource AncestorType={x:Type CommonControls:ImageEditElement}}, Mode=OneTime}" BorderBrush="{StaticResource ButtonBorderBrush}" Background="{StaticResource ContainerBackground}" BorderThickness="1" >
+        <DockPanel>
+
+            <!--Controls-->
+            <DockPanel DockPanel.Dock="Bottom" Visibility="{Binding IsToolbarEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="-1,0,-1,-1" Height="60">
+
+                <!--Progress-->
+                <Grid DockPanel.Dock="Top">
+                    <CommonControls:ProgressElement Height="6" Margin="1" Progress="{Binding Progress, Mode=OneWay}"/>
+                </Grid>
+
+                <!--Buttons-->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button 
+                        ToolTip="Load Image" 
+                        ToolTipService.ShowOnDisabled="True" 
+                        ToolTipService.InitialShowDelay="500" 
+                        Command="{Binding LoadSourceCommand, Mode=OneWay}" 
+                        Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}" 
+                        Visibility="{Binding IsLoadEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <CommonControls:FontAwesome Icon="f03e" />
+                    </Button>
+                    <Grid Visibility="{Binding IsLoadMaskEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button  
+                            ToolTip="Load Mask Image" 
+                            ToolTipService.ShowOnDisabled="True"
+                            ToolTipService.InitialShowDelay="500"
+                            Command="{Binding LoadMaskCommand, Mode=OneWay}" 
+                            Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}" 
+                            Visibility="{Binding IsMaskEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" >
+                            <CommonControls:FontAwesome Icon="e49e" />
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+                <Button DockPanel.Dock="Right" Command="{Binding ClearCommand, Mode=OneWay}" Width="50" >
+                    <CommonControls:FontAwesome Icon="f2ed" />
+                </Button>
+
+                <!--Mask Controls-->
+                <DockPanel Margin="8,0" >
+
+                    <!--Tool Size-->
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,5">
+                        <DockPanel Visibility="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource InverseEnumToVisibilityConverter}, ConverterParameter=Select}">
+                            <TextBlock DockPanel.Dock="Left" Text="Tool Size" Style="{StaticResource FieldTextBlockStyle}" Margin="0,2,4,0"/>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding MaskDrawSize, Mode=OneWay}" Style="{StaticResource FieldTextBlockStyle}" Margin="0,2,2,0"/>
+                            <Slider Minimum="2" Maximum="100" TickFrequency="1" Value="{Binding MaskDrawSize, Mode=TwoWay}" Margin="2,0"/>
+                        </DockPanel>
+                        <DockPanel Visibility="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Select}">
+                            <TextBlock DockPanel.Dock="Left" Text="Tool Size" Style="{StaticResource FieldTextBlockStyle}" Margin="0,2,4,0"/>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding SelectionSize, Mode=OneWay}" Style="{StaticResource FieldTextBlockStyle}" Margin="0,2,2,0"/>
+                            <Slider Minimum="1" Maximum="20" TickFrequency="1" Value="{Binding SelectionSize, Mode=TwoWay}" Margin="2,0"/>
+                        </DockPanel>
+                    </Grid>
+
+                    <DockPanel IsEnabled="{Binding Source, Mode=OneWay, Converter={StaticResource InverseNullBooleanConverter}}" LastChildFill="False">
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" >
+
+                            <!--Off-->
+                            <Grid ToolTip="Mouse" 
+                                ToolTipService.InitialShowDelay="500" 
+                                ToolTipService.ShowOnDisabled="True"
+                                Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}"
+                                IsEnabled="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource InverseEnumToBooleanConverter}, ConverterParameter=None}">
+                                <Button Command="{Binding ChangeModeCommand, Mode=OneWay}"  CommandParameter="{x:Static CommonControls:ImageEditMode.None}" >
+                                    <CommonControls:FontAwesome Icon="f245" IconStyle="Light" >
+                                        <CommonControls:FontAwesome.Style>
+                                            <Style TargetType="{x:Type CommonControls:FontAwesome}" BasedOn="{StaticResource {x:Type CommonControls:FontAwesome}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedEditMode, Mode=OneWay}" Value="None">
+                                                        <Setter Property="Color" Value="{StaticResource InfoColour}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CommonControls:FontAwesome.Style>
+                                    </CommonControls:FontAwesome>
+                                </Button>
+                            </Grid>
+
+                            <!--Resize-->
+                            <Grid ToolTip="Move/Resize Mode" 
+                                ToolTipService.InitialShowDelay="500" 
+                                ToolTipService.ShowOnDisabled="True"
+                                Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}" 
+                                Visibility="{Binding IsResizeEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                IsEnabled="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource InverseEnumToBooleanConverter}, ConverterParameter=Resize}">
+                                <Button Command="{Binding ChangeModeCommand, Mode=OneWay}" CommandParameter="{x:Static CommonControls:ImageEditMode.Resize}" >
+                                    <CommonControls:FontAwesome Icon="f31d" IconStyle="Light"  >
+                                        <CommonControls:FontAwesome.Style>
+                                            <Style TargetType="{x:Type CommonControls:FontAwesome}" BasedOn="{StaticResource {x:Type CommonControls:FontAwesome}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedEditMode, Mode=OneWay}" Value="Resize">
+                                                        <Setter Property="Color" Value="{StaticResource InfoColour}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CommonControls:FontAwesome.Style>
+                                    </CommonControls:FontAwesome>
+                                </Button>
+                            </Grid>
+
+                            <!--Draw-->
+                            <Grid ToolTip="Draw Mode" 
+                                ToolTipService.InitialShowDelay="500" 
+                                ToolTipService.ShowOnDisabled="True" 
+                                Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}" 
+                                Visibility="{Binding IsMaskEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                IsEnabled="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource InverseEnumToBooleanConverter}, ConverterParameter=Draw}">
+                                <Button Command="{Binding ChangeModeCommand, Mode=OneWay}" CommandParameter="{x:Static CommonControls:ImageEditMode.Draw}" >
+                                    <CommonControls:FontAwesome Icon="f304" IconStyle="Light"  >
+                                        <CommonControls:FontAwesome.Style>
+                                            <Style TargetType="{x:Type CommonControls:FontAwesome}" BasedOn="{StaticResource {x:Type CommonControls:FontAwesome}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedEditMode, Mode=OneWay}" Value="Draw">
+                                                        <Setter Property="Color" Value="{StaticResource InfoColour}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CommonControls:FontAwesome.Style>
+                                    </CommonControls:FontAwesome>
+                                </Button>
+                            </Grid>
+
+                            <!--Erase-->
+                            <Grid ToolTip="Erase Mode" 
+                                ToolTipService.InitialShowDelay="500" 
+                                ToolTipService.ShowOnDisabled="True"
+                                Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}" 
+                                Visibility="{Binding IsMaskEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                IsEnabled="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource InverseEnumToBooleanConverter}, ConverterParameter=Erase}">
+                                <Button Command="{Binding ChangeModeCommand, Mode=OneWay}"  CommandParameter="{x:Static CommonControls:ImageEditMode.Erase}" >
+                                    <CommonControls:FontAwesome Icon="f12d" IconStyle="Light"  >
+                                        <CommonControls:FontAwesome.Style>
+                                            <Style TargetType="{x:Type CommonControls:FontAwesome}" BasedOn="{StaticResource {x:Type CommonControls:FontAwesome}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedEditMode, Mode=OneWay}" Value="Erase">
+                                                        <Setter Property="Color" Value="{StaticResource InfoColour}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CommonControls:FontAwesome.Style>
+                                    </CommonControls:FontAwesome>
+                                </Button>
+                            </Grid>
+
+                            <!--Select-->
+                            <Grid ToolTip="Select Mode" 
+                                ToolTipService.InitialShowDelay="500" 
+                                ToolTipService.ShowOnDisabled="True"  
+                                Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}"
+                                Visibility="{Binding IsSelectEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                IsEnabled="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource InverseEnumToBooleanConverter}, ConverterParameter=Select}">
+                                <Button Command="{Binding ChangeModeCommand, Mode=OneWay}"  CommandParameter="{x:Static CommonControls:ImageEditMode.Select}" >
+                                    <CommonControls:FontAwesome Icon="f5ef" IconStyle="Light" >
+                                        <CommonControls:FontAwesome.Style>
+                                            <Style TargetType="{x:Type CommonControls:FontAwesome}" BasedOn="{StaticResource {x:Type CommonControls:FontAwesome}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedEditMode, Mode=OneWay}" Value="Select">
+                                                        <Setter Property="Color" Value="{StaticResource InfoColour}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CommonControls:FontAwesome.Style>
+                                    </CommonControls:FontAwesome>
+                                </Button>
+        
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+
+                            <!--Color-->
+                            <Grid Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}">
+                                <Border BorderThickness="1" BorderBrush="{StaticResource ButtonBorderBrush}" Padding="6">
+                                    <Grid IsEnabled="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource InverseEnumToBooleanConverter}, ConverterParameter=None}">
+                                        <CommonControls:ColorPicker SelectedColor="{Binding MaskColor, Mode=TwoWay}"  Visibility="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource InverseEnumToVisibilityConverter}, ConverterParameter=Select|Resize}"/>
+                                        <CommonControls:ColorPicker SelectedColor="{Binding CanvasColor, Mode=TwoWay}"  Visibility="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Resize}" />
+                                        <CommonControls:ColorPicker SelectedColor="{Binding SelectionColor, Mode=TwoWay}" Visibility="{Binding SelectedEditMode, Mode=OneWay, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter=Select}" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
+
+                            <!--Invert Mask-->
+                            <Grid Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}" Visibility="{Binding IsMaskEnabled, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ToggleButton IsChecked="{Binding IsMaskInvertEnabled, Mode=TwoWay}" ToolTipService.InitialShowDelay="500"  >
+                                    <CommonControls:FontAwesome  IconStyle="Solid" Padding="2" >
+                                        <CommonControls:FontAwesome.Style>
+                                            <Style TargetType="{x:Type CommonControls:FontAwesome}" BasedOn="{StaticResource {x:Type CommonControls:FontAwesome}}">
+                                                <Setter Property="Icon" Value="f004" />
+                                                <Setter Property="Color" Value="{StaticResource  ButtonForeground}" />
+                                                <Setter Property="Background" Value="{StaticResource ButtonBackground}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMaskInvertEnabled, Mode=OneWay}" Value="True">
+                                                        <Setter Property="Icon" Value="f004" />
+                                                        <Setter Property="Color" Value="{StaticResource ButtonBackground}" />
+                                                        <Setter Property="Background" Value="{StaticResource ButtonForeground}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CommonControls:FontAwesome.Style>
+                                    </CommonControls:FontAwesome>
+                                    <ToggleButton.Style>
+                                        <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource ToggleButtonBasic}">
+                                            <Setter Property="ToolTip" Value="Mask Mode - Discard Mask" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMaskInvertEnabled, Mode=OneWay}" Value="True">
+                                                    <Setter Property="ToolTip" Value="Mask Mode - Keep Mask" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ToggleButton.Style>
+                                </ToggleButton>
+                            </Grid>
+
+                            <!--Clear Mask-->
+                            <Grid Width="{Binding ActualHeight, Mode=OneWay, RelativeSource={RelativeSource Self}}">
+                                <Button Command="{Binding MaskClearCommand, Mode=OneWay}" ToolTip="Clear Mask" ToolTipService.InitialShowDelay="500">
+                                    <CommonControls:FontAwesome Icon="f05e" IconStyle="Light"  />
+                                </Button>
+                            </Grid>
+
+                        </StackPanel>
+                    </DockPanel>
+
+                </DockPanel>
+            </DockPanel>
+
+            <!--Main Content-->
+            <Border x:Name="DragDropContainer">
+                <Grid x:Name="MainContent" Background="Transparent">
+
+                    <!--Image Editor-->
+                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" >
+                        <Viewbox>
+                            <Grid x:Name="SourceContainer" Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}">
+
+                                <!--PlaceHolder-->
+                                <Image Source="{Binding Placeholder, Mode=OneTime, TargetNullValue={StaticResource PlaceholderImage}}" Visibility="{Binding HasImage, Converter={StaticResource InverseBooleanToVisibilityConverter}}" Stretch="Uniform" IsHitTestVisible="False"/>
+
+                                <!--Image-->
+                                <Grid x:Name="ImageContainer">
+                                    <Grid Background="{Binding CanvasColor, Converter={StaticResource ColorToBrushConverter}}" Visibility="{Binding IsResizeModified, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <Canvas x:Name="ImageCanvas" Background="Transparent" Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}" Visibility="{Binding Source, Converter={StaticResource NullVisibilityConverter}}">
+                                        <Border x:Name="ResizeContainer" Canvas.Left="0" Canvas.Top="0" Width="{Binding CanvasWidth}" Height="{Binding CanvasHeight}"  >
+                                            <Image Source="{Binding Source.Image}" Stretch="Uniform" RenderOptions.BitmapScalingMode="Fant" />
+                                        </Border>
+                                    </Canvas>
+                                </Grid>
+
+                                <Grid x:Name="MaskContainer">
+
+                                    <!--Selection-->
+                                    <Canvas x:Name="SelectionCanvas" Background="Transparent" Visibility="{Binding Source, Converter={StaticResource NullVisibilityConverter}}"/>
+
+                                    <!--Mask-->
+                                    <InkCanvas x:Name="MaskCanvas"
+                                        ForceCursor="True" 
+                                        Background="Transparent"
+                                        PreviewMouseMove="MaskCanvas_PreviewMouseMove"
+                                        PreviewMouseLeftButtonDown="MaskCanvas_MouseLeftButtonDown"
+                                        PreviewMouseLeftButtonUp="MaskCanvas_MouseLeftButtonUp"
+                                        PreviewMouseWheel="MaskCanvas_OnMouseWheel"
+                                        StrokeCollected="MaskCanvas_StrokeCollected"
+                                        StrokeErased="MaskCanvas_StrokeErased"
+                                        EditingMode="{Binding MaskEditingMode}" 
+                                        DefaultDrawingAttributes="{Binding MaskAttributes}"
+                                        Visibility="{Binding HasImage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    </InkCanvas>
+
+                                </Grid>
+                            </Grid>
+                        </Viewbox>
+                    </Grid>
+
+                    <!--DragDrop Notification-->
+                    <Grid Visibility="{Binding AllowDrop, ElementName=DragDropContainer, Converter={StaticResource BooleanToVisibilityConverter}}" IsHitTestVisible="False" >
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsMaskEnabled, Converter={StaticResource InverseBooleanToVisibilityConverter}}" >
+                            <CommonControls:FontAwesome Icon="e74c" Size="30" IconStyle="SharpLight" Color="{StaticResource AccentColour2}"/>
+                            <TextBlock Text="Drag &amp; Drop Image Here" Foreground="{StaticResource AccentColour2}" FontSize="13" FontWeight="DemiBold" Margin="0,6,0,0"/>
+                        </StackPanel>
+                        <UniformGrid Columns="2" Visibility="{Binding IsMaskEnabled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Border BorderThickness="0,0,1,0" BorderBrush="{StaticResource AccentColour2}">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" >
+                                    <CommonControls:FontAwesome Icon="e74c" Size="26" IconStyle="SharpLight" Color="{StaticResource AccentColour2}"/>
+                                    <TextBlock Text="Drag &amp; Drop Image Here" Foreground="{StaticResource AccentColour2}" FontSize="13" FontWeight="DemiBold" Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <CommonControls:FontAwesome Icon="e74c" Size="26" IconStyle="SharpLight" Color="{StaticResource AccentColour2}"/>
+                                <TextBlock Text="Drag &amp; Drop Mask Here" Foreground="{StaticResource AccentColour2}" FontSize="13" FontWeight="DemiBold" Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </StackPanel>
+                        </UniformGrid>
+                    </Grid>
+
+                    <!--ContextMenu-->
+                    <Grid.ContextMenu>
+                        <ContextMenu>
+
+                            <!--Source-->
+                            <MenuItem Header="Load" InputGestureText="Ctrl+O" Command="{Binding LoadSourceCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f07c" IconStyle="Light" Size="15" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Copy" InputGestureText="Ctrl+C" Command="{Binding CopySourceCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c5" IconStyle="Light" Size="15" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Paste" InputGestureText="Ctrl+V" Command="{Binding PasteSourceCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0ea" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save" InputGestureText="Ctrl+S" Command="{Binding SaveSourceCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c7" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Clear" InputGestureText="Ctrl+Z" Command="{Binding ClearCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f2ed" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <!--Mask-->
+                            <Separator Margin="0,3" Opacity=".3"/>
+                            <MenuItem Header="Load Mask" InputGestureText="Ctrl+F" Command="{Binding LoadMaskCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f07c" IconStyle="Light" Size="15" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Copy Mask" InputGestureText="Ctrl+G" Command="{Binding CopyMaskCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c5" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save Mask" InputGestureText="Ctrl+H" Command="{Binding SaveMaskCommand}">
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c7" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <!--Canvas-->
+                            <Separator Margin="0,3" Opacity=".3"/>
+                            <MenuItem Header="Copy Canvas" InputGestureText="Ctrl+J" Command="{Binding CopyCanvasCommand}" >
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c5" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save Canvas" InputGestureText="Ctrl+K" Command="{Binding SaveCanvasCommand}" >
+                                <MenuItem.Icon>
+                                    <CommonControls:FontAwesome Icon="f0c7" IconStyle="Light" Size="15"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+
+                            <ContextMenu.Style>
+                                <Style TargetType="{x:Type ContextMenu}" BasedOn="{StaticResource {x:Type ContextMenu}}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsInputEnabled}" Value="True"/>
+                                                <Condition Binding="{Binding IsContextMenuEnabled}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <MultiDataTrigger.Setters>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger.Setters>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContextMenu.Style>
+                        </ContextMenu>
+                    </Grid.ContextMenu>
+                </Grid>
+
+                <Border.Style>
+                    <Style TargetType="{x:Type Border}">
+                        <Setter Property="AllowDrop" Value="False"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsLoadEnabled}" Value="True" />
+                                    <Condition Binding="{Binding IsInputEnabled}" Value="True" />
+                                    <Condition Binding="{Binding IsDragDrop, RelativeSource={RelativeSource AncestorType=CommonControls:ViewControl}}" Value="True" />
+                                    <Condition Binding="{Binding DragDropType, RelativeSource={RelativeSource AncestorType=CommonControls:ViewControl}}" Value="Image" />
+                                </MultiDataTrigger.Conditions>
+                                <MultiDataTrigger.Setters>
+                                    <Setter Property="AllowDrop" Value="True"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentColour2}"/>
+                                </MultiDataTrigger.Setters>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
+        </DockPanel>
+    </Border>
+</CommonControls:ImageElementBase>

@@ -1,0 +1,13 @@
+﻿<controls:BaseControl x:Class="TensorStack.WPF.Controls.NullableComboBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:TensorStack.WPF.Controls"
+             mc:Ignorable="d" 
+             d:DesignWidth="200" 
+             x:Name="NullableComboBoxControl">
+    <Border DataContext="{Binding ElementName=NullableComboBoxControl}" >
+        <ComboBox ItemsSource="{Binding InternalItems}" SelectedItem="{Binding InternalItem}" DisplayMemberPath="Name" SelectedIndex="0"/>
+    </Border>
+</controls:BaseControl>
