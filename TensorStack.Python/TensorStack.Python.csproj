@@ -114,6 +114,12 @@
     <None Include="Pipelines\HeliosPipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--IdeogramPipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\IdeogramPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\IdeogramPipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--LongCatAudioPipeline-->
   <ItemGroup>
     <Content Include="Pipelines\LongCatAudioPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />

@@ -1,0 +1,18 @@
+{
+  "_class_name": "Ideogram4Transformer2DModel",
+  "_diffusers_version": "0.39.0.dev0",
+  "adaln_dim": 512,
+  "attention_head_dim": 256,
+  "in_channels": 128,
+  "intermediate_size": 12288,
+  "llm_features_dim": 53248,
+  "mrope_section": [
+    24,
+    20,
+    20
+  ],
+  "norm_eps": 0.00001,
+  "num_attention_heads": 18,
+  "num_layers": 34,
+  "rope_theta": 5000000
+}
