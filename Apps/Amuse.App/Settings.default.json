@@ -443,6 +443,34 @@
       }
     },
     {
+      "Id": 112,
+      "Backend": "PyTorch",
+      "Name": "Ministral-3-3B-IT",
+      "Key": "TE_Ministral3_3B_IT",
+      "Link": "https://huggingface.co/saddam213/TextEncoder/tree/main/Ministral-3-3B-IT",
+      "Checkpoint": {
+        "Name": "Component",
+        "Type": "OnlineFolder",
+        "Folder": "TextEncoder",
+        "Path": "Ministral-3-3B-IT",
+        "DownloadFiles": [
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/chat_template.jinja",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/config.json",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/generation_config.json",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/model.safetensors.index.json",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/model-00001-of-00002.safetensors",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/model-00002-of-00002.safetensors",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/params.json",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/processor_config.json",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/special_tokens_map.json",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/SYSTEM_PROMPT.txt",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/tekken.json",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/tokenizer.json",
+          "https://huggingface.co/saddam213/TextEncoder/resolve/main/Ministral-3-3B-IT/tokenizer_config.json"
+        ]
+      }
+    },
+    {
       "Id": 200,
       "Backend": "PyTorch",
       "Name": "Flux1 AutoEncoder",
@@ -7899,6 +7927,362 @@
         }
       ],
       "Link": "https://huggingface.co/circlestone-labs/Anima-Base-v1.0-Diffusers"
+    },
+    {
+      "Id": 216,
+      "Backend": "PyTorch",
+      "Name": "Ernie Image",
+      "Template": "Ernie",
+      "Pipeline": "ErniePipeline",
+      "ModelType": "Base",
+      "BaseType": "bfloat16",
+      "MediaType": "Image",
+      "ProcessTypes": [ "TextToImage" ],
+      "Checkpoint": {
+        "Vae": {
+          "Name": "AutoEncoder",
+          "Type": "Component",
+          "Path": "VAE_Flux2"
+        },
+        "TextEncoder": {
+          "Name": "TextEncoder",
+          "Type": "Component",
+          "Path": "TE_Ministral3_3B_IT"
+        },
+        "Transformer": {
+          "Name": "Transformer",
+          "Type": "OnlineFolder",
+          "Path": "transformer",
+          "Folder": "ERNIE-Image",
+          "DownloadFiles": [
+            "https://huggingface.co/baidu/ERNIE-Image/resolve/main/transformer/config.json",
+            "https://huggingface.co/baidu/ERNIE-Image/resolve/main/transformer/diffusion_pytorch_model.safetensors.index.json",
+            "https://huggingface.co/baidu/ERNIE-Image/resolve/main/transformer/diffusion_pytorch_model-00001-of-00002.safetensors",
+            "https://huggingface.co/baidu/ERNIE-Image/resolve/main/transformer/diffusion_pytorch_model-00002-of-00002.safetensors"
+          ]
+        }
+      },
+      "MemoryProfile": [
+        {
+          "QualityMode": "Draft",
+          "MemoryModes": [ 2, 7, 10 ]
+        },
+        {
+          "QualityMode": "Standard",
+          "MemoryModes": [ 2, 9, 13 ]
+        },
+        {
+          "QualityMode": "Production",
+          "MemoryModes": [ 2, 16, 24 ]
+        }
+      ],
+      "DefaultOptions": {
+        "Steps": 50,
+        "Width": 1024,
+        "Height": 1024,
+        "GuidanceScale": 4,
+        "Scheduler": "FlowMatchEuler",
+        "Schedulers": [
+          {
+            "Scheduler": "FlowMatchEuler",
+            "NumTrainTimesteps": 1000,
+            "Shift": 4,
+            "UseDynamicShifting": false,
+            "BaseShift": 0.5,
+            "MaxShift": 1.15,
+            "BaseImageSeqLen": 256,
+            "MaxImageSeqLen": 4096,
+            "InvertSigmas": false,
+            "ShiftTerminal": 0,
+            "UseKarrasSigmas": false,
+            "UseExponentialSigmas": false,
+            "UseBetaSigmas": false,
+            "TimeShiftType": "Exponential",
+            "StochasticSampling": false
+          },
+          {
+            "Scheduler": "UniPCMultistep",
+            "NumTrainTimesteps": 1000,
+            "BetaStart": 0.0001,
+            "BetaEnd": 0.02,
+            "BetaSchedule": "Linear",
+            "TrainedBetas": null,
+            "SolverOrder": 2,
+            "PredictionType": "FlowPrediction",
+            "Thresholding": false,
+            "DynamicThresholdingRatio": 0.995,
+            "SampleMaxValue": 1,
+            "PredictX0": true,
+            "SolverType": "BH2",
+            "LowerOrderFinal": true,
+            "UseKarrasSigmas": false,
+            "UseExponentialSigmas": false,
+            "UseBetaSigmas": false,
+            "UseFlowSigmas": true,
+            "FlowShift": 6,
+            "TimestepSpacing": "Linspace",
+            "StepsOffset": 0,
+            "FinalSigmasType": "Zero",
+            "RescaleBetasZeroSNR": false,
+            "UseDynamicShifting": false,
+            "TimeShiftType": "Exponential",
+            "SigmaMin": 0,
+            "SigmaMax": 0,
+            "ShiftTerminal": 0
+          },
+          {
+            "Scheduler": "DPMSolverMultistep",
+            "NumTrainTimesteps": 1000,
+            "BetaStart": 0.0001,
+            "BetaEnd": 0.02,
+            "BetaSchedule": "ScaledLinear",
+            "TrainedBetas": null,
+            "SolverOrder": 2,
+            "PredictionType": "FlowPrediction",
+            "Thresholding": false,
+            "DynamicThresholdingRatio": 0.995,
+            "SampleMaxValue": 1,
+            "AlgorithmType": "DPMSolverPlus",
+            "SolverType": "Midpoint",
+            "EulerAtFinal": false,
+            "LowerOrderFinal": true,
+            "UseKarrasSigmas": false,
+            "UseExponentialSigmas": false,
+            "UseBetaSigmas": false,
+            "UseFlowSigmas": true,
+            "UseLuLambdas": false,
+            "FlowShift": 6,
+            "TimestepSpacing": "Linspace",
+            "StepsOffset": 0,
+            "FinalSigmasType": "Zero",
+            "RescaleBetasZeroSNR": false,
+            "UseDynamicShifting": false,
+            "TimeShiftType": "Exponential"
+          }
+        ]
+      },
+      "Resolutions": [
+        {
+          "Width": 640,
+          "Height": 1536
+        },
+        {
+          "Width": 768,
+          "Height": 1344
+        },
+        {
+          "Width": 832,
+          "Height": 1280
+        },
+        {
+          "Width": 896,
+          "Height": 1152
+        },
+        {
+          "Width": 768,
+          "Height": 768
+        },
+        {
+          "Width": 1024,
+          "Height": 1024,
+          "IsDefault": true
+        },
+        {
+          "Width": 1152,
+          "Height": 896
+        },
+        {
+          "Width": 1280,
+          "Height": 832
+        },
+        {
+          "Width": 1344,
+          "Height": 768
+        },
+        {
+          "Width": 1536,
+          "Height": 640
+        }
+      ],
+      "Link": "https://huggingface.co/baidu/ERNIE-Image"
+    },
+    {
+      "Id": 216,
+      "Backend": "PyTorch",
+      "Name": "Ernie Image Turbo",
+      "Template": "Ernie",
+      "Pipeline": "ErniePipeline",
+      "ModelType": "Base",
+      "BaseType": "bfloat16",
+      "MediaType": "Image",
+      "ProcessTypes": [ "TextToImage" ],
+      "Checkpoint": {
+        "Vae": {
+          "Name": "AutoEncoder",
+          "Type": "Component",
+          "Path": "VAE_Flux2"
+        },
+        "TextEncoder": {
+          "Name": "TextEncoder",
+          "Type": "Component",
+          "Path": "TE_Ministral3_3B_IT"
+        },
+        "Transformer": {
+          "Name": "Transformer",
+          "Type": "OnlineFolder",
+          "Path": "transformer",
+          "Folder": "ERNIE-Image-Turbo",
+          "DownloadFiles": [
+            "https://huggingface.co/baidu/ERNIE-Image-Turbo/resolve/main/transformer/config.json",
+            "https://huggingface.co/baidu/ERNIE-Image-Turbo/resolve/main/transformer/diffusion_pytorch_model.safetensors.index.json",
+            "https://huggingface.co/baidu/ERNIE-Image-Turbo/resolve/main/transformer/diffusion_pytorch_model-00001-of-00002.safetensors",
+            "https://huggingface.co/baidu/ERNIE-Image-Turbo/resolve/main/transformer/diffusion_pytorch_model-00002-of-00002.safetensors"
+          ]
+        }
+      },
+      "MemoryProfile": [
+        {
+          "QualityMode": "Draft",
+          "MemoryModes": [ 2, 7, 10 ]
+        },
+        {
+          "QualityMode": "Standard",
+          "MemoryModes": [ 2, 9, 13 ]
+        },
+        {
+          "QualityMode": "Production",
+          "MemoryModes": [ 2, 16, 24 ]
+        }
+      ],
+      "DefaultOptions": {
+        "Steps": 8,
+        "Width": 1024,
+        "Height": 1024,
+        "GuidanceScale": 0,
+        "Scheduler": "FlowMatchEuler",
+        "Schedulers": [
+          {
+            "Scheduler": "FlowMatchEuler",
+            "NumTrainTimesteps": 1000,
+            "Shift": 4,
+            "UseDynamicShifting": false,
+            "BaseShift": 0.5,
+            "MaxShift": 1.15,
+            "BaseImageSeqLen": 256,
+            "MaxImageSeqLen": 4096,
+            "InvertSigmas": false,
+            "ShiftTerminal": 0,
+            "UseKarrasSigmas": false,
+            "UseExponentialSigmas": false,
+            "UseBetaSigmas": false,
+            "TimeShiftType": "Exponential",
+            "StochasticSampling": false
+          },
+          {
+            "Scheduler": "UniPCMultistep",
+            "NumTrainTimesteps": 1000,
+            "BetaStart": 0.0001,
+            "BetaEnd": 0.02,
+            "BetaSchedule": "Linear",
+            "TrainedBetas": null,
+            "SolverOrder": 2,
+            "PredictionType": "FlowPrediction",
+            "Thresholding": false,
+            "DynamicThresholdingRatio": 0.995,
+            "SampleMaxValue": 1,
+            "PredictX0": true,
+            "SolverType": "BH2",
+            "LowerOrderFinal": true,
+            "UseKarrasSigmas": false,
+            "UseExponentialSigmas": false,
+            "UseBetaSigmas": false,
+            "UseFlowSigmas": true,
+            "FlowShift": 6,
+            "TimestepSpacing": "Linspace",
+            "StepsOffset": 0,
+            "FinalSigmasType": "Zero",
+            "RescaleBetasZeroSNR": false,
+            "UseDynamicShifting": false,
+            "TimeShiftType": "Exponential",
+            "SigmaMin": 0,
+            "SigmaMax": 0,
+            "ShiftTerminal": 0
+          },
+          {
+            "Scheduler": "DPMSolverMultistep",
+            "NumTrainTimesteps": 1000,
+            "BetaStart": 0.0001,
+            "BetaEnd": 0.02,
+            "BetaSchedule": "ScaledLinear",
+            "TrainedBetas": null,
+            "SolverOrder": 2,
+            "PredictionType": "FlowPrediction",
+            "Thresholding": false,
+            "DynamicThresholdingRatio": 0.995,
+            "SampleMaxValue": 1,
+            "AlgorithmType": "DPMSolverPlus",
+            "SolverType": "Midpoint",
+            "EulerAtFinal": false,
+            "LowerOrderFinal": true,
+            "UseKarrasSigmas": false,
+            "UseExponentialSigmas": false,
+            "UseBetaSigmas": false,
+            "UseFlowSigmas": true,
+            "UseLuLambdas": false,
+            "FlowShift": 6,
+            "TimestepSpacing": "Linspace",
+            "StepsOffset": 0,
+            "FinalSigmasType": "Zero",
+            "RescaleBetasZeroSNR": false,
+            "UseDynamicShifting": false,
+            "TimeShiftType": "Exponential"
+          }
+        ]
+      },
+      "Resolutions": [
+        {
+          "Width": 640,
+          "Height": 1536
+        },
+        {
+          "Width": 768,
+          "Height": 1344
+        },
+        {
+          "Width": 832,
+          "Height": 1280
+        },
+        {
+          "Width": 896,
+          "Height": 1152
+        },
+        {
+          "Width": 768,
+          "Height": 768
+        },
+        {
+          "Width": 1024,
+          "Height": 1024,
+          "IsDefault": true
+        },
+        {
+          "Width": 1152,
+          "Height": 896
+        },
+        {
+          "Width": 1280,
+          "Height": 832
+        },
+        {
+          "Width": 1344,
+          "Height": 768
+        },
+        {
+          "Width": 1536,
+          "Height": 640
+        }
+      ],
+      "Link": "https://huggingface.co/baidu/ERNIE-Image-Turbo"
     },
     {
       "Id": 300,
