@@ -90,6 +90,12 @@
     <None Include="Pipelines\CogVideoXPipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--ErniePipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\ErniePipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\ErniePipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--FluxPipeline-->
   <ItemGroup>
     <Content Include="Pipelines\FluxPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />

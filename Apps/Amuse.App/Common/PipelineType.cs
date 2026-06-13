@@ -44,6 +44,9 @@ namespace Amuse.App.Common
         [Display(Name = "Anima Pipeline", ShortName = "Anima")]
         AnimaPipeline = 62,
 
+        [Display(Name = "Ernie Pipeline", ShortName = "Ernie")]
+        ErniePipeline = 63,
+
 
         // Video
         [Display(Name = "Wan Pipeline", ShortName = "Wan")]
