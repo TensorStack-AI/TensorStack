@@ -1,0 +1,33 @@
+{
+  "_class_name": "GlmImagePipeline",
+  "_diffusers_version": "0.37.0.dev0",
+  "_name_or_path": "zai-org/GLM-Image-Decoder",
+  "text_encoder": [
+    "transformers",
+    "T5EncoderModel"
+  ],
+  "vision_language_encoder": [
+    "transformers",
+    "GlmImageForConditionalGeneration"
+  ],
+  "scheduler": [
+    "diffusers",
+    "FlowMatchEulerDiscreteScheduler"
+  ],
+  "tokenizer": [
+    "transformers",
+    "ByT5Tokenizer"
+  ],
+  "processor":[
+    "transformers",
+    "GlmImageProcessor"
+  ],
+  "transformer": [
+    "diffusers",
+    "GlmImageTransformer2DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKL"
+  ]
+}

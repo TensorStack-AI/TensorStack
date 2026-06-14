@@ -178,7 +178,6 @@ def load_tokenizer(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str
     print(f"[Load] Loading Pretrained Tokenizer")
     tokenizer = ByT5Tokenizer.from_pretrained(
         tokenizer_path,
-        config=tokenizer_config,
         dtype=config.data_type,
         **pipeline_kwargs
     )
@@ -218,14 +217,13 @@ def load_processor(config: DataObjects.PipelineConfig, pipeline_kwargs: Dict[str
         print(f"[Load] Loading Cached Processor")
         return _pipeline.processor
 
-    processor_path: Path = _model_config["tokenizer"]
-    processor_config: Path = _model_config["tokenizer_config"]
+    processor_path: Path = _model_config["tokenizer_2"]
+    processor_config: Path = _model_config["tokenizer_2_config"]
 
     # 1. Load from pretrained folder
     print(f"[Load] Loading Pretrained Processor")
     processor = GlmImageProcessor.from_pretrained(
         processor_path,
-        config=processor_config,
         dtype=config.data_type,
         **pipeline_kwargs
     )
@@ -247,10 +245,9 @@ def load_vision_language_encoder(config: DataObjects.PipelineConfig, pipeline_kw
     print(f"[Load] Loading Pretrained VisionLanguageEncoder")
     vision_language_encoder = GlmImageForConditionalGeneration.from_pretrained(
         vision_language_encoder_path,
-        config=vision_language_encoder_config,
         dtype=config.data_type,
         device_map=_device_map,
-        #quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER),
+        quantization_config=Quantization.auto_pretrained_config(config, QuantTarget.TEXT_ENCODER),
         **pipeline_kwargs
     )
     Utils.trim_memory(True)
@@ -445,27 +442,14 @@ def generate(
     Utils.notification_push(key="Generate", subkey="Initialize", elapsed=_stopwatch.reset())
 
     # Prompt Cache
-    prompt_cache_key = (options.prompt, options.negative_prompt, options.guidance_scale > 1)
-    if _prompt_cache_key != prompt_cache_key:
-        print(f"[Generate] Encoding prompt")
-        with torch.no_grad():
-            _prompt_cache_value = _pipeline.encode_prompt(
-                prompt=options.prompt,
-                negative_prompt=options.negative_prompt,
-                do_classifier_free_guidance=options.guidance_scale > 1,
-                device=_pipeline._execution_device,
-                max_sequence_length=2048
-            )
-            _prompt_cache_key = prompt_cache_key
+    # None
 
     # Notify
     Utils.notification_push(key="Generate", subkey="Encode", elapsed=_stopwatch.reset())
 
     # Pipeline Options
-    (prompt_embeds, negative_prompt_embeds) = _prompt_cache_value
     pipeline_options = {
-        "prompt_embeds": prompt_embeds,
-        "negative_prompt_embeds": negative_prompt_embeds,
+        "prompt": options.prompt,
         "height": options.height,
         "width": options.width,
         "generator": _generator.manual_seed(options.seed),
