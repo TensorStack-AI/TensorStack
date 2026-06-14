@@ -114,6 +114,12 @@
     <None Include="Pipelines\Flux2KleinPipeline.py" Pack="false" />
   </ItemGroup>
 
+  <!--GlmImagePipeline-->
+  <ItemGroup>
+    <Content Include="Pipelines\GlmImagePipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />
+    <None Include="Pipelines\GlmImagePipeline.py" Pack="false" />
+  </ItemGroup>
+
   <!--HeliosPipeline-->
   <ItemGroup>
     <Content Include="Pipelines\HeliosPipeline.py" PackagePath="contentFiles\any\any\Pipelines\" CopyToOutputDirectory="PreserveNewest" PackageCopyToOutput="true" />

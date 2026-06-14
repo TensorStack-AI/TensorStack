@@ -1,0 +1,71 @@
+{
+  "_class_name": "AutoencoderKL",
+  "_diffusers_version": "0.37.0.dev0",
+  "act_fn": "silu",
+  "block_out_channels": [
+    128,
+    512,
+    1024,
+    1024
+  ],
+  "down_block_types": [
+    "DownEncoderBlock2D",
+    "DownEncoderBlock2D",
+    "DownEncoderBlock2D",
+    "DownEncoderBlock2D"
+  ],
+  "force_upcast": true,
+  "in_channels": 3,
+  "latent_channels": 16,
+  "latents_mean": [
+    -0.2080078125,
+    1.875,
+    -0.470703125,
+    -1.265625,
+    -1.421875,
+    0.77734375,
+    -0.3671875,
+    -0.9453125,
+    0.318359375,
+    0.7734375,
+    -0.1884765625,
+    -0.022216796875,
+    -0.220703125,
+    -1.59375,
+    -0.81640625,
+    -0.255859375
+  ],
+  "latents_std": [
+    3.0625,
+    2.203125,
+    2.265625,
+    4.84375,
+    2.5,
+    3.9375,
+    2.203125,
+    3.03125,
+    2.1875,
+    2.046875,
+    2.71875,
+    2.390625,
+    2.390625,
+    2.453125,
+    2.25,
+    2.15625
+  ],
+  "layers_per_block": 3,
+  "mid_block_add_attention": false,
+  "norm_num_groups": 32,
+  "out_channels": 3,
+  "sample_size": 1024,
+  "scaling_factor": 0.18215,
+  "shift_factor": null,
+  "up_block_types": [
+    "UpDecoderBlock2D",
+    "UpDecoderBlock2D",
+    "UpDecoderBlock2D",
+    "UpDecoderBlock2D"
+  ],
+  "use_post_quant_conv": false,
+  "use_quant_conv": false
+}

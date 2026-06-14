@@ -1,0 +1,14 @@
+{
+  "_class_name": "GlmImageTransformer2DModel",
+  "_diffusers_version": "0.37.0.dev0",
+  "attention_head_dim": 128,
+  "condition_dim": 256,
+  "in_channels": 16,
+  "num_attention_heads": 32,
+  "num_layers": 30,
+  "out_channels": 16,
+  "patch_size": 2,
+  "prior_vq_quantizer_codebook_size": 16384,
+  "text_embed_dim": 1472,
+  "time_embed_dim": 512
+}
