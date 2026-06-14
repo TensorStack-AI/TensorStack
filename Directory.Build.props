@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <Version>0.8.13</Version>
+    <Version>0.8.14</Version>
     <Copyright>sa_ddam213 - 2026</Copyright>
     <RepositoryUrl>https://github.com/saddam213/TensorStack</RepositoryUrl>
     <PackageTags>onnx;onnx-runtime;</PackageTags>

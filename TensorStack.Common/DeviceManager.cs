@@ -91,7 +91,6 @@ namespace TensorStack.Common
                 Type = Enum.Parse<DeviceType>(device.Type.ToString()),
                 Name = metadata.ParseOrDefault("Description", string.Empty),
                 Memory = metadata.ParseOrDefault("DxgiVideoMemory", 0, " MB"),
-                HardwareLUID = metadata.ParseOrDefault("LUID", 0),
                 HardwareID = (int)device.DeviceId,
                 HardwareVendorId = (int)device.VendorId,
                 Vendor = Enum.IsDefined(typeof(VendorType), (int)device.VendorId)
